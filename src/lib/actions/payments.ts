@@ -10,38 +10,41 @@ export async function createCashPayment(formData: {
 }) {
   const supabase = createClient();
 
-  // 1. Insert into pembayaran
-  const { data: payment, error: paymentError } = await supabase
-    .from("pembayaran")
-    .insert([
-      {
-        tagihan_id: formData.tagihan_id,
-        jumlah_bayar: formData.jumlah_bayar,
-        metode: formData.metode,
-        status: "LUNAS", // Using LUNAS as per schema but logically 'VERIFIED'
-      },
-    ])
-    .select()
-    .single();
+  // Perform atomic-like operations using Promise.all or sequential checks
+  try {
+    // 1. Insert into pembayaran
+    const { data: payment, error: paymentError } = await supabase
+      .from("pembayaran")
+      .insert([
+        {
+          tagihan_id: formData.tagihan_id,
+          jumlah_bayar: formData.jumlah_bayar,
+          metode: formData.metode,
+          status: "LUNAS", 
+        },
+      ])
+      .select()
+      .single();
 
-  if (paymentError) {
-    return { error: paymentError.message };
+    if (paymentError) throw new Error(paymentError.message);
+
+    // 2. Update tagihan status to LUNAS
+    const { error: billError } = await supabase
+      .from("tagihan")
+      .update({ status: "LUNAS" })
+      .eq("id", formData.tagihan_id);
+
+    if (billError) throw new Error(billError.message);
+
+    revalidatePath("/pembayaran");
+    revalidatePath("/tagihan");
+    revalidatePath("/mahasiswa");
+    revalidatePath("/dashboard");
+    
+    return { success: true, data: payment };
+  } catch (error: any) {
+    return { error: error.message };
   }
-
-  // 2. Update tagihan status to LUNAS
-  const { error: billError } = await supabase
-    .from("tagihan")
-    .update({ status: "LUNAS" })
-    .eq("id", formData.tagihan_id);
-
-  if (billError) {
-    return { error: billError.message };
-  }
-
-  revalidatePath("/pembayaran");
-  revalidatePath("/dashboard");
-  
-  return { success: true, data: payment };
 }
 
 export async function getStudentBills(studentId: string) {
@@ -52,10 +55,6 @@ export async function getStudentBills(studentId: string) {
     .eq("mahasiswa_id", studentId)
     .eq("status", "BELUM LUNAS");
     
-  if (error) return { error: error.message };
-  return { data };
-}
-
   if (error) return { error: error.message };
   return { data };
 }
@@ -128,4 +127,3 @@ export async function getStudentDetails(studentId: string) {
 
   return { student, bills: bills || [], payments: studentPayments };
 }
-
