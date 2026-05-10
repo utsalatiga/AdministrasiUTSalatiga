@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Search, UserPlus, FileUp, RefreshCw } from "lucide-react";
 import { useStudents, Student } from "@/hooks/useStudents";
 import StudentTable from "@/components/students/StudentTable";
@@ -10,7 +10,7 @@ import StudentDetailModal from "@/components/students/StudentDetailModal";
 
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function MahasiswaPage() {
+function MahasiswaContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -35,7 +35,6 @@ export default function MahasiswaPage() {
     refresh 
   } = useStudents(searchQuery, page, 10);
 
-
   const handleEdit = (student: Student) => {
     setSelectedStudent(student);
     setIsFormOpen(true);
@@ -50,7 +49,6 @@ export default function MahasiswaPage() {
     setSelectedStudent(null);
     setIsFormOpen(true);
   };
-
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -135,3 +133,15 @@ export default function MahasiswaPage() {
   );
 }
 
+export default function MahasiswaPage() {
+  return (
+    <Suspense fallback={
+      <div className="p-20 flex flex-col items-center justify-center text-slate-400 gap-4">
+        <RefreshCw className="h-8 w-8 animate-spin" />
+        <p className="font-medium animate-pulse">Menyiapkan Data Mahasiswa...</p>
+      </div>
+    }>
+      <MahasiswaContent />
+    </Suspense>
+  );
+}
