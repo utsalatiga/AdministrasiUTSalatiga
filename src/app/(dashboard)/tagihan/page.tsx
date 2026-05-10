@@ -107,7 +107,7 @@ export default function TagihanPage() {
           >
             <option value="">Semua Status</option>
             <option value="LUNAS">Lunas</option>
-            <option value="BELUM LUNAS">Belum Lunas</option>
+            <option value="BELUM_LUNAS">Belum Lunas</option>
           </select>
         </div>
       </div>

@@ -53,7 +53,7 @@ export async function getStudentBills(studentId: string) {
     .from("tagihan")
     .select("*")
     .eq("mahasiswa_id", studentId)
-    .eq("status", "BELUM LUNAS");
+    .eq("status", "BELUM_LUNAS");
     
   if (error) return { error: error.message };
   return { data };
@@ -86,7 +86,7 @@ export async function getStudentFinancialSummary(studentId: string) {
   const totalArrears = totalTagihan - totalPaid;
   
   const isLunas = bills.length > 0 && bills.every(b => b.status === "LUNAS");
-  const hasUnpaid = bills.some(b => b.status === "BELUM LUNAS");
+  const hasUnpaid = bills.some(b => b.status === "BELUM_LUNAS");
 
   return { 
     totalTagihan,

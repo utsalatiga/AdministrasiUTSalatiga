@@ -45,7 +45,7 @@ export function useStudents(searchQuery: string = "", page: number = 1, pageSize
       const processedData = (data as any[]).map(student => {
         const bills = student.tagihan || [];
         const total = bills.reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
-        const hasUnpaid = bills.some((b: any) => b.status === "BELUM LUNAS");
+        const hasUnpaid = bills.some((b: any) => b.status === "BELUM_LUNAS");
         const isLunas = bills.length > 0 && bills.every((b: any) => b.status === "LUNAS");
         
         return {

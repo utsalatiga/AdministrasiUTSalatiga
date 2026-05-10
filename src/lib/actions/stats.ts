@@ -17,7 +17,7 @@ export async function getDashboardStats() {
   const { data: arrearsData } = await supabase
     .from("tagihan")
     .select("jumlah")
-    .eq("status", "BELUM LUNAS");
+    .eq("status", "BELUM_LUNAS");
   
   const totalArrears = arrearsData?.reduce((acc, curr) => acc + Number(curr.jumlah), 0) || 0;
 
