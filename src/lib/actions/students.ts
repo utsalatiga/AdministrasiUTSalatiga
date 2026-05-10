@@ -33,6 +33,10 @@ export async function importBatchStudents(data: any[]) {
 
     // 3. Prepare and Bulk Insert Tagihan
     const timestamp = Date.now();
+    const defaultDueDate = new Date();
+    defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+    const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
+
     const billsToInsert = data.map((row, idx) => {
       const studentId = studentMap.get(row.nim);
       return {
@@ -41,9 +45,11 @@ export async function importBatchStudents(data: any[]) {
         jumlah: Number(row.nominal) || 0,
         status: row.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS",
         kode: `INV-${row.nim}-${timestamp}-${idx}`,
+        jatuh_tempo: row.jatuh_tempo || defaultDueDateStr,
         created_at: new Date().toISOString()
       };
     }).filter(b => b.mahasiswa_id);
+
 
     const { error: billError } = await supabase
       .from("tagihan")

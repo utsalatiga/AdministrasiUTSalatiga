@@ -86,8 +86,10 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
               angkatan: getVal(["ANGKATAN"]),
               jenis_tagihan: getVal(["JENIS TAGIHAN", "JENIS", "KETERANGAN"]),
               nominal: getNum(["NOMINAL", "JUMLAH", "TOTAL"]),
-              status: getVal(["STATUS", "KETERANGAN BAYAR"]).toUpperCase().replace(" ", "_")
+              status: getVal(["STATUS", "KETERANGAN BAYAR"]).toUpperCase().replace(" ", "_"),
+              jatuh_tempo: getVal(["JATUH TEMPO", "DUE DATE", "TANGGAL JATUH TEMPO"])
             };
+
           }).filter(s => s.nim && s.nama);
 
           const total = allMappedData.length;
