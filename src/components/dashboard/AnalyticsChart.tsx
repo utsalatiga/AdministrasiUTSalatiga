@@ -57,7 +57,7 @@ export default function AnalyticsChart({ data }: AnalyticsChartProps) {
               boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
               padding: '12px'
             }}
-            formatter={(value: number) => [formatCurrency(value), "Pemasukan"]}
+            formatter={(value: any) => [formatCurrency(Number(value) || 0), "Pemasukan"]}
           />
           <Area
             type="monotone"
