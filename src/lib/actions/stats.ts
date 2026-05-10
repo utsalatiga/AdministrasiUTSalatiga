@@ -2,18 +2,26 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function getDashboardStats() {
+export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?: string }) {
   const supabase = createClient();
 
   // 1. Total Pemasukan (Status LUNAS)
-  const { data: incomeData } = await supabase
+  let incomeQuery = supabase
     .from("pembayaran")
-    .select("jumlah_bayar")
+    .select("jumlah_bayar, created_at")
     .eq("status", "LUNAS");
+
+  if (filters?.dateStart) {
+    incomeQuery = incomeQuery.gte("created_at", filters.dateStart);
+  }
+  if (filters?.dateEnd) {
+    incomeQuery = incomeQuery.lte("created_at", filters.dateEnd);
+  }
   
+  const { data: incomeData } = await incomeQuery;
   const totalIncome = incomeData?.reduce((acc, curr) => acc + Number(curr.jumlah_bayar), 0) || 0;
 
-  // 2. Total Tunggakan (Status BELUM LUNAS)
+  // 2. Total Tunggakan (Status BELUM_LUNAS)
   const { data: arrearsData } = await supabase
     .from("tagihan")
     .select("jumlah")
@@ -32,15 +40,14 @@ export async function getDashboardStats() {
     .select("*", { count: "exact", head: true })
     .eq("status", "PENDING");
 
-  // 5. Chart Data (Last 6 Months)
-  // This is a simplified version; in production, you might use a more complex SQL query
+  // 5. Chart Data (Mocking last 6 months with real current data as latest point)
   const chartData = [
     { month: "Jan", total: 45000000 },
     { month: "Feb", total: 52000000 },
     { month: "Mar", total: 48000000 },
     { month: "Apr", total: 61000000 },
     { month: "Mei", total: 55000000 },
-    { month: "Jun", total: totalIncome > 100000000 ? totalIncome / 2 : totalIncome },
+    { month: "Jun", total: totalIncome },
   ];
 
   return {
@@ -57,6 +64,7 @@ export async function getReports(filters: {
   dateEnd?: string;
   type?: string;
   method?: string;
+  status?: string;
 }) {
   const supabase = createClient();
   
@@ -73,16 +81,33 @@ export async function getReports(filters: {
       )
     `);
 
+  if (filters.dateStart) {
+    query = query.gte("created_at", filters.dateStart);
+  }
+  if (filters.dateEnd) {
+    query = query.lte("created_at", filters.dateEnd);
+  }
+
   if (filters.method) {
     query = query.eq("metode", filters.method);
   }
 
-  if (filters.type) {
-    query = query.filter("tagihan.jenis", "eq", filters.type);
+  if (filters.status) {
+    query = query.eq("status", filters.status);
   }
 
+  // Filter nested requires manual filter or joining correctly
+  // For simplicity here, we'll fetch and filter if type is needed, 
+  // or use a more advanced Supabase syntax.
+  
   const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
-  return { data };
+
+  let filteredData = data;
+  if (filters.type) {
+    filteredData = data?.filter(p => p.tagihan.jenis === filters.type) || [];
+  }
+
+  return { data: filteredData };
 }

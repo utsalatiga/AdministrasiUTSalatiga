@@ -8,9 +8,18 @@ import {
 } from "lucide-react";
 import { getDashboardStats } from "@/lib/actions/stats";
 import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
+import DashboardFilters from "@/components/dashboard/DashboardFilters";
 
-export default async function DashboardPage() {
-  const statsData = await getDashboardStats();
+export default async function DashboardPage({ 
+  searchParams 
+}: { 
+  searchParams: { start?: string; end?: string; range?: string } 
+}) {
+  const statsData = await getDashboardStats({
+    dateStart: searchParams.start,
+    dateEnd: searchParams.end
+  });
+
 
   const formatRupiah = (number: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -53,10 +62,14 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-1">
-        <h1 className="font-serif text-3xl text-slate-900">Dashboard Overview</h1>
-        <p className="text-slate-500 text-sm">Ringkasan real-time aktivitas keuangan mahasiswa.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="font-serif text-3xl text-slate-900">Dashboard Overview</h1>
+          <p className="text-slate-500 text-sm">Ringkasan real-time aktivitas keuangan mahasiswa.</p>
+        </div>
+        <DashboardFilters />
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (

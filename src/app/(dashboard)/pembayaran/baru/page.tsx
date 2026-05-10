@@ -9,7 +9,10 @@ import {
   ArrowRight, 
   Loader2,
   CheckCircle2,
-  Calendar
+  Calendar,
+  Wallet,
+  Send,
+  Upload
 } from "lucide-react";
 import { searchStudents, getStudentBills, createCashPayment, getStudentFinancialSummary } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
@@ -26,6 +29,10 @@ export default function NewPaymentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
+  
+  // New State for Payment Method
+  const [method, setMethod] = useState<"TUNAI" | "TRANSFER">("TUNAI");
+  const [isAutoVerify, setIsAutoVerify] = useState(true);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -57,27 +64,37 @@ export default function NewPaymentPage() {
     setIsLoading(false);
   };
 
-
   const handlePayment = async () => {
     if (!selectedBill) return;
     setIsSubmitting(true);
+    
+    // Status is LUNAS if Tunai or if Transfer with AutoVerify checked
+    const status = (method === "TUNAI" || isAutoVerify) ? "LUNAS" : "PENDING";
+    
     const result = await createCashPayment({
       tagihan_id: selectedBill.id,
       jumlah_bayar: selectedBill.jumlah,
-      metode: "TUNAI",
+      metode: method,
+      status: status
     });
 
     if (result.success) {
-      setPaymentResult({
-        no_kwitansi: `KW-${Date.now().toString().slice(-6)}`,
-        tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
-        nama: selectedStudent.nama,
-        nim: selectedStudent.nim,
-        untuk_pembayaran: selectedBill.jenis,
-        jumlah: selectedBill.jumlah,
-        admin: "Admin Keuangan",
-      });
-      setShowReceipt(true);
+      if (status === "LUNAS") {
+        setPaymentResult({
+          no_kwitansi: `KW-${Date.now().toString().slice(-6)}`,
+          tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
+          nama: selectedStudent.nama,
+          nim: selectedStudent.nim,
+          untuk_pembayaran: selectedBill.jenis,
+          jumlah: selectedBill.jumlah,
+          admin: "Admin Keuangan",
+        });
+        setShowReceipt(true);
+      } else {
+        alert("Pembayaran berhasil dicatat sebagai PENDING. Silakan verifikasi di menu Verifikasi.");
+        setSelectedStudent(null);
+        setSelectedBill(null);
+      }
     } else {
       alert(result.error);
     }
@@ -96,7 +113,7 @@ export default function NewPaymentPage() {
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-1">
         <h1 className="font-serif text-3xl text-slate-900">Input Pembayaran Baru</h1>
-        <p className="text-slate-500 text-sm">Pencatatan pembayaran tunai mahasiswa secara manual.</p>
+        <p className="text-slate-500 text-sm">Pencatatan pembayaran mahasiswa oleh Admin (Tunai/Transfer).</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -163,11 +180,10 @@ export default function NewPaymentPage() {
                 )}
               </div>
             )}
-
           </div>
         </div>
 
-        {/* Step 2: Pilih Tagihan & Konfirmasi */}
+        {/* Step 2: Pilih Tagihan & Metode */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm min-h-[400px]">
             {!selectedStudent ? (
@@ -188,14 +204,35 @@ export default function NewPaymentPage() {
               </div>
             ) : (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-serif text-xl text-slate-800">Pilih Tagihan</h3>
-                  <span className="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-bold">
-                    {bills.length} Tagihan Aktif
-                  </span>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <h3 className="font-serif text-xl text-slate-800">Pilih Tagihan & Metode</h3>
+                  
+                  {/* Method Toggle */}
+                  <div className="flex p-1 bg-slate-100 rounded-xl w-fit">
+                    <button 
+                      onClick={() => setMethod("TUNAI")}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                        method === "TUNAI" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                      )}
+                    >
+                      <Wallet className="h-3.5 w-3.5" />
+                      TUNAI
+                    </button>
+                    <button 
+                      onClick={() => setMethod("TRANSFER")}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                        method === "TRANSFER" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                      )}
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      TRANSFER
+                    </button>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                   {bills.map((bill) => (
                     <button
                       key={bill.id}
@@ -237,6 +274,31 @@ export default function NewPaymentPage() {
 
                 {selectedBill && (
                   <div className="pt-6 border-t border-slate-100 mt-8 space-y-6">
+                    {method === "TRANSFER" && (
+                      <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-status-amber uppercase tracking-wider flex items-center gap-2">
+                            <Upload className="h-4 w-4" />
+                            Konfirmasi Transfer
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">Verifikasi Langsung?</span>
+                            <input 
+                              type="checkbox" 
+                              checked={isAutoVerify}
+                              onChange={(e) => setIsAutoVerify(e.target.checked)}
+                              className="h-4 w-4 accent-primary"
+                            />
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-slate-500 italic">
+                          {isAutoVerify 
+                            ? "Admin telah memvalidasi bukti transfer secara manual. Status akan langsung LUNAS." 
+                            : "Pembayaran akan dicatat sebagai PENDING untuk diverifikasi kemudian."}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center justify-between shadow-xl shadow-slate-900/10">
                       <div>
                         <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mb-1">Total yang Dibayar</p>
@@ -251,7 +313,7 @@ export default function NewPaymentPage() {
                           <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
                           <>
-                            Konfirmasi Tunai
+                            {method === "TUNAI" ? "Konfirmasi Tunai" : "Simpan Transfer"}
                             <ArrowRight className="h-5 w-5" />
                           </>
                         )}

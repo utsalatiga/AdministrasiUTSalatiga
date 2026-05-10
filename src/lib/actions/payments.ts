@@ -7,10 +7,10 @@ export async function createCashPayment(formData: {
   tagihan_id: string;
   jumlah_bayar: number;
   metode: string;
+  status: "LUNAS" | "PENDING";
 }) {
   const supabase = createClient();
 
-  // Perform atomic-like operations using Promise.all or sequential checks
   try {
     // 1. Insert into pembayaran
     const { data: payment, error: paymentError } = await supabase
@@ -20,7 +20,7 @@ export async function createCashPayment(formData: {
           tagihan_id: formData.tagihan_id,
           jumlah_bayar: formData.jumlah_bayar,
           metode: formData.metode,
-          status: "LUNAS", 
+          status: formData.status, 
         },
       ])
       .select()
@@ -28,24 +28,28 @@ export async function createCashPayment(formData: {
 
     if (paymentError) throw new Error(paymentError.message);
 
-    // 2. Update tagihan status to LUNAS
-    const { error: billError } = await supabase
-      .from("tagihan")
-      .update({ status: "LUNAS" })
-      .eq("id", formData.tagihan_id);
+    // 2. Update tagihan status to LUNAS ONLY IF payment is LUNAS
+    if (formData.status === "LUNAS") {
+      const { error: billError } = await supabase
+        .from("tagihan")
+        .update({ status: "LUNAS" })
+        .eq("id", formData.tagihan_id);
 
-    if (billError) throw new Error(billError.message);
+      if (billError) throw new Error(billError.message);
+    }
 
     revalidatePath("/pembayaran");
     revalidatePath("/tagihan");
     revalidatePath("/mahasiswa");
     revalidatePath("/dashboard");
+    revalidatePath("/verifikasi");
     
     return { success: true, data: payment };
   } catch (error: any) {
     return { error: error.message };
   }
 }
+
 
 export async function getStudentBills(studentId: string) {
   const supabase = createClient();

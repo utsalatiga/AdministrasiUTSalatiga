@@ -7,10 +7,13 @@ import {
   Filter, 
   Calendar as CalendarIcon,
   Loader2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Clock,
+  CheckCircle2
 } from "lucide-react";
 import { getReports } from "@/lib/actions/stats";
 import { exportToExcel } from "@/lib/utils/export-excel";
+import { cn } from "@/lib/utils";
 
 export default function LaporanPage() {
   const [data, setData] = useState<any[]>([]);
@@ -18,6 +21,9 @@ export default function LaporanPage() {
   const [filters, setFilters] = useState({
     method: "",
     type: "",
+    status: "",
+    dateStart: "",
+    dateEnd: ""
   });
 
   const fetchData = async () => {
@@ -62,6 +68,24 @@ export default function LaporanPage() {
 
       {/* Filter Section */}
       <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-wrap items-center gap-4">
+        {/* Date Filters */}
+        <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
+          <CalendarIcon className="h-4 w-4 text-slate-400" />
+          <input 
+            type="date" 
+            className="bg-transparent text-xs font-bold text-slate-600 focus:outline-none"
+            value={filters.dateStart}
+            onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
+          />
+          <span className="text-slate-300 text-xs">sampai</span>
+          <input 
+            type="date" 
+            className="bg-transparent text-xs font-bold text-slate-600 focus:outline-none"
+            value={filters.dateEnd}
+            onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
+          />
+        </div>
+
         <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
           <Filter className="h-4 w-4 text-slate-400" />
           <select 
@@ -72,6 +96,19 @@ export default function LaporanPage() {
             <option value="">Semua Metode</option>
             <option value="TUNAI">Tunai</option>
             <option value="TRANSFER">Transfer</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
+          <Clock className="h-4 w-4 text-slate-400" />
+          <select 
+            className="bg-transparent text-sm font-semibold text-slate-600 focus:outline-none"
+            value={filters.status}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+          >
+            <option value="">Semua Status</option>
+            <option value="LUNAS">Lunas (Verified)</option>
+            <option value="PENDING">Pending</option>
           </select>
         </div>
 
@@ -100,7 +137,7 @@ export default function LaporanPage() {
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mahasiswa</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jenis Tagihan</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metode</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tanggal</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Nominal</th>
               </tr>
             </thead>
@@ -137,8 +174,14 @@ export default function LaporanPage() {
                         {item.metode}
                       </span>
                     </td>
-                    <td className="px-8 py-6 text-sm text-slate-500">
-                      {new Date(item.created_at).toLocaleDateString("id-ID")}
+                    <td className="px-8 py-6">
+                      <div className={cn(
+                        "flex items-center gap-2 w-fit px-3 py-1 rounded-full mx-auto",
+                        item.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : "bg-amber-50 text-status-amber"
+                      )}>
+                        {item.status === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{item.status}</span>
+                      </div>
                     </td>
                     <td className="px-8 py-6 text-right">
                       <p className="font-serif text-lg text-slate-900 font-tabular">{formatRupiah(item.jumlah_bayar)}</p>

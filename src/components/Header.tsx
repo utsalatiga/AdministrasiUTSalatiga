@@ -1,15 +1,35 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import { User, Bell, Search } from "lucide-react";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { 
+  User, 
+  Bell, 
+  Search, 
+  Settings, 
+  LogOut, 
+  ChevronDown,
+  Shield
+} from "lucide-react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const supabase = createClient();
   
   const getPageTitle = () => {
     if (pathname === "/") return "Dashboard Overview";
     const path = pathname.split("/")[1];
-    return path.charAt(0).toUpperCase() + path.slice(1);
+    return path ? path.charAt(0).toUpperCase() + path.slice(1) : "Dashboard";
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
   return (
@@ -36,14 +56,55 @@ export default function Header() {
           
           <div className="h-8 w-[1px] bg-slate-100"></div>
 
-          <div className="flex items-center gap-3 cursor-pointer group">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-700 leading-none">Admin UT</p>
-              <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">Super Administrator</p>
+          <div className="relative">
+            <div 
+              className="flex items-center gap-3 cursor-pointer group"
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+            >
+              <div className="text-right hidden sm:block">
+                <p className="text-sm font-semibold text-slate-700 leading-none">Admin UT</p>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">Super Administrator</p>
+              </div>
+              <div className="h-10 w-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                <User className="h-5 w-5" />
+              </div>
+              <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform", isProfileOpen && "rotate-180")} />
             </div>
-            <div className="h-10 w-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-all">
-              <User className="h-5 w-5" />
-            </div>
+
+            {isProfileOpen && (
+              <div className="absolute right-0 mt-3 w-56 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
+                <div className="p-4 bg-slate-50 border-b border-slate-100">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">User Aktif</p>
+                  <p className="text-sm font-bold text-slate-800">admin@utsalatiga.ac.id</p>
+                </div>
+                <div className="p-2">
+                  <Link 
+                    href="/settings"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-xl transition-all"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Pengaturan Sistem
+                  </Link>
+                  <Link 
+                    href="/verifikasi"
+                    onClick={() => setIsProfileOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-xl transition-all"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Verifikasi Pembayaran
+                  </Link>
+                  <div className="h-[1px] bg-slate-50 my-2"></div>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-rose-600 hover:bg-rose-50 rounded-xl transition-all font-bold"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Keluar Sistem
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
