@@ -36,6 +36,10 @@ export async function createStudent(data: {
 
     // 2. Handle Initial Billing if provided
     if (data.billing && data.billing.nominal > 0) {
+      const defaultDueDate = new Date();
+      defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+      const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
+
       const { data: bill, error: billError } = await supabase
         .from("tagihan")
         .insert({
@@ -44,10 +48,11 @@ export async function createStudent(data: {
           jenis: data.billing.jenis,
           jumlah: data.billing.nominal,
           status: data.billing.status,
-          jatuh_tempo: data.billing.jatuh_tempo
+          jatuh_tempo: data.billing.jatuh_tempo || defaultDueDateStr
         })
         .select()
         .single();
+
 
       if (billError) throw billError;
 

@@ -219,7 +219,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                 Informasi Tagihan Awal
               </h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700 ml-1">Jenis Tagihan</label>
                   <div className="relative">
@@ -232,39 +232,30 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 ml-1">Nominal (Rp)</label>
-                  <input
-                    type="number"
-                    {...register("billing_nominal")}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold"
-                    placeholder="0"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 ml-1">Jatuh Tempo</label>
-                  <div className="relative">
-                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 ml-1">Nominal (Rp)</label>
                     <input
-                      type="date"
-                      {...register("billing_jatuh_tempo")}
-                      className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all"
+                      type="number"
+                      {...register("billing_nominal")}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold"
+                      placeholder="0"
                     />
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 ml-1">Status Awal</label>
-                  <select
-                    {...register("billing_status")}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="BELUM_LUNAS">Belum Lunas</option>
-                    <option value="LUNAS">Lunas (Auto-Sync Pembayaran)</option>
-                  </select>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 ml-1">Status Awal</label>
+                    <select
+                      {...register("billing_status")}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all appearance-none cursor-pointer font-semibold"
+                    >
+                      <option value="BELUM_LUNAS">Belum Lunas</option>
+                      <option value="LUNAS">Lunas (Auto-Sync)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
+
             </div>
           )}
 
