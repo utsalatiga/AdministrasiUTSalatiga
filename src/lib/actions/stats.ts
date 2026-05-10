@@ -40,15 +40,39 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
     .select("*", { count: "exact", head: true })
     .eq("status", "PENDING");
 
-  // 5. Chart Data (Mocking last 6 months with real current data as latest point)
-  const chartData = [
-    { month: "Jan", total: 45000000 },
-    { month: "Feb", total: 52000000 },
-    { month: "Mar", total: 48000000 },
-    { month: "Apr", total: 61000000 },
-    { month: "Mei", total: 55000000 },
-    { month: "Jun", total: totalIncome },
-  ];
+  // 5. Real Dynamic Chart Data (Last 6 Months)
+  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+  const now = new Date();
+  const chartData = [];
+
+  // Fetch all verified payments for the last 6 months for the chart
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(now.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const { data: allIncome } = await supabase
+    .from("pembayaran")
+    .select("jumlah_bayar, created_at")
+    .eq("status", "LUNAS")
+    .gte("created_at", sixMonthsAgo.toISOString());
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(now.getMonth() - i);
+    const monthName = months[d.getMonth()];
+    const year = d.getFullYear();
+    
+    // Calculate total for this month
+    const monthlyTotal = allIncome
+      ?.filter(p => {
+        const pDate = new Date(p.created_at);
+        return pDate.getMonth() === d.getMonth() && pDate.getFullYear() === year;
+      })
+      .reduce((acc, curr) => acc + Number(curr.jumlah_bayar), 0) || 0;
+
+    chartData.push({ month: monthName, total: monthlyTotal });
+  }
 
   return {
     totalIncome,
@@ -73,6 +97,7 @@ export async function getReports(filters: {
     .select(`
       *,
       tagihan:tagihan_id (
+        id,
         jenis,
         mahasiswa:mahasiswa_id (
           nama,
@@ -96,10 +121,6 @@ export async function getReports(filters: {
     query = query.eq("status", filters.status);
   }
 
-  // Filter nested requires manual filter or joining correctly
-  // For simplicity here, we'll fetch and filter if type is needed, 
-  // or use a more advanced Supabase syntax.
-  
   const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
