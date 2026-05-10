@@ -1,0 +1,196 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { 
+  Receipt, 
+  Search, 
+  Filter, 
+  CheckCircle2, 
+  Clock, 
+  Printer,
+  XCircle,
+  Loader2
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
+import OfficialReceipt from "@/components/payments/OfficialReceipt";
+
+export default function TagihanPage() {
+  const [bills, setBills] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+
+  const supabase = createClient();
+
+  const fetchBills = async () => {
+    setIsLoading(true);
+    let query = supabase
+      .from("tagihan")
+      .select(`
+        *,
+        mahasiswa:mahasiswa_id (
+          nama,
+          nim
+        )
+      `);
+
+    if (filterStatus) {
+      query = query.eq("status", filterStatus);
+    }
+
+    if (search) {
+      query = query.or(`mahasiswa.nama.ilike.%${search}%,mahasiswa.nim.ilike.%${search}%`);
+    }
+
+    const { data, error } = await query.order("created_at", { ascending: false });
+    if (data) setBills(data);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchBills();
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [search, filterStatus]);
+
+  const handlePrint = (bill: any) => {
+    setSelectedReceipt({
+      no_kwitansi: `KW-${bill.kode}-${Date.now().toString().slice(-4)}`,
+      tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
+      nama: bill.mahasiswa.nama,
+      nim: bill.mahasiswa.nim,
+      untuk_pembayaran: bill.jenis,
+      jumlah: bill.jumlah,
+      admin: "Admin Keuangan",
+    });
+  };
+
+  const formatRupiah = (number: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(number);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="font-serif text-3xl text-slate-900">Manajemen Tagihan</h1>
+          <p className="text-slate-500 text-sm">Monitoring status pembayaran mahasiswa Universitas Terbuka.</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="flex-1 min-w-[300px] relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari NIM atau Nama..."
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
+          <Filter className="h-4 w-4 text-slate-400" />
+          <select 
+            className="bg-transparent text-sm font-semibold text-slate-600 focus:outline-none"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="">Semua Status</option>
+            <option value="LUNAS">Lunas</option>
+            <option value="BELUM LUNAS">Belum Lunas</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mahasiswa</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jenis</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Nominal</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td colSpan={5} className="px-8 py-6"><div className="h-8 bg-slate-50 rounded-xl w-full"></div></td>
+                  </tr>
+                ))
+              ) : bills.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-8 py-20 text-center text-slate-400 italic">Data tagihan tidak ditemukan.</td>
+                </tr>
+              ) : (
+                bills.map((bill) => (
+                  <tr key={bill.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
+                          {bill.mahasiswa?.nama?.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{bill.mahasiswa?.nama}</p>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{bill.mahasiswa?.nim}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-sm text-slate-600 font-medium">
+                      {bill.jenis}
+                      <p className="text-[10px] text-slate-400 mt-1">{bill.kode}</p>
+                    </td>
+                    <td className="px-8 py-6 text-right font-serif text-lg text-slate-900 font-tabular">
+                      {formatRupiah(bill.jumlah)}
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className={cn(
+                        "flex items-center gap-2 w-fit px-3 py-1 rounded-full mx-auto",
+                        bill.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : "bg-amber-50 text-status-amber"
+                      )}>
+                        {bill.status === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{bill.status}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      {bill.status === "LUNAS" && (
+                        <button 
+                          onClick={() => handlePrint(bill)}
+                          className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                          title="Cetak Kwitansi"
+                        >
+                          <Printer className="h-5 w-5" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {selectedReceipt && (
+        <OfficialReceipt 
+          data={selectedReceipt} 
+          onClose={() => setSelectedReceipt(null)} 
+        />
+      )}
+    </div>
+  );
+}

@@ -1,38 +1,62 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { useState, useEffect } from "react";
 import { 
   Plus, 
   Wallet, 
   History, 
   ArrowUpRight, 
   Search,
-  FileText,
-  CheckCircle2
+  CheckCircle2,
+  Printer,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import OfficialReceipt from "@/components/payments/OfficialReceipt";
 
-export default async function PaymentsHistoryPage() {
+export default function PaymentsHistoryPage() {
+  const [payments, setPayments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+  
   const supabase = createClient();
 
-  // Fetch payments with joined student and bill info
-  const { data: payments } = await supabase
-    .from("pembayaran")
-    .select(`
-      *,
-      tagihan:tagihan_id (
-        jenis,
-        mahasiswa:mahasiswa_id (
-          nama,
-          nim
+  const fetchPayments = async () => {
+    setIsLoading(true);
+    const { data } = await supabase
+      .from("pembayaran")
+      .select(`
+        *,
+        tagihan:tagihan_id (
+          jenis,
+          mahasiswa:mahasiswa_id (
+            nama,
+            nim
+          )
         )
-      )
-    `)
-    .order("created_at", { ascending: false });
+      `)
+      .order("created_at", { ascending: false });
+    
+    if (data) setPayments(data);
+    setIsLoading(false);
+  };
 
-  // Summary logic
-  const today = new Date().toISOString().split('T')[0];
-  const todayPayments = payments?.filter(p => p.created_at.startsWith(today)) || [];
-  const totalToday = todayPayments.reduce((acc, curr) => acc + Number(curr.jumlah_bayar), 0);
-  const countToday = todayPayments.length;
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const handlePrint = (p: any) => {
+    setSelectedReceipt({
+      no_kwitansi: `KW-${Date.now().toString().slice(-6)}`,
+      tanggal: new Date(p.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
+      nama: p.tagihan.mahasiswa.nama,
+      nim: p.tagihan.mahasiswa.nim,
+      untuk_pembayaran: p.tagihan.jenis,
+      jumlah: p.jumlah_bayar,
+      admin: "Admin Keuangan",
+    });
+  };
 
   const formatRupiah = (number: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -41,6 +65,12 @@ export default async function PaymentsHistoryPage() {
       minimumFractionDigits: 0,
     }).format(number);
   };
+
+  // Summary logic
+  const today = new Date().toISOString().split('T')[0];
+  const todayPayments = payments.filter(p => p.created_at.startsWith(today));
+  const totalToday = todayPayments.reduce((acc, curr) => acc + Number(curr.jumlah_bayar), 0);
+  const countToday = todayPayments.length;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -103,14 +133,6 @@ export default async function PaymentsHistoryPage() {
             <History className="h-4 w-4 text-slate-400" />
             Riwayat Terkini
           </h3>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Cari transaksi..." 
-              className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 w-64 transition-all"
-            />
-          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -120,14 +142,21 @@ export default async function PaymentsHistoryPage() {
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mahasiswa</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Keterangan</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metode</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Nominal</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {(!payments || payments.length === 0) ? (
+              {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center text-slate-400 italic text-sm">
+                  <td colSpan={6} className="px-8 py-10 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-300" />
+                  </td>
+                </tr>
+              ) : payments.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-8 py-20 text-center text-slate-400 italic text-sm">
                     Belum ada riwayat pembayaran yang tercatat.
                   </td>
                 </tr>
@@ -155,13 +184,22 @@ export default async function PaymentsHistoryPage() {
                       </span>
                     </td>
                     <td className="px-8 py-6">
-                      <div className="flex items-center gap-2 text-status-emerald bg-emerald-50 w-fit px-3 py-1 rounded-full">
+                      <div className="flex items-center gap-2 text-status-emerald bg-emerald-50 w-fit px-3 py-1 rounded-full mx-auto">
                         <div className="w-1.5 h-1.5 bg-status-emerald rounded-full animate-pulse"></div>
                         <span className="text-[10px] font-bold uppercase tracking-wider">LUNAS</span>
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
                       <p className="font-serif text-lg text-slate-900 font-tabular">{formatRupiah(p.jumlah_bayar)}</p>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <button 
+                        onClick={() => handlePrint(p)}
+                        className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                        title="Cetak Kwitansi"
+                      >
+                        <Printer className="h-5 w-5" />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -170,6 +208,13 @@ export default async function PaymentsHistoryPage() {
           </table>
         </div>
       </div>
+
+      {selectedReceipt && (
+        <OfficialReceipt 
+          data={selectedReceipt} 
+          onClose={() => setSelectedReceipt(null)} 
+        />
+      )}
     </div>
   );
 }
