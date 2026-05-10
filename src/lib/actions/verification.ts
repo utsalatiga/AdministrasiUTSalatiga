@@ -26,18 +26,41 @@ export async function getPendingPayments() {
   return { data };
 }
 
-export async function verifyPayment(paymentId: string, billId: string) {
+export async function verifyPayment(paymentId: string, billId: string, formData?: FormData) {
   const supabase = createClient();
+  let proofUrl = null;
 
-  // 1. Update payment status to VERIFIED (using LUNAS as per schema mapping)
+  // 1. Handle File Upload if provided during verification
+  if (formData) {
+    const file = formData.get("file") as File;
+    if (file && file.size > 0) {
+      const fileName = `${paymentId}-${Date.now()}.${file.name.split(".").pop()}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("payment-proofs")
+        .upload(fileName, file);
+
+      if (uploadError) return { error: "Gagal mengunggah bukti: " + uploadError.message };
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("payment-proofs")
+        .getPublicUrl(fileName);
+      
+      proofUrl = publicUrl;
+    }
+  }
+
+  // 2. Update payment status to VERIFIED (LUNAS)
+  const updatePayload: any = { status: "LUNAS" };
+  if (proofUrl) updatePayload.bukti_url = proofUrl;
+
   const { error: paymentError } = await supabase
     .from("pembayaran")
-    .update({ status: "LUNAS" })
+    .update(updatePayload)
     .eq("id", paymentId);
 
   if (paymentError) return { error: paymentError.message };
 
-  // 2. Update bill status to LUNAS
+  // 3. Update bill status to LUNAS
   const { error: billError } = await supabase
     .from("tagihan")
     .update({ status: "LUNAS" })
@@ -58,8 +81,7 @@ export async function rejectPayment(paymentId: string, reason?: string) {
   const { error } = await supabase
     .from("pembayaran")
     .update({ 
-      status: "GAGAL", // Using GAGAL as per schema mapping for REJECTED
-      // If we had a 'reason' column, we'd update it here
+      status: "GAGAL",
     })
     .eq("id", paymentId);
 
