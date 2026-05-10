@@ -5,67 +5,86 @@ import { revalidatePath } from "next/cache";
 
 export async function importBatchStudents(data: any[]) {
   const supabase = createClient();
-  let successCount = 0;
-  let errorCount = 0;
+  
+  try {
+    // 1. Bulk Upsert Mahasiswa
+    const studentData = data.map(row => ({
+      nim: row.nim,
+      nama: row.nama,
+      prodi: row.prodi,
+      angkatan: row.angkatan
+    }));
 
-  for (const row of data) {
-    try {
-      // 1. Upsert Mahasiswa
-      const { data: student, error: studentError } = await supabase
-        .from("mahasiswa")
-        .upsert({
-          nim: row.nim,
-          nama: row.nama,
-          prodi: row.prodi,
-          angkatan: row.angkatan
-        }, { onConflict: "nim" })
-        .select()
-        .single();
+    const { error: studentError } = await supabase
+      .from("mahasiswa")
+      .upsert(studentData, { onConflict: "nim" });
+      
+    if (studentError) throw studentError;
 
-      if (studentError) throw studentError;
+    // 2. Fetch IDs to link
+    const allNims = data.map(d => d.nim);
+    const { data: students, error: fetchError } = await supabase
+      .from("mahasiswa")
+      .select("id, nim")
+      .in("nim", allNims);
 
-      // 2. Create Tagihan
-      const { data: bill, error: billError } = await supabase
+    if (fetchError) throw fetchError;
+    const studentMap = new Map(students?.map(s => [s.nim, s.id]));
+
+    // 3. Prepare and Bulk Insert Tagihan
+    const timestamp = Date.now();
+    const billsToInsert = data.map((row, idx) => {
+      const studentId = studentMap.get(row.nim);
+      return {
+        mahasiswa_id: studentId,
+        jenis: row.jenis_tagihan || "SPP",
+        jumlah: Number(row.nominal) || 0,
+        status: row.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS",
+        kode: `INV-${row.nim}-${timestamp}-${idx}`,
+        created_at: new Date().toISOString()
+      };
+    }).filter(b => b.mahasiswa_id);
+
+    const { error: billError } = await supabase
+      .from("tagihan")
+      .insert(billsToInsert);
+      
+    if (billError) throw billError;
+
+    // 4. Handle Payments
+    const lunasBills = billsToInsert.filter(b => b.status === "LUNAS");
+    if (lunasBills.length > 0) {
+      const { data: createdBills, error: billFetchError } = await supabase
         .from("tagihan")
-        .insert({
-          mahasiswa_id: student.id,
-          jenis: row.jenis_tagihan || "SPP",
-          jumlah: Number(row.nominal) || 0,
-          status: row.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS",
-          kode: `INV-${Date.now().toString().slice(-4)}-${row.nim.slice(-3)}`
-        })
-        .select()
-        .single();
+        .select("id, kode")
+        .in("kode", lunasBills.map(b => b.kode));
 
-      if (billError) throw billError;
+      if (billFetchError) throw billFetchError;
 
-      // 3. Handle Auto-Lunas
-      if (row.status === "LUNAS") {
+      const billMap = new Map(createdBills?.map(b => [b.kode, b.id]));
+      const paymentsToInsert = lunasBills.map(b => ({
+        tagihan_id: billMap.get(b.kode),
+        jumlah_bayar: b.jumlah,
+        metode: "TUNAI",
+        status: "LUNAS",
+        created_at: new Date().toISOString()
+      })).filter(p => p.tagihan_id);
+
+      if (paymentsToInsert.length > 0) {
         const { error: paymentError } = await supabase
           .from("pembayaran")
-          .insert({
-            tagihan_id: bill.id,
-            jumlah_bayar: Number(row.nominal) || 0,
-            metode: "TUNAI",
-            status: "LUNAS"
-          });
-
+          .insert(paymentsToInsert);
         if (paymentError) throw paymentError;
       }
-
-      successCount++;
-    } catch (err) {
-      console.error(`Error importing row for NIM ${row.nim}:`, err);
-      errorCount++;
     }
-  }
 
-  revalidatePath("/mahasiswa");
-  revalidatePath("/tagihan");
-  revalidatePath("/");
-  
-  return { 
-    success: true, 
-    message: `Selesai: ${successCount} berhasil, ${errorCount} gagal.` 
-  };
+    revalidatePath("/mahasiswa");
+    revalidatePath("/tagihan");
+    revalidatePath("/");
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Import Error:", error);
+    return { error: error.message };
+  }
 }
