@@ -8,13 +8,25 @@ import StudentFormModal from "@/components/students/StudentFormModal";
 import ImportExcelModal from "@/components/students/ImportExcelModal";
 import StudentDetailModal from "@/components/students/StudentDetailModal";
 
+import { useSearchParams, useRouter } from "next/navigation";
+
 export default function MahasiswaPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [page, setPage] = useState(1);
+  const page = Number(searchParams.get("page")) || 1;
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
+  const setPage = (newPage: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", newPage.toString());
+    router.push(`?${params.toString()}`);
+  };
 
   const { 
     students, 
@@ -22,6 +34,7 @@ export default function MahasiswaPage() {
     totalCount, 
     refresh 
   } = useStudents(searchQuery, page, 10);
+
 
   const handleEdit = (student: Student) => {
     setSelectedStudent(student);

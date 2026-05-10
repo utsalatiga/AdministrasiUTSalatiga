@@ -1,8 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { Student } from "@/hooks/useStudents";
 import { 
-  MoreHorizontal, 
   Edit2, 
   Trash2, 
   ChevronLeft, 
@@ -10,7 +10,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  TrendingDown
+  TrendingDown,
+  ChevronsLeft,
+  ChevronsRight
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -40,6 +42,7 @@ export default function StudentTable({
 }: StudentTableProps) {
   const supabase = createClient();
   const totalPages = Math.ceil(totalCount / pageSize);
+  const [jumpPage, setJumpPage] = useState("");
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -62,8 +65,45 @@ export default function StudentTable({
     }).format(number);
   };
 
+  const handleJump = (e: React.FormEvent) => {
+    e.preventDefault();
+    const p = parseInt(jumpPage);
+    if (p >= 1 && p <= totalPages) {
+      onPageChange(p);
+      setJumpPage("");
+    }
+  };
+
+  // Generate page numbers to show
+  const getPageNumbers = () => {
+    const pages = [];
+    const showMax = 5;
+    
+    let start = Math.max(1, page - 2);
+    let end = Math.min(totalPages, start + showMax - 1);
+    
+    if (end - start < showMax - 1) {
+      start = Math.max(1, end - showMax + 1);
+    }
+    
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm relative">
+      {/* Loading Overlay */}
+      {isLoading && students.length > 0 && (
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center animate-in fade-in duration-200">
+          <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 flex items-center gap-3">
+            <Loader2 className="h-5 w-5 text-rose-600 animate-spin" />
+            <span className="text-sm font-bold text-slate-600">Memuat Data...</span>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -76,7 +116,7 @@ export default function StudentTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {isLoading ? (
+            {isLoading && students.length === 0 ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="animate-pulse">
                   <td colSpan={5} className="px-6 py-6">
@@ -151,24 +191,73 @@ export default function StudentTable({
         </table>
       </div>
 
-      <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/30">
-        <p className="text-sm text-slate-500">
-          Halaman {page} dari {totalPages || 1} • <span className="font-semibold text-slate-700">{totalCount}</span> Mahasiswa
-        </p>
-        <div className="flex items-center gap-2">
+      <div className="px-6 py-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between bg-slate-50/30 gap-4">
+        <div className="flex items-center gap-4">
+          <p className="text-sm text-slate-500">
+            Halaman <span className="font-bold text-slate-900">{page}</span> dari <span className="font-bold text-slate-900">{totalPages || 1}</span>
+          </p>
+          <form onSubmit={handleJump} className="flex items-center gap-2 border-l border-slate-200 pl-4">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ke Halaman</span>
+            <input 
+              type="number" 
+              min={1} 
+              max={totalPages}
+              value={jumpPage}
+              onChange={(e) => setJumpPage(e.target.value)}
+              className="w-12 px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-bold text-center focus:ring-2 focus:ring-rose-500/20 focus:outline-none"
+            />
+          </form>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button 
+            disabled={page === 1 || isLoading}
+            onClick={() => onPageChange(1)}
+            className="p-2 border border-slate-200 rounded-xl text-slate-400 hover:bg-white disabled:opacity-30 transition-all"
+            title="Halaman Pertama"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+          </button>
           <button 
             disabled={page === 1 || isLoading}
             onClick={() => onPageChange(page - 1)}
-            className="p-2 border border-slate-200 rounded-xl text-slate-400 hover:bg-white disabled:opacity-30 transition-all"
+            className="p-2 border border-slate-200 rounded-xl text-slate-400 hover:bg-white disabled:opacity-30 transition-all mr-2"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
+
+          <div className="flex items-center gap-1">
+            {getPageNumbers().map((n) => (
+              <button
+                key={n}
+                onClick={() => onPageChange(n)}
+                disabled={isLoading}
+                className={cn(
+                  "h-9 w-9 rounded-xl text-xs font-bold transition-all",
+                  page === n 
+                    ? "bg-rose-600 text-white shadow-lg shadow-rose-900/20 scale-110" 
+                    : "text-slate-500 hover:bg-white hover:text-rose-600 border border-transparent hover:border-rose-100"
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+
           <button 
             disabled={page === totalPages || totalPages === 0 || isLoading}
             onClick={() => onPageChange(page + 1)}
-            className="p-2 border border-slate-200 rounded-xl text-slate-400 hover:bg-white disabled:opacity-30 transition-all"
+            className="p-2 border border-slate-200 rounded-xl text-slate-400 hover:bg-white disabled:opacity-30 transition-all ml-2"
           >
             <ChevronRight className="h-4 w-4" />
+          </button>
+          <button 
+            disabled={page === totalPages || totalPages === 0 || isLoading}
+            onClick={() => onPageChange(totalPages)}
+            className="p-2 border border-slate-200 rounded-xl text-slate-400 hover:bg-white disabled:opacity-30 transition-all"
+            title="Halaman Terakhir"
+          >
+            <ChevronsRight className="h-4 w-4" />
           </button>
         </div>
       </div>
