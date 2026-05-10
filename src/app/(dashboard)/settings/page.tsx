@@ -38,12 +38,14 @@ export default function SettingsPage() {
     }
 
     if (res.success) {
-      setResult({ type: "success", message: "Data berhasil direset ulang." });
+      setResult({ type: "success", message: "Data berhasil direset ulang. Me-refresh halaman..." });
       setTimeout(() => {
         setIsConfirmOpen(false);
         setResult(null);
-      }, 2000);
+        window.location.reload(); // Hard refresh to clear browser memory/cache
+      }, 1500);
     } else {
+
       setResult({ type: "error", message: res.error || "Terjadi kesalahan saat reset data." });
     }
     setIsProcessing(false);

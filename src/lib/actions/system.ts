@@ -11,7 +11,7 @@ export async function resetTransactions() {
     const { error: paymentError } = await supabase
       .from("pembayaran")
       .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all
+      .neq("id", "00000000-0000-0000-0000-000000000000"); // Standard UUID placeholder for "all"
 
     if (paymentError) throw paymentError;
 
@@ -19,14 +19,12 @@ export async function resetTransactions() {
     const { error: billError } = await supabase
       .from("tagihan")
       .update({ status: "BELUM_LUNAS" })
-      .neq("id", "00000000-0000-0000-0000-000000000000"); // Update all
+      .neq("id", "00000000-0000-0000-0000-000000000000");
 
     if (billError) throw billError;
 
-    revalidatePath("/");
-    revalidatePath("/pembayaran");
-    revalidatePath("/tagihan");
-    revalidatePath("/laporan");
+    // Invalidate all paths in the layout to ensure cache is cleared
+    revalidatePath("/", "layout");
     
     return { success: true };
   } catch (error: any) {
@@ -38,27 +36,31 @@ export async function resetAllData() {
   const supabase = createClient();
 
   try {
-    // Due to FK constraints, we must delete in order: pembayaran -> tagihan -> mahasiswa
+    // Referential Integrity Order: pembayaran -> tagihan -> mahasiswa
     
-    // 1. Delete payments
-    await supabase.from("pembayaran").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    // 1. Hard Delete payments
+    const { error: pError } = await supabase
+      .from("pembayaran")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    if (pError) throw pError;
     
-    // 2. Delete bills
-    await supabase.from("tagihan").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    // 2. Hard Delete bills
+    const { error: bError } = await supabase
+      .from("tagihan")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000");
+    if (bError) throw bError;
     
-    // 3. Delete students
-    const { error } = await supabase
+    // 3. Hard Delete students
+    const { error: mError } = await supabase
       .from("mahasiswa")
       .delete()
       .neq("id", "00000000-0000-0000-0000-000000000000");
+    if (mError) throw mError;
 
-    if (error) throw error;
-
-    revalidatePath("/");
-    revalidatePath("/mahasiswa");
-    revalidatePath("/tagihan");
-    revalidatePath("/pembayaran");
-    revalidatePath("/laporan");
+    // Invalidate all paths in the layout to ensure total cache invalidation
+    revalidatePath("/", "layout");
     
     return { success: true };
   } catch (error: any) {
