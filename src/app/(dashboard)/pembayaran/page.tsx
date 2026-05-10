@@ -5,7 +5,8 @@ import {
   History, 
   ArrowUpRight, 
   Search,
-  FileText
+  FileText,
+  CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
 
