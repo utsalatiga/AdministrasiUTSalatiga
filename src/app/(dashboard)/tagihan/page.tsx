@@ -113,8 +113,9 @@ export default function TagihanPage() {
       </div>
 
       {/* Table */}
+      {/* Table Area */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -182,6 +183,66 @@ export default function TagihanPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-6 space-y-4 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div className="h-3 bg-slate-50 rounded w-1/3"></div>
+                <div className="h-10 bg-slate-50 rounded w-full"></div>
+              </div>
+            ))
+          ) : bills.length === 0 ? (
+            <div className="p-10 text-center text-slate-400 italic text-sm">
+              Data tagihan tidak ditemukan.
+            </div>
+          ) : (
+            bills.map((bill) => (
+              <div key={bill.id} className="p-6 space-y-4 active:bg-slate-50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
+                      {bill.mahasiswa?.nama?.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">{bill.mahasiswa?.nama}</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{bill.mahasiswa?.nim}</p>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                    bill.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : "bg-amber-50 text-status-amber"
+                  )}>
+                    <span className="text-[9px] font-bold uppercase tracking-wider">{bill.status}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jenis Tagihan</p>
+                    <p className="text-xs font-semibold text-slate-600">{bill.jenis}</p>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal</p>
+                    <p className="text-sm font-serif font-bold text-slate-900">{formatRupiah(bill.jumlah)}</p>
+                  </div>
+                </div>
+
+                {bill.status === "LUNAS" && (
+                  <button 
+                    onClick={() => handlePrint(bill)}
+                    className="w-full py-3 bg-slate-50 text-primary rounded-xl text-xs font-bold border border-slate-100 flex items-center justify-center gap-2"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Cetak Kwitansi
+                  </button>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
 

@@ -87,7 +87,7 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -100,10 +100,10 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="relative bg-white w-full max-w-5xl rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden"
+          className="relative bg-white w-full max-w-5xl rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col md:flex-row overflow-hidden max-h-[95vh]"
         >
           {/* Left: Image Proof / Upload Zone */}
-          <div className="flex-1 bg-slate-50 p-6 relative group overflow-hidden border-r border-slate-100 flex items-center justify-center min-h-[450px]">
+          <div className="flex-1 bg-slate-50 p-4 sm:p-6 relative group overflow-hidden border-b md:border-b-0 md:border-r border-slate-100 flex items-center justify-center min-h-[300px] md:min-h-[450px]">
             {activeImage ? (
               <div className="relative w-full h-full flex flex-col items-center">
                 <img 
@@ -116,7 +116,7 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
                 />
                 
                 {/* Image Actions Overlay */}
-                <div className="absolute top-4 right-4 flex gap-2">
+                <div className="absolute top-2 sm:top-4 right-2 sm:right-4 flex gap-2">
                   <button 
                     onClick={() => setIsFullscreen(!isFullscreen)}
                     className="p-2 bg-white/90 backdrop-blur shadow-sm rounded-full text-slate-600 hover:text-primary transition-all"
@@ -131,34 +131,19 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
                   >
                     <RotateCcw className="h-4 w-4" />
                   </button>
-                  <a 
-                    href={activeImage} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="p-2 bg-white/90 backdrop-blur shadow-sm rounded-full text-slate-600 hover:text-primary transition-all"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
                 </div>
-
-                {previewUrl && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-amber-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-lg flex items-center gap-2">
-                    <ImageIcon className="h-3 w-3" />
-                    Preview Unggahan Baru
-                  </div>
-                )}
               </div>
             ) : (
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-200 rounded-3xl cursor-pointer hover:border-primary/50 hover:bg-white transition-all w-full h-full group"
+                className="flex flex-col items-center justify-center p-6 sm:p-10 border-2 border-dashed border-slate-200 rounded-3xl cursor-pointer hover:border-primary/50 hover:bg-white transition-all w-full h-full group"
               >
-                <div className="h-20 w-20 rounded-full bg-slate-100 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <Upload className="h-8 w-8 text-slate-400 group-hover:text-primary" />
+                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-slate-100 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
+                  <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400 group-hover:text-primary" />
                 </div>
-                <h4 className="text-slate-800 font-bold mb-2">Unggah Bukti Transfer</h4>
-                <p className="text-slate-400 text-sm text-center max-w-[200px]">
-                  Klik atau seret gambar bukti transfer untuk melengkapi verifikasi
+                <h4 className="text-slate-800 font-bold mb-2 text-sm sm:text-base">Unggah Bukti Transfer</h4>
+                <p className="text-slate-400 text-xs text-center max-w-[200px]">
+                  Klik untuk melengkapi verifikasi
                 </p>
               </div>
             )}
@@ -173,11 +158,11 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
           </div>
 
           {/* Right: Details & Actions */}
-          <div className="w-full md:w-[400px] flex flex-col bg-white">
-            <div className="p-8 flex-1 space-y-8">
+          <div className="w-full md:w-[400px] flex flex-col bg-white overflow-y-auto">
+            <div className="p-6 sm:p-8 flex-1 space-y-6 sm:space-y-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-serif text-2xl text-slate-800 leading-tight">Verifikasi Data</h3>
+                  <h3 className="font-serif text-xl sm:text-2xl text-slate-800 leading-tight">Verifikasi Data</h3>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.15em] mt-1">Review Pembayaran</p>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-all">
@@ -203,16 +188,16 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Rincian Transaksi</p>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-400 flex items-center gap-2"><Receipt className="h-4 w-4" /> Jenis</span>
-                      <span className="font-semibold text-slate-700">{data.tagihan.jenis}</span>
+                      <span className="text-slate-400 flex items-center gap-2 text-xs"><Receipt className="h-3.5 w-3.5" /> Jenis</span>
+                      <span className="font-semibold text-slate-700 text-xs">{data.tagihan.jenis}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-slate-400 flex items-center gap-2"><Calendar className="h-4 w-4" /> Tanggal Transaksi</span>
-                      <span className="font-semibold text-slate-700">{new Date(data.created_at).toLocaleDateString('id-ID')}</span>
+                      <span className="text-slate-400 flex items-center gap-2 text-xs"><Calendar className="h-3.5 w-3.5" /> Tanggal</span>
+                      <span className="font-semibold text-slate-700 text-xs">{new Date(data.created_at).toLocaleDateString('id-ID')}</span>
                     </div>
                     <div className="pt-4 border-t border-slate-100 flex flex-col gap-1">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal Pembayaran</span>
-                      <span className="font-serif text-3xl text-primary font-tabular tracking-tighter">
+                      <span className="font-serif text-2xl sm:text-3xl text-primary font-tabular tracking-tighter">
                         {formatRupiah(data.jumlah_bayar)}
                       </span>
                     </div>
@@ -221,11 +206,11 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
               </div>
             </div>
 
-            <div className="p-8 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-4">
+            <div className="p-6 sm:p-8 bg-slate-50 border-t border-slate-100 grid grid-cols-2 gap-3 sm:gap-4 sticky bottom-0">
               <button
                 onClick={handleReject}
                 disabled={isSubmitting}
-                className="flex items-center justify-center gap-2 py-4 px-4 bg-white border border-slate-200 text-status-rose rounded-2xl font-bold hover:bg-rose-50 transition-all disabled:opacity-50 text-sm"
+                className="flex items-center justify-center gap-2 h-12 sm:py-4 px-4 bg-white border border-slate-200 text-status-rose rounded-2xl font-bold hover:bg-rose-50 transition-all disabled:opacity-50 text-xs sm:text-sm shadow-sm"
               >
                 <XCircle className="h-4 w-4" />
                 Tolak
@@ -233,7 +218,7 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
               <button
                 onClick={handleApprove}
                 disabled={isSubmitting}
-                className="flex items-center justify-center gap-2 py-4 px-4 bg-status-emerald text-white rounded-2xl font-bold hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-900/20 disabled:opacity-50 text-sm"
+                className="flex items-center justify-center gap-2 h-12 sm:py-4 px-4 bg-status-emerald text-white rounded-2xl font-bold hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-900/20 disabled:opacity-50 text-xs sm:text-sm"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-5 w-5 animate-spin" />

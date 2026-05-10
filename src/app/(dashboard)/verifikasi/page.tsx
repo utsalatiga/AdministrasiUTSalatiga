@@ -82,7 +82,7 @@ export default function VerificationPage() {
           </h3>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -142,6 +142,61 @@ export default function VerificationPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-6 space-y-4 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div className="h-10 bg-slate-50 rounded w-full"></div>
+              </div>
+            ))
+          ) : payments.length === 0 ? (
+            <div className="p-10 text-center text-slate-400 italic text-sm">
+              Tidak ada antrean verifikasi saat ini.
+            </div>
+          ) : (
+            payments.map((p) => (
+              <div key={p.id} className="p-6 space-y-4 active:bg-slate-50 transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
+                      {p.tagihan?.mahasiswa?.nama?.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">{p.tagihan?.mahasiswa?.nama}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{p.tagihan?.mahasiswa?.nim}</p>
+                    </div>
+                  </div>
+                  <div className="px-2.5 py-1 rounded-full bg-amber-50 text-status-amber text-[9px] font-bold uppercase tracking-wider">
+                    PENDING
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waktu Unggah</p>
+                    <p className="text-xs font-semibold text-slate-600">{new Date(p.created_at).toLocaleDateString('id-ID')}</p>
+                    <p className="text-[10px] text-slate-400">{new Date(p.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</p>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal</p>
+                    <p className="text-sm font-serif font-bold text-slate-900">{formatRupiah(p.jumlah_bayar)}</p>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => handleReview(p)}
+                  className="w-full py-3 bg-sidebar text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-900/10 flex items-center justify-center gap-2"
+                >
+                  <Eye className="h-4 w-4" />
+                  Review Bukti Transfer
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
 

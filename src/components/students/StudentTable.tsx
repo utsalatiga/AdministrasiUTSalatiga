@@ -104,7 +104,7 @@ export default function StudentTable({
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-50/80 border-b border-slate-100">
@@ -189,6 +189,81 @@ export default function StudentTable({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden divide-y divide-slate-100">
+        {isLoading && students.length === 0 ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-4 space-y-3 animate-pulse">
+              <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+              <div className="h-3 bg-slate-50 rounded w-1/3"></div>
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <div className="h-8 bg-slate-50 rounded"></div>
+                <div className="h-8 bg-slate-50 rounded"></div>
+              </div>
+            </div>
+          ))
+        ) : students.length === 0 ? (
+          <div className="p-10 text-center text-slate-400 italic text-sm">
+            Tidak ada data ditemukan.
+          </div>
+        ) : (
+          students.map((student) => (
+            <div 
+              key={student.id}
+              onClick={() => onView(student)}
+              className="p-4 space-y-4 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
+                    {student.nama.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800 leading-none">{student.nama}</p>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mt-1">{student.nim}</p>
+                  </div>
+                </div>
+                <div className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                  student.status_keuangan === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
+                  student.status_keuangan === "MENUNGGAK" ? "bg-rose-50 text-status-rose" : "bg-slate-100 text-slate-400"
+                )}>
+                  <span className="text-[9px] font-bold uppercase tracking-wider">{student.status_keuangan}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prodi / Angkatan</p>
+                  <p className="text-xs font-semibold text-slate-600">{student.prodi} ({student.angkatan})</p>
+                </div>
+                <div className="space-y-1 text-right">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Tagihan</p>
+                  <p className="text-sm font-serif font-bold text-slate-900">{formatRupiah(student.total_tagihan || 0)}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onEdit(student); }}
+                  className="flex-1 py-2 bg-slate-50 text-slate-600 rounded-lg text-xs font-bold border border-slate-100 flex items-center justify-center gap-2"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+                <button 
+                  onClick={(e) => handleDelete(student.id, e)}
+                  className="flex-1 py-2 bg-rose-50 text-status-rose rounded-lg text-xs font-bold border border-rose-100 flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Hapus
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       <div className="px-6 py-6 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between bg-slate-50/30 gap-4">

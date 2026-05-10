@@ -1,5 +1,6 @@
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 export default function DashboardLayout({
   children,
@@ -9,12 +10,13 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
-      <div className="pl-[260px]">
+      <div className="lg:pl-[260px] transition-all duration-300">
         <Header />
-        <main className="pt-16 p-8">
+        <main className="pt-16 p-4 md:p-6 lg:p-8 pb-20 sm:pb-8">
           {children}
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }

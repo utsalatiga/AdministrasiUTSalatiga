@@ -50,21 +50,21 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-end p-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center sm:justify-end p-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
       <div 
         className="absolute inset-0" 
         onClick={onClose}
       />
       
-      <div className="relative bg-white w-full max-w-2xl h-full shadow-2xl flex flex-col animate-in slide-in-from-right-full duration-500">
-        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+      <div className="relative bg-white w-full max-w-2xl h-full sm:h-full shadow-2xl flex flex-col animate-in slide-in-from-bottom sm:slide-in-from-right-full duration-500 rounded-t-[2rem] sm:rounded-none overflow-hidden">
+        <div className="px-6 sm:px-8 py-5 sm:py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary text-white rounded-2xl">
-              <User className="h-6 w-6" />
+            <div className="p-2 sm:p-3 bg-primary text-white rounded-xl sm:rounded-2xl">
+              <User className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <h3 className="font-serif text-xl text-slate-800">Detail Mahasiswa</h3>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Informasi Akademik & Keuangan</p>
+              <h3 className="font-serif text-lg sm:text-xl text-slate-800">Detail Mahasiswa</h3>
+              <p className="hidden sm:block text-[10px] text-slate-400 font-bold uppercase tracking-widest">Informasi Akademik & Keuangan</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
@@ -72,7 +72,7 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-10">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 sm:space-y-10">
           {isLoading ? (
             <div className="h-full flex flex-col items-center justify-center space-y-4 py-20">
               <Loader2 className="h-10 w-10 text-primary animate-spin" />
@@ -82,20 +82,20 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
             <>
               {/* Profile Header */}
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-8">
-                  <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
+                  <div className="p-4 bg-slate-50 rounded-2xl sm:bg-transparent sm:p-0">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">NIM</label>
                     <p className="font-serif text-2xl text-slate-900 font-tabular tracking-tight">{data.student.nim}</p>
                   </div>
-                  <div>
+                  <div className="p-4 bg-slate-50 rounded-2xl sm:bg-transparent sm:p-0">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nama Lengkap</label>
                     <p className="text-lg font-bold text-slate-800">{data.student.nama}</p>
                   </div>
-                  <div>
+                  <div className="p-4 bg-slate-50 rounded-2xl sm:bg-transparent sm:p-0">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Program Studi</label>
                     <p className="text-sm font-semibold text-slate-600">{data.student.prodi}</p>
                   </div>
-                  <div>
+                  <div className="p-4 bg-slate-50 rounded-2xl sm:bg-transparent sm:p-0">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Angkatan</label>
                     <p className="text-sm font-semibold text-slate-600">{data.student.angkatan}</p>
                   </div>
@@ -173,9 +173,9 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
           ) : null}
         </div>
         
-        <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4">
-          <button onClick={onClose} className="w-full py-3.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-all">
-            Tutup
+        <div className="p-6 sm:p-8 bg-slate-50 border-t border-slate-100 sticky bottom-0">
+          <button onClick={onClose} className="w-full h-12 sm:h-auto py-3.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-all shadow-sm">
+            Tutup Detail
           </button>
         </div>
       </div>

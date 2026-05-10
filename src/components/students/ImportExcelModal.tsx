@@ -138,14 +138,14 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
               <Zap className="h-5 w-5" />
             </div>
-            <h3 className="font-serif text-xl text-slate-800">Optimized Batch Import</h3>
+            <h3 className="font-serif text-lg sm:text-xl text-slate-800">Optimized Batch Import</h3>
           </div>
           <button 
             onClick={onClose}
@@ -155,11 +155,11 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
           </button>
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
           {!status?.type && !isImporting && (
             <>
               <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   Mode Performa Tinggi
                 </h4>
@@ -172,7 +172,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className={cn(
-                  "border-2 border-dashed border-slate-200 rounded-2xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-50 transition-all group",
+                  "border-2 border-dashed border-slate-200 rounded-2xl p-6 sm:p-10 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-50 transition-all group",
                   file && "border-emerald-500 bg-emerald-50"
                 )}
               >
@@ -183,20 +183,20 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
                   accept=".xlsx, .xls"
                   className="hidden"
                 />
-                <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <FileSpreadsheet className="h-8 w-8 text-slate-400 group-hover:text-emerald-500" />
+                <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-slate-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <FileSpreadsheet className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400 group-hover:text-emerald-50" />
                 </div>
-                <p className="text-slate-600 font-medium mb-1">
+                <p className="text-slate-600 font-medium mb-1 text-center text-sm sm:text-base">
                   {file ? file.name : "Klik atau seret file Excel ke sini"}
                 </p>
-                <p className="text-slate-400 text-sm">Mendukung ribuan baris data</p>
+                <p className="text-slate-400 text-xs sm:text-sm">Mendukung ribuan baris data</p>
               </div>
             </>
           )}
 
           {isImporting && (
-            <div className="py-10 flex flex-col items-center">
-              <Loader2 className="h-12 w-12 text-emerald-500 animate-spin mb-4" />
+            <div className="py-6 sm:py-10 flex flex-col items-center">
+              <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 text-emerald-500 animate-spin mb-4" />
               <div className="text-center space-y-1 mb-6">
                 <p className="text-slate-600 font-bold">Sedang Memproses Data...</p>
                 <p className="text-xs text-slate-400 font-medium">
@@ -221,26 +221,26 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
 
           {status && (
             <div className={cn(
-              "py-10 flex flex-col items-center text-center",
+              "py-6 sm:py-10 flex flex-col items-center text-center",
               status.type === "success" ? "text-emerald-600" : "text-rose-600"
             )}>
               {status.type === "success" ? (
-                <CheckCircle2 className="h-16 w-16 mb-4 animate-in zoom-in duration-300" />
+                <CheckCircle2 className="h-12 w-12 sm:h-16 sm:w-16 mb-4 animate-in zoom-in duration-300" />
               ) : (
-                <AlertCircle className="h-16 w-16 mb-4 animate-shake" />
+                <AlertCircle className="h-12 w-12 sm:h-16 sm:w-16 mb-4 animate-shake" />
               )}
-              <h4 className="font-bold text-xl mb-2">
+              <h4 className="font-bold text-lg sm:text-xl mb-2">
                 {status.type === "success" ? "Import Selesai!" : "Gagal Mengimpor"}
               </h4>
-              <p className="text-slate-500 text-sm max-w-[300px]">{status.message}</p>
+              <p className="text-slate-500 text-xs sm:text-sm max-w-[300px]">{status.message}</p>
             </div>
           )}
 
-          <div className="mt-8 flex gap-3">
+          <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <button 
               onClick={onClose}
               disabled={isImporting}
-              className="flex-1 px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+              className="flex-1 h-12 sm:h-auto px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 order-2 sm:order-1"
             >
               Tutup
             </button>
@@ -248,7 +248,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
               <button 
                 onClick={handleImport}
                 disabled={!file}
-                className="flex-2 px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/10"
+                className="flex-2 h-12 sm:h-auto px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/10 order-1 sm:order-2"
               >
                 Mulai Proses Bulk
               </button>

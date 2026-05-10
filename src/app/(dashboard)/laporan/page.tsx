@@ -140,7 +140,7 @@ export default function LaporanPage() {
 
       {/* Data Table */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -225,6 +225,67 @@ export default function LaporanPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-slate-100">
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="p-6 space-y-4 animate-pulse">
+                <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                <div className="h-10 bg-slate-50 rounded w-full"></div>
+              </div>
+            ))
+          ) : data.length === 0 ? (
+            <div className="p-10 text-center text-slate-400 italic text-sm">
+              Data tidak ditemukan.
+            </div>
+          ) : (
+            data.map((item, index) => (
+              <div key={item.id} className="p-6 space-y-4 active:bg-slate-50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-xs font-tabular text-slate-400 font-bold">#{index + 1}</div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">{item.tagihan?.mahasiswa?.nama}</p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{item.tagihan?.mahasiswa?.nim}</p>
+                    </div>
+                  </div>
+                  <div className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                    item.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
+                    item.status === "PENDING" ? "bg-amber-50 text-status-amber" : "bg-rose-50 text-status-rose"
+                  )}>
+                    <span className="text-[9px] font-bold uppercase tracking-wider">{item.status}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jenis Tagihan</p>
+                    <p className="text-xs font-semibold text-slate-600">{item.tagihan?.jenis}</p>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal</p>
+                    <p className="text-sm font-serif font-bold text-slate-900">{formatRupiah(item.jumlah_bayar)}</p>
+                    <span className="inline-block text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded uppercase mt-1">
+                      {item.metode}
+                    </span>
+                  </div>
+                </div>
+
+                {item.bukti_url && (
+                  <button 
+                    onClick={() => setSelectedProof(item.bukti_url)}
+                    className="w-full py-3 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold border border-slate-100 flex items-center justify-center gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Lihat Bukti Transfer
+                  </button>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
 
