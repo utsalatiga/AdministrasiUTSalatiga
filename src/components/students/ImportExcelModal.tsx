@@ -10,7 +10,7 @@ import {
   AlertCircle,
   FileSpreadsheet
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { importBatchStudents } from "@/lib/actions/students";
 import { cn } from "@/lib/utils";
 
 interface ImportExcelModalProps {
@@ -25,7 +25,6 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [progress, setProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const supabase = createClient();
 
   if (!isOpen) return null;
 
@@ -46,7 +45,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
 
     setIsImporting(true);
     setStatus(null);
-    setProgress(10);
+    setProgress(20);
 
     try {
       const reader = new FileReader();
@@ -58,18 +57,22 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
           const worksheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-          setProgress(40);
+          setProgress(50);
 
           if (jsonData.length === 0) {
             throw new Error("File Excel kosong atau tidak valid");
           }
 
-          // Mapping columns
-          // Expected columns: NIM, NAMA, PRODI, ANGKATAN (case insensitive)
+          // Mapping columns including financial data
           const mappedData = jsonData.map((row: any) => {
             const getVal = (keys: string[]) => {
               const key = Object.keys(row).find(k => keys.includes(k.toUpperCase()));
               return key ? String(row[key]) : "";
+            };
+
+            const getNum = (keys: string[]) => {
+              const key = Object.keys(row).find(k => keys.includes(k.toUpperCase()));
+              return key ? Number(row[key]) : 0;
             };
 
             return {
@@ -77,30 +80,34 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
               nama: getVal(["NAMA", "NAMA MAHASISWA"]),
               prodi: getVal(["PRODI", "PROGRAM STUDI"]),
               angkatan: getVal(["ANGKATAN"]),
+              jenis_tagihan: getVal(["JENIS TAGIHAN", "JENIS", "KETERANGAN"]),
+              nominal: getNum(["NOMINAL", "JUMLAH", "TOTAL"]),
+              status: getVal(["STATUS", "KETERANGAN BAYAR"]).toUpperCase().replace(" ", "_")
             };
           }).filter(s => s.nim && s.nama);
 
-          setProgress(60);
+          setProgress(70);
 
           if (mappedData.length === 0) {
-            throw new Error("Tidak ada data mahasiswa yang valid (NIM dan Nama wajib ada)");
+            throw new Error("Tidak ada data valid ditemukan. Pastikan kolom NIM dan Nama tersedia.");
           }
 
-          const { error: insertError } = await supabase
-            .from("mahasiswa")
-            .insert(mappedData);
+          // Use Server Action for batch import with financial sync
+          const result = await importBatchStudents(mappedData);
 
-          if (insertError) throw insertError;
-
-          setProgress(100);
-          setStatus({ type: "success", message: `Berhasil mengimpor ${mappedData.length} data mahasiswa.` });
-          onSuccess();
-          setTimeout(() => {
-            onClose();
-            setFile(null);
-            setStatus(null);
-            setProgress(0);
-          }, 2000);
+          if (result.success) {
+            setProgress(100);
+            setStatus({ type: "success", message: result.message });
+            onSuccess();
+            setTimeout(() => {
+              onClose();
+              setFile(null);
+              setStatus(null);
+              setProgress(0);
+            }, 2000);
+          } else {
+            throw new Error(result.message);
+          }
         } catch (err: any) {
           setStatus({ type: "error", message: err.message || "Gagal memproses file Excel" });
         } finally {
@@ -122,7 +129,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             <div className="p-2 bg-primary/10 rounded-lg text-primary">
               <FileUp className="h-5 w-5" />
             </div>
-            <h3 className="font-serif text-xl text-slate-800">Import Batch Mahasiswa</h3>
+            <h3 className="font-serif text-xl text-slate-800">Import Data & Keuangan</h3>
           </div>
           <button 
             onClick={onClose}
@@ -133,6 +140,16 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
         </div>
 
         <div className="p-8">
+          <div className="mb-6 p-4 bg-primary/5 border border-primary/10 rounded-2xl">
+            <h4 className="text-xs font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Format Kolom Excel
+            </h4>
+            <p className="text-[10px] text-slate-500 leading-relaxed">
+              Pastikan file memiliki kolom: <span className="font-bold">NIM, NAMA, PRODI, ANGKATAN, JENIS TAGIHAN, NOMINAL, STATUS</span> (LUNAS/BELUM_LUNAS).
+            </p>
+          </div>
+
           {!status?.type && !isImporting && (
             <div 
               onClick={() => fileInputRef.current?.click()}
@@ -154,14 +171,14 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
               <p className="text-slate-600 font-medium mb-1">
                 {file ? file.name : "Klik atau seret file Excel ke sini"}
               </p>
-              <p className="text-slate-400 text-sm">Hanya mendukung format .xlsx</p>
+              <p className="text-slate-400 text-sm">Format .xlsx atau .xls</p>
             </div>
           )}
 
           {isImporting && (
             <div className="py-10 flex flex-col items-center">
               <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
-              <p className="text-slate-600 font-medium mb-2">Sedang memproses data...</p>
+              <p className="text-slate-600 font-medium mb-2">Sinkronisasi Data Finansial...</p>
               <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                 <div 
                   className="bg-primary h-full transition-all duration-300"
@@ -182,9 +199,9 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
                 <AlertCircle className="h-16 w-16 mb-4" />
               )}
               <h4 className="font-bold text-lg mb-2">
-                {status.type === "success" ? "Import Berhasil!" : "Terjadi Kesalahan"}
+                {status.type === "success" ? "Proses Selesai" : "Gagal Mengimpor"}
               </h4>
-              <p className="text-slate-500">{status.message}</p>
+              <p className="text-slate-500 text-sm">{status.message}</p>
             </div>
           )}
 
@@ -198,7 +215,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             <button 
               onClick={handleImport}
               disabled={!file || isImporting}
-              className="flex-1 px-4 py-3 bg-sidebar text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-3 bg-sidebar text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-900/10"
             >
               Mulai Import
             </button>
