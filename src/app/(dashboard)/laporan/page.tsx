@@ -9,21 +9,28 @@ import {
   Loader2,
   FileSpreadsheet,
   Clock,
-  CheckCircle2
+  CheckCircle2,
+  Image as ImageIcon,
+  Eye,
+  X,
+  Maximize2
 } from "lucide-react";
 import { getReports } from "@/lib/actions/stats";
 import { exportToExcel } from "@/lib/utils/export-excel";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LaporanPage() {
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedProof, setSelectedProof] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     method: "",
     type: "",
     status: "",
     dateStart: "",
-    dateEnd: ""
+    dateEnd: "",
+    hasProof: false
   });
 
   const fetchData = async () => {
@@ -50,7 +57,7 @@ export default function LaporanPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="font-serif text-3xl text-slate-900">Laporan Keuangan</h1>
@@ -109,21 +116,25 @@ export default function LaporanPage() {
             <option value="">Semua Status</option>
             <option value="LUNAS">Lunas (Verified)</option>
             <option value="PENDING">Pending</option>
+            <option value="GAGAL">Gagal / Ditolak</option>
           </select>
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-100">
-          <FileSpreadsheet className="h-4 w-4 text-slate-400" />
-          <select 
-            className="bg-transparent text-sm font-semibold text-slate-600 focus:outline-none"
-            value={filters.type}
-            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-          >
-            <option value="">Semua Jenis Tagihan</option>
-            <option value="SPP">SPP</option>
-            <option value="BUKU">Buku</option>
-            <option value="ALMAMATER">Almamater</option>
-          </select>
+        <div className="flex items-center gap-4 ml-auto">
+          <label className="flex items-center gap-3 cursor-pointer group">
+            <div className="relative">
+              <input 
+                type="checkbox" 
+                className="sr-only peer"
+                checked={filters.hasProof}
+                onChange={(e) => setFilters({ ...filters, hasProof: e.target.checked })}
+              />
+              <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-checked:bg-primary transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5" />
+            </div>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest group-hover:text-primary transition-colors">
+              Hanya yang ada bukti
+            </span>
+          </label>
         </div>
       </div>
 
@@ -136,6 +147,7 @@ export default function LaporanPage() {
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">No</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mahasiswa</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jenis Tagihan</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Bukti Bayar</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metode</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Nominal</th>
@@ -145,14 +157,14 @@ export default function LaporanPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={6} className="px-8 py-6">
+                    <td colSpan={7} className="px-8 py-6">
                       <div className="h-8 bg-slate-100 rounded-xl w-full"></div>
                     </td>
                   </tr>
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-20 text-center text-slate-400 italic text-sm">
+                  <td colSpan={7} className="px-8 py-20 text-center text-slate-400 italic text-sm">
                     Data tidak ditemukan.
                   </td>
                 </tr>
@@ -169,15 +181,37 @@ export default function LaporanPage() {
                     <td className="px-8 py-6 text-sm text-slate-600 font-medium">
                       {item.tagihan?.jenis}
                     </td>
+                    <td className="px-8 py-6 text-center">
+                      {item.bukti_url ? (
+                        <div 
+                          onClick={() => setSelectedProof(item.bukti_url)}
+                          className="relative w-10 h-10 mx-auto rounded-lg overflow-hidden border border-slate-100 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all group/img"
+                        >
+                          <img 
+                            src={item.bukti_url} 
+                            alt="Bukti" 
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
+                            <Eye className="h-4 w-4" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-10 w-10 mx-auto rounded-lg bg-slate-50 flex items-center justify-center text-slate-200">
+                          <ImageIcon className="h-4 w-4" />
+                        </div>
+                      )}
+                    </td>
                     <td className="px-8 py-6">
                       <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md uppercase tracking-wider">
                         {item.metode}
                       </span>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-8 py-6 text-center">
                       <div className={cn(
                         "flex items-center gap-2 w-fit px-3 py-1 rounded-full mx-auto",
-                        item.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : "bg-amber-50 text-status-amber"
+                        item.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
+                        item.status === "PENDING" ? "bg-amber-50 text-status-amber" : "bg-rose-50 text-status-rose"
                       )}>
                         {item.status === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                         <span className="text-[10px] font-bold uppercase tracking-wider">{item.status}</span>
@@ -193,6 +227,56 @@ export default function LaporanPage() {
           </table>
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {selectedProof && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedProof(null)}
+              className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className="absolute top-4 right-4 flex gap-2 z-10">
+                <a 
+                  href={selectedProof} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="p-3 bg-white/90 backdrop-blur rounded-full text-slate-600 hover:text-primary shadow-sm transition-all"
+                >
+                  <Maximize2 className="h-5 w-5" />
+                </a>
+                <button 
+                  onClick={() => setSelectedProof(null)}
+                  className="p-3 bg-white/90 backdrop-blur rounded-full text-slate-600 hover:text-rose-600 shadow-sm transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="p-4 bg-white min-h-[400px] flex items-center justify-center">
+                <img 
+                  src={selectedProof} 
+                  alt="Bukti Transfer Detail" 
+                  className="max-w-full max-h-[80vh] object-contain rounded-xl"
+                />
+              </div>
+              <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                  Pratinjau Bukti Transfer • Sistem Audit Digital
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

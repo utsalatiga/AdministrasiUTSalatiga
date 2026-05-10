@@ -89,7 +89,9 @@ export async function getReports(filters: {
   type?: string;
   method?: string;
   status?: string;
+  hasProof?: boolean;
 }) {
+
   const supabase = createClient();
   
   let query = supabase
@@ -120,6 +122,11 @@ export async function getReports(filters: {
   if (filters.status) {
     query = query.eq("status", filters.status);
   }
+  
+  if (filters.hasProof) {
+    query = query.not("bukti_url", "is", null);
+  }
+
 
   const { data, error } = await query.order("created_at", { ascending: false });
 
