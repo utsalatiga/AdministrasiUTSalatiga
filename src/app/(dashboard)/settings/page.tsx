@@ -38,13 +38,14 @@ export default function SettingsPage() {
     }
 
     if (res.success) {
-      setResult({ type: "success", message: "Data berhasil direset ulang. Me-refresh halaman..." });
+      setResult({ type: "success", message: "Deep clean reset berhasil. Mengarahkan ulang..." });
       setTimeout(() => {
         setIsConfirmOpen(false);
         setResult(null);
-        window.location.reload(); // Hard refresh to clear browser memory/cache
+        window.location.href = '/?reset=true'; // Force hard redirect to clear all state
       }, 1500);
     } else {
+
 
       setResult({ type: "error", message: res.error || "Terjadi kesalahan saat reset data." });
     }
