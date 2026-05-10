@@ -56,6 +56,10 @@ export async function getStudentBills(studentId: string) {
   return { data };
 }
 
+  if (error) return { error: error.message };
+  return { data };
+}
+
 export async function searchStudents(query: string) {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -67,3 +71,61 @@ export async function searchStudents(query: string) {
   if (error) return { error: error.message };
   return { data };
 }
+
+export async function getStudentFinancialSummary(studentId: string) {
+  const supabase = createClient();
+  
+  const { data: bills, error: billsError } = await supabase
+    .from("tagihan")
+    .select("jumlah, status")
+    .eq("mahasiswa_id", studentId);
+
+  if (billsError) return { error: billsError.message };
+
+  const totalTagihan = bills.reduce((acc, curr) => acc + Number(curr.jumlah), 0);
+  const totalPaid = bills.filter(b => b.status === "LUNAS").reduce((acc, curr) => acc + Number(curr.jumlah), 0);
+  const totalArrears = totalTagihan - totalPaid;
+  
+  const isLunas = bills.length > 0 && bills.every(b => b.status === "LUNAS");
+  const hasUnpaid = bills.some(b => b.status === "BELUM LUNAS");
+
+  return { 
+    totalTagihan,
+    totalArrears,
+    status: isLunas ? "LUNAS" : (hasUnpaid ? "MENUNGGAK" : "TIDAK ADA TAGIHAN"),
+    billsCount: bills.length
+  };
+}
+
+export async function getStudentDetails(studentId: string) {
+  const supabase = createClient();
+  
+  const { data: student } = await supabase
+    .from("mahasiswa")
+    .select("*")
+    .eq("id", studentId)
+    .single();
+
+  const { data: bills } = await supabase
+    .from("tagihan")
+    .select("*")
+    .eq("mahasiswa_id", studentId)
+    .order("created_at", { ascending: false });
+
+  // Get payments for these bills
+  const { data: payments } = await supabase
+    .from("pembayaran")
+    .select(`
+      *,
+      tagihan:tagihan_id (
+        jenis,
+        mahasiswa_id
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  const studentPayments = payments?.filter(p => p.tagihan.mahasiswa_id === studentId) || [];
+
+  return { student, bills: bills || [], payments: studentPayments };
+}
+

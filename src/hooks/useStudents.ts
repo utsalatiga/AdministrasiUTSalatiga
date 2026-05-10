@@ -10,6 +10,8 @@ export interface Student {
   prodi: string;
   angkatan: string;
   created_at: string;
+  total_tagihan?: number;
+  status_keuangan?: "LUNAS" | "MENUNGGAK" | "TIDAK ADA TAGIHAN";
 }
 
 export function useStudents(searchQuery: string = "", page: number = 1, pageSize: number = 10) {
@@ -24,7 +26,7 @@ export function useStudents(searchQuery: string = "", page: number = 1, pageSize
     try {
       let query = supabase
         .from("mahasiswa")
-        .select("*", { count: "exact" });
+        .select("*, tagihan(jumlah, status)", { count: "exact" });
 
       if (searchQuery) {
         query = query.or(`nama.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%`);
@@ -39,7 +41,21 @@ export function useStudents(searchQuery: string = "", page: number = 1, pageSize
 
       if (fetchError) throw fetchError;
 
-      setStudents(data || []);
+      // Map financial data
+      const processedData = (data as any[]).map(student => {
+        const bills = student.tagihan || [];
+        const total = bills.reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
+        const hasUnpaid = bills.some((b: any) => b.status === "BELUM LUNAS");
+        const isLunas = bills.length > 0 && bills.every((b: any) => b.status === "LUNAS");
+        
+        return {
+          ...student,
+          total_tagihan: total,
+          status_keuangan: isLunas ? "LUNAS" : (hasUnpaid ? "MENUNGGAK" : "TIDAK ADA TAGIHAN")
+        };
+      });
+
+      setStudents(processedData);
       setTotalCount(count || 0);
     } catch (err: any) {
       setError(err.message);

@@ -6,12 +6,14 @@ import { useStudents, Student } from "@/hooks/useStudents";
 import StudentTable from "@/components/students/StudentTable";
 import StudentFormModal from "@/components/students/StudentFormModal";
 import ImportExcelModal from "@/components/students/ImportExcelModal";
+import StudentDetailModal from "@/components/students/StudentDetailModal";
 
 export default function MahasiswaPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [page, setPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
   const { 
@@ -26,10 +28,16 @@ export default function MahasiswaPage() {
     setIsFormOpen(true);
   };
 
+  const handleView = (student: Student) => {
+    setSelectedStudent(student);
+    setIsDetailOpen(true);
+  };
+
   const handleAddNew = () => {
     setSelectedStudent(null);
     setIsFormOpen(true);
   };
+
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -88,6 +96,7 @@ export default function MahasiswaPage() {
         pageSize={10}
         onPageChange={setPage}
         onEdit={handleEdit}
+        onView={handleView}
         onRefresh={refresh}
       />
 
@@ -103,6 +112,13 @@ export default function MahasiswaPage() {
         onClose={() => setIsImportOpen(false)}
         onSuccess={refresh}
       />
+
+      <StudentDetailModal 
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        studentId={selectedStudent?.id || null}
+      />
     </div>
   );
 }
+

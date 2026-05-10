@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   Calendar
 } from "lucide-react";
-import { searchStudents, getStudentBills, createCashPayment } from "@/lib/actions/payments";
+import { searchStudents, getStudentBills, createCashPayment, getStudentFinancialSummary } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
 import ReceiptTemplate from "@/components/payments/ReceiptTemplate";
 
@@ -19,6 +19,7 @@ export default function NewPaymentPage() {
   const [search, setSearch] = useState("");
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [financialSummary, setFinancialSummary] = useState<any>(null);
   const [bills, setBills] = useState<any[]>([]);
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,10 +45,18 @@ export default function NewPaymentPage() {
     setSearch("");
     setStudents([]);
     setIsLoading(true);
-    const { data } = await getStudentBills(student.id);
-    if (data) setBills(data);
+    
+    const [billsRes, summaryRes] = await Promise.all([
+      getStudentBills(student.id),
+      getStudentFinancialSummary(student.id)
+    ]);
+
+    if (billsRes.data) setBills(billsRes.data);
+    if (summaryRes) setFinancialSummary(summaryRes);
+    
     setIsLoading(false);
   };
+
 
   const handlePayment = async () => {
     if (!selectedBill) return;
@@ -128,14 +137,33 @@ export default function NewPaymentPage() {
             </div>
 
             {selectedStudent && (
-              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-status-emerald" />
-                <div>
-                  <p className="text-xs font-bold text-status-emerald uppercase tracking-wider">Terpilih</p>
-                  <p className="text-sm font-semibold text-slate-800">{selectedStudent.nama}</p>
+              <div className="space-y-3">
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-status-emerald" />
+                  <div>
+                    <p className="text-xs font-bold text-status-emerald uppercase tracking-wider">Terpilih</p>
+                    <p className="text-sm font-semibold text-slate-800">{selectedStudent.nama}</p>
+                  </div>
                 </div>
+
+                {financialSummary && (
+                  <div className="p-5 bg-slate-900 rounded-2xl border border-slate-800 shadow-xl space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Tunggakan</p>
+                      <p className="font-serif text-2xl text-white font-tabular">{formatRupiah(financialSummary.totalArrears)}</p>
+                    </div>
+                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{financialSummary.billsCount} Tagihan</span>
+                      <span className={cn(
+                        "text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest",
+                        financialSummary.status === "LUNAS" ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
+                      )}>{financialSummary.status}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
           </div>
         </div>
 
