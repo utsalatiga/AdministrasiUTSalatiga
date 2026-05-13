@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { 
   X, 
-  QrCode, 
   Banknote, 
   Upload, 
   CheckCircle2, 
   Loader2,
   AlertCircle,
-  CreditCard
+  Coins,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -21,66 +21,25 @@ interface PaymentModalProps {
 }
 
 export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalProps) {
-  const [activeTab, setActiveTab] = useState<"QRIS" | "MANUAL">("QRIS");
+  const [activeTab, setActiveTab] = useState<"TRANSFER" | "CASH">("TRANSFER");
   const [jumlahBayar, setJumlahBayar] = useState<number>(bill.sisa_tagihan || bill.jumlah);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Manual Transfer State
+  // Transfer State
   const [bankPengirim, setBankPengirim] = useState("");
   const [bankTujuan, setBankTujuan] = useState("");
   const [buktiFile, setBuktiFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+
+  // Cash State
+  const [catatan, setCatatan] = useState("Diterima langsung oleh Admin");
 
   const supabase = createClient();
 
-  const handleQrisPayment = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/midtrans/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tagihan_id: bill.id,
-          jumlah_bayar: jumlahBayar,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.error || "Gagal membuat transaksi");
-
-      // @ts-ignore
-      window.snap.pay(data.token, {
-        onSuccess: function(result: any) {
-          console.log("Success:", result);
-          onSuccess();
-          onClose();
-        },
-        onPending: function(result: any) {
-          console.log("Pending:", result);
-          onClose();
-        },
-        onError: function(result: any) {
-          console.log("Error:", result);
-          setError("Pembayaran gagal. Silakan coba lagi.");
-        },
-        onClose: function() {
-          console.log("Customer closed the popup without finishing the payment");
-        }
-      });
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleManualPayment = async (e: React.FormEvent) => {
+  const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!buktiFile || !bankPengirim || !bankTujuan) {
+    
+    if (activeTab === "TRANSFER" && (!buktiFile || !bankPengirim || !bankTujuan)) {
       setError("Harap isi semua kolom dan unggah bukti transfer.");
       return;
     }
@@ -89,30 +48,36 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
     setError(null);
 
     try {
-      // 1. Upload Bukti Transfer to Supabase Storage
-      const fileExt = buktiFile.name.split('.').pop();
-      const fileName = `${bill.mahasiswa.nim}-${Date.now()}.${fileExt}`;
-      const filePath = `bukti-transfer/${fileName}`;
+      let publicUrl = "";
 
-      const { error: uploadError, data: uploadData } = await supabase.storage
-        .from("payments")
-        .upload(filePath, buktiFile);
+      if (activeTab === "TRANSFER" && buktiFile) {
+        // 1. Upload Bukti Transfer to Supabase Storage
+        const fileExt = buktiFile.name.split('.').pop();
+        const fileName = `${bill.mahasiswa.nim}-${Date.now()}.${fileExt}`;
+        const filePath = `bukti-transfer/${fileName}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from("payments")
+          .upload(filePath, buktiFile);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("payments")
-        .getPublicUrl(filePath);
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl: url } } = supabase.storage
+          .from("payments")
+          .getPublicUrl(filePath);
+        
+        publicUrl = url;
+      }
 
       // 2. Call RPC to process payment
       const { error: rpcError } = await supabase.rpc("process_manual_payment", {
         p_tagihan_id: bill.id,
         p_jumlah_bayar: jumlahBayar,
-        p_metode: "TRANSFER_MANUAL",
-        p_bank_pengirim: bankPengirim,
-        p_bank_tujuan: bankTujuan,
-        p_bukti_url: publicUrl,
-        p_order_id: `MANUAL-${bill.kode}-${Date.now()}`
+        p_metode: activeTab === "TRANSFER" ? "TRANSFER_MANUAL" : "TUNAI",
+        p_bank_pengirim: activeTab === "TRANSFER" ? bankPengirim : "Cash",
+        p_bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",
+        p_bukti_url: activeTab === "TRANSFER" ? publicUrl : catatan,
+        p_order_id: `${activeTab}-${bill.kode}-${Date.now()}`
       });
 
       if (rpcError) throw rpcError;
@@ -146,6 +111,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         {/* Header */}
         <div className="relative p-8 pb-4 border-b border-slate-50">
           <button 
+            type="button"
             onClick={onClose}
             className="absolute right-6 top-6 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
           >
@@ -153,14 +119,14 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
           </button>
           
           <div className="space-y-1">
-            <h2 className="text-2xl font-serif text-slate-900">Pilih Metode Pembayaran</h2>
+            <h2 className="text-2xl font-serif text-slate-900">Input Pembayaran</h2>
             <p className="text-slate-500 text-sm">
               Tagihan: <span className="font-bold text-slate-700">{bill.jenis}</span> • {bill.mahasiswa.nama}
             </p>
           </div>
         </div>
 
-        <div className="p-8 space-y-6">
+        <form onSubmit={handlePayment} className="p-8 space-y-6">
           {/* Summary Card */}
           <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center justify-between">
             <div>
@@ -182,24 +148,26 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
           {/* Tabs */}
           <div className="flex p-1 bg-slate-100 rounded-2xl">
             <button 
-              onClick={() => setActiveTab("QRIS")}
+              type="button"
+              onClick={() => setActiveTab("TRANSFER")}
               className={cn(
                 "flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all",
-                activeTab === "QRIS" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
-              )}
-            >
-              <QrCode className="h-4 w-4" />
-              QRIS / Auto
-            </button>
-            <button 
-              onClick={() => setActiveTab("MANUAL")}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all",
-                activeTab === "MANUAL" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                activeTab === "TRANSFER" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
               )}
             >
               <Banknote className="h-4 w-4" />
-              Transfer Manual
+              Transfer Bank
+            </button>
+            <button 
+              type="button"
+              onClick={() => setActiveTab("CASH")}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all",
+                activeTab === "CASH" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              )}
+            >
+              <Coins className="h-4 w-4" />
+              Tunai / Cash
             </button>
           </div>
 
@@ -211,38 +179,13 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
           )}
 
           {/* Tab Content */}
-          {activeTab === "QRIS" ? (
-            <div className="space-y-6">
-              <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100">
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3 text-xs text-slate-600">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-500 shrink-0" />
-                    Pembayaran otomatis diverifikasi dalam hitungan detik.
-                  </li>
-                  <li className="flex items-start gap-3 text-xs text-slate-600">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-500 shrink-0" />
-                    Mendukung GoPay, OVO, Dana, LinkAja, dan semua Bank (QRIS).
-                  </li>
-                </ul>
-              </div>
-
-              <button 
-                onClick={handleQrisPayment}
-                disabled={isLoading || jumlahBayar <= 0}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-2xl font-bold transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
-              >
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
-                Bayar Sekarang
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleManualPayment} className="space-y-4">
+          {activeTab === "TRANSFER" ? (
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Bank Pengirim</label>
                   <input 
                     type="text"
-                    required
                     placeholder="Contoh: BCA, Mandiri"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
                     value={bankPengirim}
@@ -252,7 +195,6 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Rekening Tujuan</label>
                   <select 
-                    required
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
                     value={bankTujuan}
                     onChange={(e) => setBankTujuan(e.target.value)}
@@ -271,7 +213,6 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                   <input 
                     type="file"
                     accept="image/*"
-                    required
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     onChange={(e) => setBuktiFile(e.target.files?.[0] || null)}
                   />
@@ -293,18 +234,38 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                   </div>
                 </div>
               </div>
-
-              <button 
-                type="submit"
-                disabled={isLoading || jumlahBayar <= 0}
-                className="w-full py-4 bg-slate-900 hover:bg-black disabled:bg-slate-300 text-white rounded-2xl font-bold transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
-              >
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
-                Verifikasi & Lunasi
-              </button>
-            </form>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-4">
+                <p className="text-xs text-indigo-700 leading-relaxed">
+                  Gunakan opsi ini jika mahasiswa melakukan pembayaran secara tunai langsung di loket administrasi.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                  <MessageSquare className="h-3 w-3" />
+                  Catatan Pembayaran
+                </label>
+                <textarea 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 min-h-[100px]"
+                  placeholder="Misal: Diterima oleh Admin A"
+                  value={catatan}
+                  onChange={(e) => setCatatan(e.target.value)}
+                />
+              </div>
+            </div>
           )}
-        </div>
+
+          <button 
+            type="submit"
+            disabled={isLoading || jumlahBayar <= 0}
+            className="w-full py-4 bg-slate-900 hover:bg-black disabled:bg-slate-300 text-white rounded-2xl font-bold transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
+          >
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+            Konfirmasi Pembayaran
+          </button>
+        </form>
       </div>
     </div>
   );

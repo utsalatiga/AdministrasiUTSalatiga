@@ -10,7 +10,9 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  Coins,
+  Banknote
 } from "lucide-react";
 import { getStudentDetails } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
@@ -114,7 +116,9 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
                       <div className="flex items-center gap-3">
                         <div className={cn(
                           "p-2 rounded-lg",
-                          bill.status === "LUNAS" ? "bg-emerald-100 text-status-emerald" : "bg-amber-100 text-status-amber"
+                          bill.status === "LUNAS" ? "bg-emerald-100 text-status-emerald" : 
+                          bill.status === "MENCICIL" ? "bg-amber-100 text-status-amber" :
+                          "bg-rose-100 text-rose-600"
                         )}>
                           {bill.status === "LUNAS" ? <CheckCircle2 className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
                         </div>
@@ -124,11 +128,14 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-serif text-base text-slate-900">{formatRupiah(bill.jumlah)}</p>
+                        <p className="font-serif text-xs text-slate-400 line-through mb-1">{formatRupiah(bill.jumlah)}</p>
+                        <p className="font-serif text-base text-slate-900 font-bold">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
                         <p className={cn(
                           "text-[10px] font-bold uppercase mt-1",
-                          bill.status === "LUNAS" ? "text-status-emerald" : "text-status-amber"
-                        )}>{bill.status}</p>
+                          bill.status === "LUNAS" ? "text-status-emerald" : 
+                          bill.status === "MENCICIL" ? "text-status-amber" :
+                          "text-rose-600"
+                        )}>{bill.status?.replace('_', ' ')}</p>
                       </div>
                     </div>
                   ))}
@@ -148,14 +155,22 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
                   {data.payments.map((p: any) => (
                     <div key={p.id} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-slate-100 text-slate-500 rounded-lg">
-                          <Calendar className="h-4 w-4" />
+                        <div className={cn(
+                          "p-2 rounded-lg",
+                          p.metode === "TUNAI" ? "bg-indigo-100 text-indigo-600" : "bg-emerald-100 text-emerald-600"
+                        )}>
+                          {p.metode === "TUNAI" ? <Coins className="h-4 w-4" /> : <Banknote className="h-4 w-4" />}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-slate-800">{p.tagihan.jenis}</p>
+                          <p className="text-sm font-bold text-slate-800">{p.tagihan?.jenis}</p>
                           <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-                            {new Date(p.created_at).toLocaleDateString("id-ID")} • {p.metode}
+                            {new Date(p.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })} • {p.metode}
                           </p>
+                          {p.metode === "TUNAI" && p.bukti_url && (
+                            <p className="text-[10px] text-slate-500 italic mt-1 font-medium bg-slate-50 p-1.5 rounded-lg inline-block">
+                              "{p.bukti_url}"
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">

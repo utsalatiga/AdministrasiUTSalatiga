@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Merriweather } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 const inter = Inter({ 
@@ -28,11 +27,6 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${inter.variable} ${merriweather.variable} font-sans antialiased`}>
         {children}
-        <Script
-          src="https://app.sandbox.midtrans.com/snap/snap.js"
-          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
-          strategy="lazyOnload"
-        />
       </body>
     </html>
   );
