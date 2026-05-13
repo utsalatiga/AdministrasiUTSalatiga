@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -9,13 +10,15 @@ import {
   CreditCard, 
   CheckCircle2, 
   BarChart3,
-  LogOut
+  LogOut,
+  ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { getCurrentUserProfile } from "@/lib/actions/admins";
 
-export const menuItems = [
+const baseMenuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Mahasiswa", href: "/mahasiswa", icon: Users },
   { name: "Tagihan", href: "/tagihan", icon: Receipt },
@@ -32,6 +35,18 @@ export default function SidebarContent({ onClose }: SidebarContentProps) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    getCurrentUserProfile().then(profile => {
+      if (profile?.role === 'admin') setIsAdmin(true);
+    });
+  }, []);
+
+  const menuItems = [...baseMenuItems];
+  if (isAdmin) {
+    menuItems.push({ name: "Admin", href: "/admins", icon: ShieldCheck });
+  }
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
