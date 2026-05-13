@@ -89,7 +89,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
       
       // Fetch current bill count
       getStudentFinancialSummary(student.id).then(res => {
-        if (res && 'billsCount' in res) setBillCount(res.billsCount);
+        if (res && 'billsCount' in res) setBillCount(res.billsCount ?? 0);
       });
     } else {
       setBillCount(null);
