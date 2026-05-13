@@ -111,6 +111,7 @@ export default function StudentTable({
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Mahasiswa</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prodi / Angkatan</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Total Tagihan</th>
+              <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Deposit</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center">Status Keuangan</th>
               <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Aksi</th>
             </tr>
@@ -126,7 +127,7 @@ export default function StudentTable({
               ))
             ) : students.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-20 text-center text-slate-400 italic">
+                <td colSpan={6} className="px-6 py-20 text-center text-slate-400 italic">
                   Tidak ada data mahasiswa ditemukan.
                 </td>
               </tr>
@@ -155,6 +156,14 @@ export default function StudentTable({
                   <td className="px-6 py-4 text-right">
                     <p className="font-serif text-lg text-slate-900 font-tabular tracking-tight">
                       {formatRupiah(student.total_tagihan || 0)}
+                    </p>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <p className={cn(
+                      "font-serif text-base font-tabular tracking-tight",
+                      (student.deposit || 0) > 0 ? "text-emerald-600 font-bold" : "text-slate-400"
+                    )}>
+                      {formatRupiah(student.deposit || 0)}
                     </p>
                   </td>
                   <td className="px-6 py-4">
@@ -240,8 +249,9 @@ export default function StudentTable({
                   <p className="text-xs font-semibold text-slate-600">{student.prodi} ({student.angkatan})</p>
                 </div>
                 <div className="space-y-1 text-right">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Tagihan</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tagihan / Deposit</p>
                   <p className="text-sm font-serif font-bold text-slate-900">{formatRupiah(student.total_tagihan || 0)}</p>
+                  <p className="text-xs font-serif text-emerald-600 font-bold">{formatRupiah(student.deposit || 0)}</p>
                 </div>
               </div>
 

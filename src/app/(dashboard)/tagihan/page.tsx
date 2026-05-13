@@ -40,7 +40,8 @@ export default function TagihanPage() {
             id,
             nama,
             nim,
-            email
+            email,
+            deposit
           )
         `);
 

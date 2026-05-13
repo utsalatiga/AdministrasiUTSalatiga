@@ -33,6 +33,8 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
 
   // Cash State
   const [catatan, setCatatan] = useState("Diterima langsung oleh Admin");
+  const [useDeposit, setUseDeposit] = useState(false);
+  const [studentDeposit, setStudentDeposit] = useState(bill.mahasiswa?.deposit || 0);
 
   const supabase = createClient();
 
@@ -69,9 +71,9 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         publicUrl = url;
       }
 
-      const sisaSetelahBayar = (bill.sisa_tagihan ?? bill.jumlah) - jumlahBayar;
-      const autoCatatan = jumlahBayar < (bill.sisa_tagihan ?? bill.jumlah) 
-        ? `Cicilan - Sisa ${formatRupiah(sisaSetelahBayar)}` 
+      const sisaSetelahBayar = (bill.sisa_tagihan ?? bill.jumlah) - (jumlahBayar + (useDeposit ? Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)) : 0));
+      const autoCatatan = (jumlahBayar + (useDeposit ? Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)) : 0)) < (bill.sisa_tagihan ?? bill.jumlah) 
+        ? `Cicilan - Sisa ${formatRupiah(Math.max(0, sisaSetelahBayar))}` 
         : activeTab === "CASH" ? catatan : "Lunas";
 
       // 2. Call RPC to process payment
@@ -82,7 +84,8 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         p_bank_pengirim: activeTab === "TRANSFER" ? bankPengirim : "Cash",
         p_bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",
         p_bukti_url: activeTab === "TRANSFER" ? publicUrl : autoCatatan,
-        p_order_id: `${activeTab}-${bill.kode}-${Date.now()}`
+        p_order_id: `${activeTab}-${bill.kode}-${Date.now()}`,
+        p_use_deposit: useDeposit
       });
 
       if (rpcError) throw rpcError;
@@ -152,6 +155,42 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                 className="w-32 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-right"
               />
             </div>
+          </div>
+
+          {/* Deposit Logic */}
+          <div className="bg-emerald-50/50 rounded-2xl p-6 border border-emerald-100 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                  <Coins className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Saldo Deposit</p>
+                  <p className="text-sm font-bold text-emerald-700">{formatRupiah(studentDeposit)}</p>
+                </div>
+              </div>
+              {studentDeposit > 0 && (
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    checked={useDeposit}
+                    onChange={(e) => setUseDeposit(e.target.checked)}
+                    className="sr-only peer" 
+                  />
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                  <span className="ml-3 text-xs font-bold text-emerald-700">Gunakan</span>
+                </label>
+              )}
+            </div>
+            
+            {jumlahBayar > (bill.sisa_tagihan ?? bill.jumlah) && (
+              <div className="flex items-start gap-2 p-3 bg-white/60 rounded-xl border border-emerald-100 animate-in zoom-in-95">
+                <AlertCircle className="h-4 w-4 text-emerald-600 mt-0.5" />
+                <p className="text-[10px] text-emerald-700 font-medium">
+                  Kelebihan bayar <span className="font-bold">{formatRupiah(jumlahBayar - (bill.sisa_tagihan ?? bill.jumlah))}</span> akan masuk ke Saldo Deposit mahasiswa.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Cicilan Info */}

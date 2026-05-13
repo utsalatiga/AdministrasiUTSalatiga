@@ -11,6 +11,7 @@ export interface Student {
   angkatan: string;
   created_at: string;
   total_tagihan?: number;
+  deposit?: number;
   status_keuangan?: "LUNAS" | "MENUNGGAK" | "TIDAK ADA TAGIHAN";
 }
 
