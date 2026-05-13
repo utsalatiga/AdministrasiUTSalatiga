@@ -14,6 +14,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import OfficialReceipt from "@/components/payments/OfficialReceipt";
+import PaymentModal from "@/components/payments/PaymentModal";
 
 export default function TagihanPage() {
   const [bills, setBills] = useState<any[]>([]);
@@ -21,6 +22,7 @@ export default function TagihanPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+  const [selectedBill, setSelectedBill] = useState<any>(null);
 
   const supabase = createClient();
 
@@ -31,8 +33,10 @@ export default function TagihanPage() {
       .select(`
         *,
         mahasiswa:mahasiswa_id (
+          id,
           nama,
-          nim
+          nim,
+          email
         )
       `);
 
@@ -107,6 +111,7 @@ export default function TagihanPage() {
           >
             <option value="">Semua Status</option>
             <option value="LUNAS">Lunas</option>
+            <option value="MENCICIL">Mencicil</option>
             <option value="BELUM_LUNAS">Belum Lunas</option>
           </select>
         </div>
@@ -121,7 +126,8 @@ export default function TagihanPage() {
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mahasiswa</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jenis</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Nominal</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Tagihan</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Sisa</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Aksi</th>
               </tr>
@@ -155,28 +161,43 @@ export default function TagihanPage() {
                       {bill.jenis}
                       <p className="text-[10px] text-slate-400 mt-1">{bill.kode}</p>
                     </td>
-                    <td className="px-8 py-6 text-right font-serif text-lg text-slate-900 font-tabular">
-                      {formatRupiah(bill.jumlah)}
+                    <td className="px-8 py-6 text-right font-serif text-slate-900 font-tabular">
+                      <p className="text-sm font-bold">{formatRupiah(bill.jumlah)}</p>
+                    </td>
+                    <td className="px-8 py-6 text-right font-serif text-slate-900 font-tabular">
+                      <p className="text-sm font-bold text-indigo-600">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
                     </td>
                     <td className="px-8 py-6">
                       <div className={cn(
                         "flex items-center gap-2 w-fit px-3 py-1 rounded-full mx-auto",
-                        bill.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : "bg-amber-50 text-status-amber"
+                        bill.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
+                        bill.status === "MENCICIL" ? "bg-amber-50 text-status-amber" :
+                        "bg-rose-50 text-rose-600"
                       )}>
                         {bill.status === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{bill.status}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{bill.status?.replace('_', ' ')}</span>
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
-                      {bill.status === "LUNAS" && (
-                        <button 
-                          onClick={() => handlePrint(bill)}
-                          className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
-                          title="Cetak Kwitansi"
-                        >
-                          <Printer className="h-5 w-5" />
-                        </button>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        {bill.status !== "LUNAS" && (
+                          <button 
+                            onClick={() => setSelectedBill(bill)}
+                            className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-indigo-700 transition-all"
+                          >
+                            Bayar
+                          </button>
+                        )}
+                        {bill.status === "LUNAS" && (
+                          <button 
+                            onClick={() => handlePrint(bill)}
+                            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                            title="Cetak Kwitansi"
+                          >
+                            <Printer className="h-5 w-5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -214,9 +235,11 @@ export default function TagihanPage() {
                   </div>
                   <div className={cn(
                     "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
-                    bill.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : "bg-amber-50 text-status-amber"
+                    bill.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
+                    bill.status === "MENCICIL" ? "bg-amber-50 text-status-amber" :
+                    "bg-rose-50 text-rose-600"
                   )}>
-                    <span className="text-[9px] font-bold uppercase tracking-wider">{bill.status}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider">{bill.status?.replace('_', ' ')}</span>
                   </div>
                 </div>
 
@@ -226,20 +249,30 @@ export default function TagihanPage() {
                     <p className="text-xs font-semibold text-slate-600">{bill.jenis}</p>
                   </div>
                   <div className="space-y-1 text-right">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal</p>
-                    <p className="text-sm font-serif font-bold text-slate-900">{formatRupiah(bill.jumlah)}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sisa Tagihan</p>
+                    <p className="text-sm font-serif font-bold text-indigo-600">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
                   </div>
                 </div>
 
-                {bill.status === "LUNAS" && (
-                  <button 
-                    onClick={() => handlePrint(bill)}
-                    className="w-full py-3 bg-slate-50 text-primary rounded-xl text-xs font-bold border border-slate-100 flex items-center justify-center gap-2"
-                  >
-                    <Printer className="h-4 w-4" />
-                    Cetak Kwitansi
-                  </button>
-                )}
+                <div className="flex gap-2">
+                  {bill.status !== "LUNAS" && (
+                    <button 
+                      onClick={() => setSelectedBill(bill)}
+                      className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm shadow-indigo-100 flex items-center justify-center gap-2"
+                    >
+                      Bayar Sekarang
+                    </button>
+                  )}
+                  {bill.status === "LUNAS" && (
+                    <button 
+                      onClick={() => handlePrint(bill)}
+                      className="w-full py-3 bg-slate-50 text-primary rounded-xl text-xs font-bold border border-slate-100 flex items-center justify-center gap-2"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Cetak Kwitansi
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}
@@ -250,6 +283,17 @@ export default function TagihanPage() {
         <OfficialReceipt 
           data={selectedReceipt} 
           onClose={() => setSelectedReceipt(null)} 
+        />
+      )}
+
+      {selectedBill && (
+        <PaymentModal 
+          bill={selectedBill}
+          onClose={() => setSelectedBill(null)}
+          onSuccess={() => {
+            fetchBills();
+            setSelectedBill(null);
+          }}
         />
       )}
     </div>
