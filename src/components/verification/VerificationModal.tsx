@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, 
@@ -8,12 +8,9 @@ import {
   XCircle, 
   Maximize2, 
   Loader2,
-  ExternalLink,
   Calendar,
-  User,
   Receipt,
   Upload,
-  Image as ImageIcon,
   RotateCcw
 } from "lucide-react";
 import { verifyPayment, rejectPayment } from "@/lib/actions/verification";
@@ -31,6 +28,24 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Reset state when modal closes or data changes
+  useEffect(() => {
+    if (!isOpen || !data?.id) {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setPreviewUrl(null);
+      setSelectedFile(null);
+      setIsFullscreen(false);
+    }
+    
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [isOpen, data?.id]);
 
   if (!isOpen || !data) return null;
 

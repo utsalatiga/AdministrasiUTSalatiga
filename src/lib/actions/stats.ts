@@ -5,11 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?: string }) {
   const supabase = createClient();
 
-  // 1. Total Pemasukan (Status LUNAS)
+  // 1. Total Pemasukan (Status VERIFIED atau LUNAS)
   let incomeQuery = supabase
     .from("pembayaran")
     .select("jumlah_bayar, created_at")
-    .eq("status", "LUNAS");
+    .in("status", ["VERIFIED", "LUNAS"]);
 
   if (filters?.dateStart) {
     incomeQuery = incomeQuery.gte("created_at", filters.dateStart);
@@ -21,13 +21,13 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
   const { data: incomeData } = await incomeQuery;
   const totalIncome = incomeData?.reduce((acc, curr) => acc + Number(curr.jumlah_bayar), 0) || 0;
 
-  // 2. Total Tunggakan (Status BELUM_LUNAS)
+  // 2. Total Tunggakan (Sisa Tagihan dari tagihan BELUM_LUNAS atau MENCICIL)
   const { data: arrearsData } = await supabase
     .from("tagihan")
-    .select("jumlah")
-    .eq("status", "BELUM_LUNAS");
+    .select("sisa_tagihan")
+    .in("status", ["BELUM_LUNAS", "MENCICIL"]);
   
-  const totalArrears = arrearsData?.reduce((acc, curr) => acc + Number(curr.jumlah), 0) || 0;
+  const totalArrears = arrearsData?.reduce((acc, curr) => acc + Number(curr.sisa_tagihan || 0), 0) || 0;
 
   // 3. Mahasiswa Aktif
   const { count: studentCount } = await supabase
@@ -40,12 +40,19 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
     .select("*", { count: "exact", head: true })
     .eq("status", "PENDING");
 
-  // 5. Real Dynamic Chart Data (Last 6 Months)
+  // 5. Transaksi Hari Ini
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const { count: todayCount } = await supabase
+    .from("pembayaran")
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", todayStart.toISOString());
+
+  // 6. Real Dynamic Chart Data (Last 6 Months)
   const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
   const now = new Date();
   const chartData = [];
 
-  // Fetch all verified payments for the last 6 months for the chart
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(now.getMonth() - 5);
   sixMonthsAgo.setDate(1);
@@ -54,7 +61,7 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
   const { data: allIncome } = await supabase
     .from("pembayaran")
     .select("jumlah_bayar, created_at")
-    .eq("status", "LUNAS")
+    .in("status", ["VERIFIED", "LUNAS"])
     .gte("created_at", sixMonthsAgo.toISOString());
 
   for (let i = 5; i >= 0; i--) {
@@ -63,7 +70,6 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
     const monthName = months[d.getMonth()];
     const year = d.getFullYear();
     
-    // Calculate total for this month
     const monthlyTotal = allIncome
       ?.filter(p => {
         const pDate = new Date(p.created_at);
@@ -79,6 +85,7 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
     totalArrears,
     studentCount: studentCount || 0,
     pendingCount: pendingCount || 0,
+    todayCount: todayCount || 0,
     chartData
   };
 }
