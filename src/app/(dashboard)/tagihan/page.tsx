@@ -15,6 +15,8 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import OfficialReceipt from "@/components/payments/OfficialReceipt";
 import PaymentModal from "@/components/payments/PaymentModal";
+import PaymentHistory from "@/components/payments/PaymentHistory";
+import { History } from "lucide-react";
 
 export default function TagihanPage() {
   const [bills, setBills] = useState<any[]>([]);
@@ -23,6 +25,7 @@ export default function TagihanPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [historyBillId, setHistoryBillId] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -175,6 +178,7 @@ export default function TagihanPage() {
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mahasiswa</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jenis</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Tagihan</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Terbayar</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Sisa</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Aksi</th>
@@ -184,12 +188,12 @@ export default function TagihanPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={5} className="px-8 py-6"><div className="h-8 bg-slate-50 rounded-xl w-full"></div></td>
+                    <td colSpan={7} className="px-8 py-6"><div className="h-8 bg-slate-50 rounded-xl w-full"></div></td>
                   </tr>
                 ))
               ) : bills.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-20 text-center text-slate-400 italic">Data tagihan tidak ditemukan.</td>
+                  <td colSpan={7} className="px-8 py-20 text-center text-slate-400 italic">Data tagihan tidak ditemukan.</td>
                 </tr>
               ) : (
                 bills.map((bill) => (
@@ -212,6 +216,9 @@ export default function TagihanPage() {
                     <td className="px-8 py-6 text-right font-serif text-slate-900 font-tabular">
                       <p className="text-sm font-bold">{formatRupiah(bill.jumlah)}</p>
                     </td>
+                    <td className="px-8 py-6 text-right font-serif text-emerald-600 font-tabular">
+                      <p className="text-sm font-bold">{formatRupiah(bill.jumlah - (bill.sisa_tagihan ?? bill.jumlah))}</p>
+                    </td>
                     <td className="px-8 py-6 text-right font-serif text-slate-900 font-tabular">
                       <p className="text-sm font-bold text-indigo-600">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
                     </td>
@@ -228,6 +235,13 @@ export default function TagihanPage() {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => setHistoryBillId(bill.id)}
+                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                          title="Riwayat Pembayaran"
+                        >
+                          <History className="h-5 w-5" />
+                        </button>
                         {bill.status !== "LUNAS" && (
                           <button 
                             onClick={() => setSelectedBill(bill)}
@@ -342,6 +356,13 @@ export default function TagihanPage() {
             fetchBills();
             setSelectedBill(null);
           }}
+        />
+      )}
+
+      {historyBillId && (
+        <PaymentHistory 
+          billId={historyBillId}
+          onClose={() => setHistoryBillId(null)}
         />
       )}
     </div>

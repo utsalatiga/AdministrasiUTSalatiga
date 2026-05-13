@@ -158,8 +158,15 @@ export default function PaymentsHistoryPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <p className="text-sm text-slate-600 font-medium">{p.tagihan?.jenis}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">{new Date(p.created_at).toLocaleString('id-ID')}</p>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm text-slate-600 font-medium">{p.tagihan?.jenis}</p>
+                        {p.bukti_url?.includes("Cicilan") && (
+                          <span className="w-fit text-[9px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            Cicilan
+                          </span>
+                        )}
+                        <p className="text-[10px] text-slate-400 mt-1">{new Date(p.created_at).toLocaleString('id-ID')}</p>
+                      </div>
                     </td>
                     <td className="px-8 py-6">
                       <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md uppercase tracking-wider">

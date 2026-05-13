@@ -69,6 +69,11 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         publicUrl = url;
       }
 
+      const sisaSetelahBayar = (bill.sisa_tagihan ?? bill.jumlah) - jumlahBayar;
+      const autoCatatan = jumlahBayar < (bill.sisa_tagihan ?? bill.jumlah) 
+        ? `Cicilan - Sisa ${formatRupiah(sisaSetelahBayar)}` 
+        : activeTab === "CASH" ? catatan : "Lunas";
+
       // 2. Call RPC to process payment
       const { error: rpcError } = await supabase.rpc("process_manual_payment", {
         p_tagihan_id: bill.id,
@@ -76,7 +81,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         p_metode: activeTab === "TRANSFER" ? "TRANSFER_MANUAL" : "TUNAI",
         p_bank_pengirim: activeTab === "TRANSFER" ? bankPengirim : "Cash",
         p_bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",
-        p_bukti_url: activeTab === "TRANSFER" ? publicUrl : catatan,
+        p_bukti_url: activeTab === "TRANSFER" ? publicUrl : autoCatatan,
         p_order_id: `${activeTab}-${bill.kode}-${Date.now()}`
       });
 
@@ -131,19 +136,37 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
           <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sisa Tagihan</p>
-              <p className="text-xl font-serif font-bold text-slate-900">{formatRupiah(bill.sisa_tagihan || bill.jumlah)}</p>
+              <p className="text-xl font-serif font-bold text-slate-900">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Jumlah Bayar</p>
               <input 
                 type="number"
                 value={jumlahBayar}
-                max={bill.sisa_tagihan || bill.jumlah}
-                onChange={(e) => setJumlahBayar(Math.min(parseInt(e.target.value) || 0, bill.sisa_tagihan || bill.jumlah))}
+                min={1}
+                max={bill.sisa_tagihan ?? bill.jumlah}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value) || 0;
+                  setJumlahBayar(val);
+                }}
                 className="w-32 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-right"
               />
             </div>
           </div>
+
+          {/* Cicilan Info */}
+          {jumlahBayar > 0 && jumlahBayar < (bill.sisa_tagihan ?? bill.jumlah) && (
+            <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
+              <Coins className="h-5 w-5 text-amber-500 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Info Cicilan</p>
+                <p className="text-xs text-amber-700 font-medium leading-relaxed">
+                  Ini akan tercatat sebagai pembayaran cicilan. Sisa tagihan setelah ini: 
+                  <span className="font-bold ml-1">{formatRupiah((bill.sisa_tagihan ?? bill.jumlah) - jumlahBayar)}</span>
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className="flex p-1 bg-slate-100 rounded-2xl">
