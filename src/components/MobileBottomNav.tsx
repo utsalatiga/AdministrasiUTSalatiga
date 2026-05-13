@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   GraduationCap, 
-  Receipt, 
+  Wallet, 
   Banknote, 
   BarChart3 
 } from "lucide-react";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 const bottomMenuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Mahasiswa", href: "/mahasiswa", icon: GraduationCap },
-  { name: "Tagihan", href: "/tagihan", icon: Receipt },
+  { name: "Tagihan & Deposit", href: "/tagihan", icon: Wallet },
   { name: "Pembayaran", href: "/pembayaran", icon: Banknote },
   { name: "Laporan", href: "/laporan", icon: BarChart3 },
 ];

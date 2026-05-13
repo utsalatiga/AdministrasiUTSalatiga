@@ -9,10 +9,12 @@ import {
   Loader2,
   AlertCircle,
   Coins,
-  MessageSquare
+  MessageSquare,
+  Landmark
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 interface PaymentModalProps {
   bill: any;
@@ -25,6 +27,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
   const [jumlahBayar, setJumlahBayar] = useState<number>(bill.sisa_tagihan || bill.jumlah);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
   
   // Transfer State
   const [bankPengirim, setBankPengirim] = useState("");
@@ -91,6 +94,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
       if (rpcError) throw rpcError;
 
       onSuccess();
+      router.refresh();
       onClose();
     } catch (err: any) {
       setError(err.message);
@@ -135,6 +139,45 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         </div>
 
         <form onSubmit={handlePayment} className="p-8 space-y-6">
+          {/* Student Deposit Info at Top */}
+          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-white text-indigo-600 rounded-xl shadow-sm">
+                <Landmark className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Saldo Deposit Mahasiswa</p>
+                <p className="text-lg font-serif font-bold text-indigo-900">{formatRupiah(studentDeposit)}</p>
+              </div>
+            </div>
+            {studentDeposit > 0 && (
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={useDeposit}
+                  onChange={(e) => {
+                    const isChecked = e.target.checked;
+                    setUseDeposit(isChecked);
+                    
+                    const sisa = (bill.sisa_tagihan ?? bill.jumlah);
+                    if (isChecked) {
+                      if (studentDeposit >= sisa) {
+                        setJumlahBayar(0);
+                      } else {
+                        setJumlahBayar(sisa - studentDeposit);
+                      }
+                    } else {
+                      setJumlahBayar(sisa);
+                    }
+                  }}
+                  className="sr-only peer" 
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                <span className="ml-3 text-[10px] font-bold text-indigo-700 uppercase tracking-widest">Gunakan</span>
+              </label>
+            )}
+          </div>
+
           {/* Summary Card */}
           <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center justify-between">
             <div>
@@ -156,78 +199,45 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
             </div>
           </div>
 
-          {/* Deposit Logic */}
-          <div className="bg-emerald-50/50 rounded-2xl p-6 border border-emerald-100 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-                  <Coins className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Saldo Deposit</p>
-                  <p className="text-sm font-bold text-emerald-700">{formatRupiah(studentDeposit)}</p>
-                </div>
-              </div>
-              {studentDeposit > 0 && (
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={useDeposit}
-                    onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      setUseDeposit(isChecked);
-                      
-                      const sisa = (bill.sisa_tagihan ?? bill.jumlah);
-                      if (isChecked) {
-                        // Automate: fill needed amount after deposit
-                        if (studentDeposit >= sisa) {
-                          setJumlahBayar(0);
-                        } else {
-                          setJumlahBayar(sisa - studentDeposit);
-                        }
-                      } else {
-                        // Reset to full sisa if untoggled
-                        setJumlahBayar(sisa);
-                      }
-                    }}
-                    className="sr-only peer" 
-                  />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                  <span className="ml-3 text-xs font-bold text-emerald-700">Gunakan</span>
-                </label>
-              )}
-            </div>
-            
+          {/* Real-time Feedback Logic */}
+          <div className="space-y-3">
             {useDeposit && (
-              <p className="text-[10px] text-emerald-600 font-medium italic">
-                * {formatRupiah(Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)))} akan diambil dari deposit.
-                {jumlahBayar > 0 ? ` Masukkan ${formatRupiah(jumlahBayar)} untuk melunasi sisanya.` : " Tagihan ini akan langsung LUNAS menggunakan deposit."}
-              </p>
+              <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 animate-in zoom-in-95">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                <p className="text-[10px] text-emerald-700 font-medium italic">
+                  {formatRupiah(Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)))} akan diambil dari deposit.
+                  {jumlahBayar > 0 ? ` Masukkan ${formatRupiah(jumlahBayar)} untuk melunasi sisanya.` : " Tagihan ini akan langsung LUNAS menggunakan deposit."}
+                </p>
+              </div>
             )}
             
             {jumlahBayar > (bill.sisa_tagihan ?? bill.jumlah) && (
-              <div className="flex items-start gap-2 p-3 bg-white/60 rounded-xl border border-emerald-100 animate-in zoom-in-95">
-                <AlertCircle className="h-4 w-4 text-emerald-600 mt-0.5" />
-                <p className="text-[10px] text-emerald-700 font-medium">
-                  Kelebihan bayar <span className="font-bold">{formatRupiah(jumlahBayar - (bill.sisa_tagihan ?? bill.jumlah))}</span> akan masuk ke Saldo Deposit mahasiswa.
-                </p>
+              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in zoom-in-95">
+                <Coins className="h-5 w-5 text-emerald-500 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Kelebihan Bayar</p>
+                  <p className="text-xs text-emerald-700 font-medium leading-relaxed">
+                    Kelebihan <span className="font-bold">{formatRupiah(jumlahBayar - (bill.sisa_tagihan ?? bill.jumlah))}</span> akan otomatis masuk ke <span className="font-bold text-emerald-800">Saldo Deposit</span> mahasiswa.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Cicilan Info */}
+            {jumlahBayar > 0 && (jumlahBayar + (useDeposit ? Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)) : 0)) < (bill.sisa_tagihan ?? bill.jumlah) && (
+              <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Pembayaran Cicilan</p>
+                  <p className="text-xs text-amber-700 font-medium leading-relaxed">
+                    Pembayaran ini akan tercatat sebagai cicilan. Sisa tagihan akan menjadi 
+                    <span className="font-bold ml-1">{formatRupiah((bill.sisa_tagihan ?? bill.jumlah) - (jumlahBayar + (useDeposit ? Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)) : 0)))}</span>.
+                    Status tagihan akan diperbarui menjadi <span className="font-bold text-amber-800 uppercase">Mencicil</span>.
+                  </p>
+                </div>
               </div>
             )}
           </div>
-
-          {/* Cicilan Info */}
-          {jumlahBayar > 0 && jumlahBayar < (bill.sisa_tagihan ?? bill.jumlah) && (
-            <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
-              <Coins className="h-5 w-5 text-amber-500 shrink-0" />
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Info Cicilan</p>
-                <p className="text-xs text-amber-700 font-medium leading-relaxed">
-                  Ini akan tercatat sebagai pembayaran cicilan. Sisa tagihan setelah ini: 
-                  <span className="font-bold ml-1">{formatRupiah((bill.sisa_tagihan ?? bill.jumlah) - jumlahBayar)}</span>
-                </p>
-              </div>
-            </div>
-          )}
 
           {/* Tabs */}
           <div className="flex p-1 bg-slate-100 rounded-2xl">

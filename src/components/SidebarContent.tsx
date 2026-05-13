@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   Users, 
-  Receipt, 
+  Wallet, 
   CreditCard, 
   CheckCircle2, 
   BarChart3,
@@ -21,7 +21,7 @@ import { getCurrentUserProfile } from "@/lib/actions/admins";
 const baseMenuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Mahasiswa", href: "/mahasiswa", icon: Users },
-  { name: "Tagihan", href: "/tagihan", icon: Receipt },
+  { name: "Tagihan & Deposit", href: "/tagihan", icon: Wallet },
   { name: "Pembayaran", href: "/pembayaran", icon: CreditCard },
   { name: "Verifikasi", href: "/verifikasi", icon: CheckCircle2 },
   { name: "Laporan", href: "/laporan", icon: BarChart3 },

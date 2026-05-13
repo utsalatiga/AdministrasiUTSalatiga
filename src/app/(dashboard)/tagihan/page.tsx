@@ -9,8 +9,10 @@ import {
   Clock, 
   Printer,
   XCircle,
-  Loader2
+  Loader2,
+  Wallet
 } from "lucide-react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import OfficialReceipt from "@/components/payments/OfficialReceipt";
@@ -136,9 +138,17 @@ export default function TagihanPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-serif text-3xl text-slate-900">Manajemen Tagihan</h1>
-          <p className="text-slate-500 text-sm">Monitoring status pembayaran mahasiswa Universitas Terbuka.</p>
+          <h1 className="font-serif text-3xl text-slate-900">Tagihan & Deposit</h1>
+          <p className="text-slate-500 text-sm">Monitoring status pembayaran dan saldo deposit mahasiswa.</p>
         </div>
+
+        <Link
+          href="/deposit"
+          className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 border border-indigo-100 rounded-xl font-bold hover:bg-indigo-50 transition-all shadow-sm"
+        >
+          <Wallet className="h-5 w-5" />
+          <span>Lihat Ikhtisar Deposit</span>
+        </Link>
       </div>
 
       {/* Filters */}
