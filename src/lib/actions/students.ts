@@ -203,6 +203,7 @@ export async function importBatchStudents(data: any[]) {
         status: row.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS",
         kode: `INV-${row.nim}-${timestamp}-${idx}`,
         jatuh_tempo: row.jatuh_tempo || defaultDueDateStr,
+        sisa_tagihan: row.status === "LUNAS" ? 0 : (Number(row.nominal) || 0),
         created_at: new Date().toISOString()
       };
     }).filter(b => b.mahasiswa_id);

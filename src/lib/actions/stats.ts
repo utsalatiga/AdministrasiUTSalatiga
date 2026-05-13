@@ -24,10 +24,14 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
   // 2. Total Tunggakan (Sisa Tagihan dari tagihan BELUM_LUNAS atau MENCICIL)
   const { data: arrearsData } = await supabase
     .from("tagihan")
-    .select("sisa_tagihan")
+    .select("sisa_tagihan, jumlah")
     .in("status", ["BELUM_LUNAS", "MENCICIL"]);
   
-  const totalArrears = arrearsData?.reduce((acc, curr) => acc + Number(curr.sisa_tagihan || 0), 0) || 0;
+  const totalArrears = arrearsData?.reduce((acc, curr) => {
+    // If sisa_tagihan is NULL, use the full amount (jumlah)
+    const amount = curr.sisa_tagihan !== null ? curr.sisa_tagihan : curr.jumlah;
+    return acc + Number(amount || 0);
+  }, 0) || 0;
 
   // 3. Mahasiswa Aktif
   const { count: studentCount } = await supabase

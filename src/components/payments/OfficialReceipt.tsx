@@ -35,7 +35,7 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
   const amountInWords = terbilang(data.jumlah) + " rupiah";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:p-0 print:bg-white print:static">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:p-0 print:bg-white print:static official-receipt-container">
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:rounded-none print:w-full print:max-w-none">
         {/* Modal Header - Hidden on Print */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 print:hidden">
@@ -119,18 +119,52 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
 
       <style jsx global>{`
         @media print {
+          /* HIDE EVERYTHING */
           body * {
-            visibility: hidden;
+            visibility: hidden !important;
           }
-          .official-receipt, .official-receipt * {
-            visibility: visible;
+          
+          /* SHOW ONLY RECEIPT AREA */
+          .official-receipt, 
+          .official-receipt * {
+            visibility: visible !important;
           }
+          
+          /* FIX POSITIONING AND PREVENT EXTRA PAGES */
           .official-receipt {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 10mm !important;
             border: none !important;
+            background: white !important;
+            z-index: 9999 !important;
+          }
+
+          /* ABSOLUTELY HIDE UI ELEMENTS TO PREVENT HEIGHT CLUTTER */
+          nav, header, footer, aside, .sidebar, .bottom-nav, button, .print-hidden, .no-print, [role="dialog"]:not(.official-receipt-container) {
+            display: none !important;
+          }
+
+          /* PAGE SETTINGS */
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+
+          /* FORCE NO PAGE BREAKS INSIDE RECEIPT */
+          .official-receipt {
+            page-break-inside: avoid !important;
           }
         }
       `}</style>
