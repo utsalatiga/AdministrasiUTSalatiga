@@ -47,13 +47,6 @@ export default async function DashboardPage({
       color: "bg-status-rose",
     },
     {
-      title: "Transaksi Hari Ini",
-      value: `${statsData.todayCount} Transaksi`,
-      description: "Aktivitas pembayaran hari ini",
-      icon: ArrowUpRight,
-      color: "bg-primary",
-    },
-    {
       title: "Antrean Verifikasi",
       value: `${statsData.pendingCount} Transaksi`,
       description: "Butuh persetujuan segera",
@@ -73,7 +66,7 @@ export default async function DashboardPage({
       </div>
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((stat) => (
           <div 
             key={stat.title}

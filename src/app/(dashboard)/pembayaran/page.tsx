@@ -90,8 +90,8 @@ export default function PaymentsHistoryPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
+      <div className="flex justify-start">
+        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group w-full max-w-md">
           <div className="absolute top-0 left-0 right-0 h-1 bg-status-emerald"></div>
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 rounded-2xl bg-emerald-50 text-status-emerald">
@@ -105,23 +105,6 @@ export default function PaymentsHistoryPage() {
           <div className="flex items-center gap-2 text-[10px] text-status-emerald font-bold bg-emerald-50 w-fit px-3 py-1 rounded-full">
             <ArrowUpRight className="h-3 w-3" />
             <span>PENERIMAAN AKTIF</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-primary"></div>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 rounded-2xl bg-blue-50 text-primary">
-              <History className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Transaksi Hari Ini</p>
-              <h3 className="font-serif text-3xl text-slate-900 font-tabular mt-1">{countToday} Transaksi</h3>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-primary font-bold bg-blue-50 w-fit px-3 py-1 rounded-full">
-            <CheckCircle2 className="h-3 w-3" />
-            <span>TERVERIFIKASI</span>
           </div>
         </div>
       </div>
