@@ -9,12 +9,12 @@ export async function createStudent(data: {
   prodi: string;
   angkatan: string;
   no_hp?: string;
-  billing?: {
+  billings?: {
     jenis: string;
     nominal: number;
     jatuh_tempo: string;
     status: "LUNAS" | "BELUM_LUNAS";
-  }
+  }[]
 }) {
   const supabase = createClient();
 
@@ -34,40 +34,43 @@ export async function createStudent(data: {
 
     if (studentError) throw studentError;
 
-    // 2. Handle Initial Billing if provided
-    if (data.billing && data.billing.nominal > 0) {
-      const defaultDueDate = new Date();
-      defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
-      const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
+    // 2. Handle Initial Billings if provided
+    if (data.billings && data.billings.length > 0) {
+      const timestamp = Date.now();
+      
+      for (let i = 0; i < data.billings.length; i++) {
+        const billData = data.billings[i];
+        if (billData.nominal <= 0) continue;
 
-      const { data: bill, error: billError } = await supabase
-        .from("tagihan")
-        .insert({
-          mahasiswa_id: student.id,
-          kode: `INV-${data.nim}-${Date.now().toString().slice(-4)}`,
-          jenis: data.billing.jenis,
-          jumlah: data.billing.nominal,
-          status: data.billing.status,
-          jatuh_tempo: data.billing.jatuh_tempo || defaultDueDateStr
-        })
-        .select()
-        .single();
-
-
-      if (billError) throw billError;
-
-      // 3. Handle Auto-Payment if LUNAS
-      if (data.billing.status === "LUNAS") {
-        const { error: paymentError } = await supabase
-          .from("pembayaran")
+        const { data: bill, error: billError } = await supabase
+          .from("tagihan")
           .insert({
-            tagihan_id: bill.id,
-            jumlah_bayar: data.billing.nominal,
-            metode: "TUNAI",
-            status: "LUNAS"
-          });
-        
-        if (paymentError) throw paymentError;
+            mahasiswa_id: student.id,
+            kode: `INV-${data.nim}-${timestamp}-${i}`,
+            jenis: billData.jenis,
+            jumlah: billData.nominal,
+            sisa_tagihan: billData.status === "LUNAS" ? 0 : billData.nominal,
+            status: billData.status,
+            jatuh_tempo: billData.jatuh_tempo
+          })
+          .select()
+          .single();
+
+        if (billError) throw billError;
+
+        // 3. Handle Auto-Payment if LUNAS
+        if (billData.status === "LUNAS") {
+          const { error: paymentError } = await supabase
+            .from("pembayaran")
+            .insert({
+              tagihan_id: bill.id,
+              jumlah_bayar: billData.nominal,
+              metode: "TUNAI",
+              status: "VERIFIED" // Using VERIFIED as per latest system
+            });
+          
+          if (paymentError) throw paymentError;
+        }
       }
     }
 
