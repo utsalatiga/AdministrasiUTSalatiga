@@ -12,7 +12,8 @@ import {
   Calendar,
   Wallet,
   Send,
-  Upload
+  Upload,
+  Info
 } from "lucide-react";
 import { searchStudents, getStudentBills, createCashPayment, getStudentFinancialSummary } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
