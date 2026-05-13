@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -14,10 +14,12 @@ import {
   Calendar,
   Wallet,
   Plus,
-  Trash2
+  Trash2,
+  Info
 } from "lucide-react";
 import { Student } from "@/hooks/useStudents";
 import { createStudent, updateStudent } from "@/lib/actions/students";
+import { getStudentFinancialSummary } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
 
 const studentSchema = z.object({
@@ -45,6 +47,7 @@ interface StudentFormModalProps {
 
 export default function StudentFormModal({ isOpen, onClose, onSuccess, student }: StudentFormModalProps) {
   const isEdit = !!student;
+  const [billCount, setBillCount] = useState<number | null>(null);
 
   const defaultDueDate = new Date();
   defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
@@ -81,8 +84,15 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         prodi: student.prodi,
         angkatan: student.angkatan,
         no_hp: (student as any).no_hp || "",
+        billings: [] // Initialize empty for edit mode
+      });
+      
+      // Fetch current bill count
+      getStudentFinancialSummary(student.id).then(res => {
+        if (res && 'billsCount' in res) setBillCount(res.billsCount);
       });
     } else {
+      setBillCount(null);
       reset({
         nim: "",
         nama: "",
@@ -110,7 +120,8 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           nama: values.nama,
           prodi: values.prodi,
           angkatan: values.angkatan,
-          no_hp: values.no_hp || undefined
+          no_hp: values.no_hp || undefined,
+          new_billings: values.billings
         });
       } else {
         res = await createStudent({
@@ -155,6 +166,18 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-8 overflow-y-auto">
+          {/* Active Bills Summary (Edit mode only) */}
+          {isEdit && billCount !== null && (
+            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
+                <Info className="h-5 w-5" />
+              </div>
+              <p className="text-sm font-semibold text-indigo-700">
+                Mahasiswa ini memiliki <span className="text-indigo-900 font-bold">{billCount}</span> tagihan terdaftar.
+              </p>
+            </div>
+          )}
+
           {/* Section 1: Biodata */}
           <div className="space-y-6">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
@@ -219,38 +242,36 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
             </div>
           </div>
 
-          {/* Section 2: Keuangan (Only for new students) */}
-          {!isEdit && (
-            <div className="space-y-6 pt-8 border-t border-slate-100">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Wallet className="h-3.5 w-3.5" />
-                  Daftar Tagihan Awal
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => append({ jenis: "", nominal: 0, jatuh_tempo: defaultDueDateStr, status: "BELUM_LUNAS" })}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Tambah Tagihan
-                </button>
-              </div>
+          {/* Section 2: Keuangan / Tambah Tagihan Baru */}
+          <div className="space-y-6 pt-8 border-t border-slate-100">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                <Wallet className="h-3.5 w-3.5" />
+                {isEdit ? "Tambah Tagihan Baru" : "Daftar Tagihan Awal"}
+              </h4>
+              <button
+                type="button"
+                onClick={() => append({ jenis: isEdit ? "" : "SPP Semester 1", nominal: 0, jatuh_tempo: defaultDueDateStr, status: "BELUM_LUNAS" })}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Tambah Tagihan
+              </button>
+            </div>
 
+            {fields.length > 0 ? (
               <div className="space-y-4">
                 {fields.map((field, index) => (
                   <div key={field.id} className="relative p-5 bg-slate-50/50 border border-slate-100 rounded-[2rem] space-y-4 animate-in slide-in-from-top-2 duration-200">
                     <div className="flex items-center justify-between sm:hidden">
                        <span className="text-[10px] font-bold text-slate-400 uppercase">Tagihan #{index + 1}</span>
-                       {fields.length > 1 && (
-                        <button 
+                       <button 
                           type="button" 
                           onClick={() => remove(index)}
                           className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
-                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
@@ -288,16 +309,14 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                       </div>
 
                       <div className="hidden sm:flex sm:col-span-1 justify-center mb-1">
-                        {fields.length > 1 && (
-                          <button 
-                            type="button" 
-                            onClick={() => remove(index)}
-                            className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                            title="Hapus Tagihan"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        )}
+                        <button 
+                          type="button" 
+                          onClick={() => remove(index)}
+                          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
+                          title="Hapus Tagihan"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
                       </div>
                     </div>
 
@@ -315,8 +334,12 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : isEdit ? (
+              <div className="text-center py-8 border-2 border-dashed border-slate-100 rounded-[2rem]">
+                <p className="text-sm text-slate-400 font-medium italic">Klik "+ Tambah Tagihan" untuk menambahkan tagihan baru untuk mahasiswa ini.</p>
+              </div>
+            ) : null}
+          </div>
 
           <div className="pt-6 flex flex-col sm:flex-row gap-4">
             <button 

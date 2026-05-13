@@ -88,11 +88,18 @@ export async function updateStudent(id: string, data: {
   prodi: string;
   angkatan: string;
   no_hp?: string;
+  new_billings?: {
+    jenis: string;
+    nominal: number;
+    jatuh_tempo: string;
+    status: "LUNAS" | "BELUM_LUNAS";
+  }[]
 }) {
   const supabase = createClient();
 
   try {
-    const { error } = await supabase
+    // 1. Update Biodata Mahasiswa
+    const { error: studentError } = await supabase
       .from("mahasiswa")
       .update({
         nim: data.nim,
@@ -103,9 +110,51 @@ export async function updateStudent(id: string, data: {
       })
       .eq("id", id);
 
-    if (error) throw error;
+    if (studentError) throw studentError;
+
+    // 2. Handle New Billings if provided
+    if (data.new_billings && data.new_billings.length > 0) {
+      const timestamp = Date.now();
+      
+      for (let i = 0; i < data.new_billings.length; i++) {
+        const billData = data.new_billings[i];
+        if (billData.nominal <= 0) continue;
+
+        const { data: bill, error: billError } = await supabase
+          .from("tagihan")
+          .insert({
+            mahasiswa_id: id,
+            kode: `INV-${data.nim}-${timestamp}-${i}`,
+            jenis: billData.jenis,
+            jumlah: billData.nominal,
+            sisa_tagihan: billData.status === "LUNAS" ? 0 : billData.nominal,
+            status: billData.status,
+            jatuh_tempo: billData.jatuh_tempo
+          })
+          .select()
+          .single();
+
+        if (billError) throw billError;
+
+        // 3. Handle Auto-Payment if LUNAS
+        if (billData.status === "LUNAS") {
+          const { error: paymentError } = await supabase
+            .from("pembayaran")
+            .insert({
+              tagihan_id: bill.id,
+              jumlah_bayar: billData.nominal,
+              metode: "TUNAI",
+              status: "VERIFIED"
+            });
+          
+          if (paymentError) throw paymentError;
+        }
+      }
+    }
 
     revalidatePath("/mahasiswa");
+    revalidatePath("/tagihan");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
     return { error: error.message };
