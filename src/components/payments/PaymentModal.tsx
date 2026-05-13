@@ -146,8 +146,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
               <input 
                 type="number"
                 value={jumlahBayar}
-                min={1}
-                max={bill.sisa_tagihan ?? bill.jumlah}
+                min={0}
                 onChange={(e) => {
                   const val = parseInt(e.target.value) || 0;
                   setJumlahBayar(val);
@@ -174,7 +173,23 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                   <input 
                     type="checkbox" 
                     checked={useDeposit}
-                    onChange={(e) => setUseDeposit(e.target.checked)}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      setUseDeposit(isChecked);
+                      
+                      const sisa = (bill.sisa_tagihan ?? bill.jumlah);
+                      if (isChecked) {
+                        // Automate: fill needed amount after deposit
+                        if (studentDeposit >= sisa) {
+                          setJumlahBayar(0);
+                        } else {
+                          setJumlahBayar(sisa - studentDeposit);
+                        }
+                      } else {
+                        // Reset to full sisa if untoggled
+                        setJumlahBayar(sisa);
+                      }
+                    }}
                     className="sr-only peer" 
                   />
                   <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
@@ -182,6 +197,13 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                 </label>
               )}
             </div>
+            
+            {useDeposit && (
+              <p className="text-[10px] text-emerald-600 font-medium italic">
+                * {formatRupiah(Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)))} akan diambil dari deposit.
+                {jumlahBayar > 0 ? ` Masukkan ${formatRupiah(jumlahBayar)} untuk melunasi sisanya.` : " Tagihan ini akan langsung LUNAS menggunakan deposit."}
+              </p>
+            )}
             
             {jumlahBayar > (bill.sisa_tagihan ?? bill.jumlah) && (
               <div className="flex items-start gap-2 p-3 bg-white/60 rounded-xl border border-emerald-100 animate-in zoom-in-95">
