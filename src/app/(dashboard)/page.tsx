@@ -48,7 +48,7 @@ export default async function DashboardPage({
     },
     {
       title: "Antrean Verifikasi",
-      value: `${statsData.pendingCount} Transaksi`,
+      value: statsData.pendingCount.toString(),
       description: "Butuh persetujuan segera",
       icon: Clock,
       color: "bg-status-amber",
@@ -66,11 +66,11 @@ export default async function DashboardPage({
       </div>
 
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
         {stats.map((stat) => (
           <div 
             key={stat.title}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all duration-300"
+            className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:shadow-md transition-all duration-300 flex flex-col h-full"
           >
             <div className={`absolute top-0 left-0 right-0 h-1 ${stat.color}`}></div>
             
@@ -80,7 +80,7 @@ export default async function DashboardPage({
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1 flex-1">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 {stat.title}
               </p>

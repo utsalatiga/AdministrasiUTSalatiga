@@ -90,7 +90,7 @@ export default function PaymentsHistoryPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="flex justify-start">
+      <div className="flex justify-center">
         <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group w-full max-w-md">
           <div className="absolute top-0 left-0 right-0 h-1 bg-status-emerald"></div>
           <div className="flex items-center gap-4 mb-4">
