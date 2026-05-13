@@ -1,3 +1,4 @@
+// Deployment Update: 2026-05-13
 import type { Metadata } from "next";
 import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";

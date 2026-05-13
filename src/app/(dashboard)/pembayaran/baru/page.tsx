@@ -67,7 +67,7 @@ export default function NewPaymentPage() {
 
   const handleSelectBill = (bill: any) => {
     setSelectedBill(bill);
-    setJumlahBayar(bill.jumlah);
+    setJumlahBayar(bill.sisa_tagihan ?? bill.jumlah);
   };
 
   const handlePayment = async () => {
@@ -266,13 +266,19 @@ export default function NewPaymentPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex flex-col items-end gap-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sisa Tagihan</p>
                         <p className={cn(
-                          "font-serif text-lg",
+                          "font-serif text-lg font-bold",
                           selectedBill?.id === bill.id ? "text-primary" : "text-slate-900"
                         )}>
-                          {formatRupiah(bill.jumlah)}
+                          {formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}
                         </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[9px] text-slate-400 font-medium">Terbayar: {formatRupiah(bill.jumlah - (bill.sisa_tagihan ?? bill.jumlah))}</span>
+                          <span className="text-[9px] text-slate-300">/</span>
+                          <span className="text-[9px] text-slate-400 font-medium">Total: {formatRupiah(bill.jumlah)}</span>
+                        </div>
                       </div>
                     </button>
                   ))}
@@ -306,25 +312,25 @@ export default function NewPaymentPage() {
                     )}
 
                     <div className="space-y-4">
-                      {jumlahBayar < selectedBill.jumlah && (
+                      {jumlahBayar < (selectedBill.sisa_tagihan ?? selectedBill.jumlah) && (
                         <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in-95">
                           <Info className="h-5 w-5 text-amber-500 shrink-0" />
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Pembayaran Cicilan</p>
                             <p className="text-xs text-amber-700 font-medium leading-relaxed">
-                              Pembayaran kurang dari tagihan. Sisa <span className="font-bold">{formatRupiah(selectedBill.jumlah - jumlahBayar)}</span> akan ditagihkan kembali.
+                              Pembayaran kurang dari sisa tagihan. Sisa akhir menjadi <span className="font-bold">{formatRupiah((selectedBill.sisa_tagihan ?? selectedBill.jumlah) - jumlahBayar)}</span>.
                             </p>
                           </div>
                         </div>
                       )}
                       
-                      {jumlahBayar > selectedBill.jumlah && (
+                      {jumlahBayar > (selectedBill.sisa_tagihan ?? selectedBill.jumlah) && (
                         <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in-95">
                           <Wallet className="h-5 w-5 text-emerald-500 shrink-0" />
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Masuk Deposit</p>
                             <p className="text-xs text-emerald-700 font-medium leading-relaxed">
-                              Kelebihan <span className="font-bold">{formatRupiah(jumlahBayar - selectedBill.jumlah)}</span> akan otomatis masuk ke Saldo Deposit mahasiswa.
+                              Kelebihan <span className="font-bold">{formatRupiah(jumlahBayar - (selectedBill.sisa_tagihan ?? selectedBill.jumlah))}</span> akan otomatis masuk ke Saldo Deposit mahasiswa.
                             </p>
                           </div>
                         </div>

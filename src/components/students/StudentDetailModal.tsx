@@ -132,14 +132,26 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-serif text-xs text-slate-400 line-through mb-1">{formatRupiah(bill.jumlah)}</p>
-                        <p className="font-serif text-base text-slate-900 font-bold">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
-                        <p className={cn(
-                          "text-[10px] font-bold uppercase mt-1",
-                          bill.status === "LUNAS" ? "text-status-emerald" : 
-                          bill.status === "MENCICIL" ? "text-status-amber" :
-                          "text-rose-600"
-                        )}>{bill.status?.replace('_', ' ')}</p>
+                        <div className="flex items-center gap-1.5 justify-end mb-1">
+                          <span className="text-[10px] text-slate-400 font-medium">Terbayar: {formatRupiah(bill.jumlah - (bill.sisa_tagihan ?? bill.jumlah))}</span>
+                          <span className="text-[10px] text-slate-300">/</span>
+                          <span className="text-[10px] text-slate-400 font-medium">Total: {formatRupiah(bill.jumlah)}</span>
+                        </div>
+                        <p className="font-serif text-lg text-slate-900 font-bold leading-tight">
+                          {formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Sisa Tagihan</p>
+                        <div className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 rounded-md mt-2",
+                          (bill.sisa_tagihan ?? bill.jumlah) <= 0 ? "bg-emerald-50 text-status-emerald" : 
+                          (bill.sisa_tagihan ?? bill.jumlah) < bill.jumlah ? "bg-amber-50 text-status-amber" :
+                          "bg-rose-50 text-rose-600"
+                        )}>
+                          <span className="text-[9px] font-bold uppercase tracking-widest">
+                            {(bill.sisa_tagihan ?? bill.jumlah) <= 0 ? "LUNAS" : 
+                             (bill.sisa_tagihan ?? bill.jumlah) < bill.jumlah ? "MENCICIL" : "BELUM LUNAS"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
