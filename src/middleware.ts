@@ -66,6 +66,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
+  // Super Admin protection for /admins
+  if (request.nextUrl.pathname.startsWith('/admins')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session?.user.id)
+      .single()
+
+    if (profile?.role !== 'super_admin') {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
   return response
 }
 

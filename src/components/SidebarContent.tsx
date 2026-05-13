@@ -39,7 +39,7 @@ export default function SidebarContent({ onClose }: SidebarContentProps) {
 
   useEffect(() => {
     getCurrentUserProfile().then(profile => {
-      if (profile?.role === 'admin') setIsAdmin(true);
+      if (profile?.role === 'super_admin') setIsAdmin(true);
     });
   }, []);
 

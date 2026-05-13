@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck, UserPlus, Mail, Calendar, Shield, Loader2 } from "lucide-react";
 import { getAdmins, getCurrentUserProfile } from "@/lib/actions/admins";
 import AddAdminModal from "@/components/admins/AddAdminModal";
+import { cn } from "@/lib/utils";
 
 export default function AdminsPage() {
   const router = useRouter();
@@ -15,9 +16,9 @@ export default function AdminsPage() {
   const fetchAdmins = async () => {
     setIsLoading(true);
     
-    // Security Check: Ensure only admins can see this
+    // Security Check: Ensure only super_admins can see this
     const profile = await getCurrentUserProfile();
-    if (!profile || profile.role !== 'admin') {
+    if (!profile || profile.role !== 'super_admin') {
       router.push("/");
       return;
     }
@@ -36,7 +37,7 @@ export default function AdminsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="font-serif text-3xl text-slate-900">Manajemen Admin</h1>
-          <p className="text-slate-500 text-sm">Kelola akses staf administrasi dan pengaturan keamanan.</p>
+          <p className="text-slate-500 text-sm">Kelola akses staf administrasi (Eksklusif Super Admin).</p>
         </div>
 
         <button
@@ -62,21 +63,22 @@ export default function AdminsPage() {
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Admin</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Role</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dibuat Pada</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dibuat Oleh</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waktu</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={3} className="px-8 py-6">
+                    <td colSpan={4} className="px-8 py-6">
                       <div className="h-10 bg-slate-100 rounded-xl w-full"></div>
                     </td>
                   </tr>
                 ))
               ) : admins.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-8 py-20 text-center text-slate-400 italic text-sm">
+                  <td colSpan={4} className="px-8 py-20 text-center text-slate-400 italic text-sm">
                     Belum ada admin lain yang terdaftar.
                   </td>
                 </tr>
@@ -98,19 +100,23 @@ export default function AdminsPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                        admin.role === 'super_admin' 
+                          ? "bg-amber-50 text-amber-600 border-amber-100" 
+                          : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                      )}>
                         <Shield className="h-3 w-3" />
                         {admin.role}
                       </span>
                     </td>
                     <td className="px-8 py-6">
-                      <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
-                        <Calendar className="h-4 w-4 text-slate-300" />
-                        {new Date(admin.created_at).toLocaleDateString('id-ID', { 
-                          day: 'numeric', 
-                          month: 'long', 
-                          year: 'numeric' 
-                        })}
+                      <p className="text-xs font-semibold text-slate-600">{admin.creator?.nama || "Sistem"}</p>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2 text-slate-500 text-xs font-medium">
+                        <Calendar className="h-3 w-3 text-slate-300" />
+                        {new Date(admin.created_at).toLocaleDateString('id-ID')}
                       </div>
                     </td>
                   </tr>

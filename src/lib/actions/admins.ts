@@ -9,13 +9,22 @@ const adminSchema = z.object({
   email: z.string().email("Email tidak valid"),
   nama: z.string().min(1, "Nama wajib diisi"),
   password: z.string().min(8, "Password minimal 8 karakter"),
+  confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Konfirmasi password tidak cocok",
+  path: ["confirmPassword"],
 });
 
 export async function getAdmins() {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("*")
+    .select(`
+      *,
+      creator:created_by (
+        nama
+      )
+    `)
     .order("created_at", { ascending: false });
   
   if (error) return { error: error.message };
@@ -36,10 +45,10 @@ export async function getCurrentUserProfile() {
   return profile || null;
 }
 
-export async function createAdmin(formData: z.infer<typeof adminSchema>) {
+export async function createNewAdmin(formData: z.infer<typeof adminSchema>) {
   const supabase = createClient();
   
-  // 1. Verify current user is admin
+  // 1. Verify current user is super_admin
   const { data: { user: currentUser } } = await supabase.auth.getUser();
   if (!currentUser) throw new Error("Unauthorized");
 
@@ -49,8 +58,8 @@ export async function createAdmin(formData: z.infer<typeof adminSchema>) {
     .eq("id", currentUser.id)
     .single();
 
-  if (profile?.role !== 'admin') {
-    throw new Error("Akses ditolak: Hanya admin yang dapat menambah admin baru.");
+  if (profile?.role !== 'super_admin') {
+    throw new Error("Akses ditolak: Hanya Super Admin yang dapat menambah admin baru.");
   }
 
   // 2. Validate input
@@ -73,7 +82,8 @@ export async function createAdmin(formData: z.infer<typeof adminSchema>) {
         id: newUser.user.id,
         email: validated.email,
         nama: validated.nama,
-        role: 'admin'
+        role: 'admin',
+        created_by: currentUser.id
       });
 
     if (profileError) {

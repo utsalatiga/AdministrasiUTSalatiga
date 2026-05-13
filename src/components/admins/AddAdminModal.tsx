@@ -12,6 +12,10 @@ const adminSchema = z.object({
   email: z.string().email("Email tidak valid"),
   nama: z.string().min(1, "Nama wajib diisi"),
   password: z.string().min(8, "Password minimal 8 karakter"),
+  confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Konfirmasi password tidak cocok",
+  path: ["confirmPassword"],
 });
 
 type AdminFormValues = z.infer<typeof adminSchema>;
@@ -34,6 +38,7 @@ export default function AddAdminModal({ isOpen, onClose, onSuccess }: AddAdminMo
       email: "",
       nama: "",
       password: "",
+      confirmPassword: "",
     }
   });
 
@@ -41,7 +46,7 @@ export default function AddAdminModal({ isOpen, onClose, onSuccess }: AddAdminMo
 
   const onSubmit = async (values: AdminFormValues) => {
     try {
-      const res = await createAdmin(values);
+      const res = await createNewAdmin(values);
       if (res.success) {
         reset();
         onSuccess();
@@ -72,7 +77,7 @@ export default function AddAdminModal({ isOpen, onClose, onSuccess }: AddAdminMo
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-4 max-h-[80vh] overflow-y-auto">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700 ml-1">Nama Lengkap</label>
             <div className="relative">
@@ -111,6 +116,20 @@ export default function AddAdminModal({ isOpen, onClose, onSuccess }: AddAdminMo
               />
             </div>
             {errors.password && <p className="text-xs text-status-rose ml-1 font-medium">{errors.password.message}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-700 ml-1">Konfirmasi Password</label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="password"
+                {...register("confirmPassword")}
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                placeholder="Ulangi password"
+              />
+            </div>
+            {errors.confirmPassword && <p className="text-xs text-status-rose ml-1 font-medium">{errors.confirmPassword.message}</p>}
           </div>
 
           <div className="pt-4 flex gap-4">
