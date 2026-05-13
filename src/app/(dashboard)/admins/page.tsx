@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, UserPlus, Mail, Calendar, Shield, Loader2 } from "lucide-react";
+import { ShieldCheck, UserPlus, Mail, Calendar, Shield, Loader2, User } from "lucide-react";
 import { getAdmins, getCurrentUserProfile } from "@/lib/actions/admins";
 import AddAdminModal from "@/components/admins/AddAdminModal";
 import { cn } from "@/lib/utils";
@@ -88,7 +88,7 @@ export default function AdminsPage() {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
-                          {admin.nama?.charAt(0) || <Shield className="h-4 w-4" />}
+                          {admin.nama?.charAt(0) || <User className="h-4 w-4" />}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-slate-800">{admin.nama}</p>
@@ -107,7 +107,7 @@ export default function AdminsPage() {
                           : "bg-indigo-50 text-indigo-600 border-indigo-100"
                       )}>
                         <Shield className="h-3 w-3" />
-                        {admin.role}
+                        {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                       </span>
                     </td>
                     <td className="px-8 py-6">

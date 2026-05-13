@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { X, Loader2, UserPlus, ShieldCheck, Mail, User, Lock } from "lucide-react";
-import { createAdmin } from "@/lib/actions/admins";
+import { createNewAdmin } from "@/lib/actions/admins";
 import { cn } from "@/lib/utils";
 
 const adminSchema = z.object({
@@ -77,7 +77,7 @@ export default function AddAdminModal({ isOpen, onClose, onSuccess }: AddAdminMo
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-4 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-4 max-h-[85vh] overflow-y-auto">
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700 ml-1">Nama Lengkap</label>
             <div className="relative">
@@ -85,7 +85,7 @@ export default function AddAdminModal({ isOpen, onClose, onSuccess }: AddAdminMo
               <input
                 {...register("nama")}
                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                placeholder="Nama Admin"
+                placeholder="Nama Staf"
               />
             </div>
             {errors.nama && <p className="text-xs text-status-rose ml-1 font-medium">{errors.nama.message}</p>}
@@ -98,7 +98,7 @@ export default function AddAdminModal({ isOpen, onClose, onSuccess }: AddAdminMo
               <input
                 {...register("email")}
                 className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                placeholder="admin@example.com"
+                placeholder="email@example.com"
               />
             </div>
             {errors.email && <p className="text-xs text-status-rose ml-1 font-medium">{errors.email.message}</p>}
@@ -150,7 +150,7 @@ export default function AddAdminModal({ isOpen, onClose, onSuccess }: AddAdminMo
               ) : (
                 <>
                   <UserPlus className="h-5 w-5" />
-                  Buat Admin
+                  Daftarkan Staf
                 </>
               )}
             </button>
