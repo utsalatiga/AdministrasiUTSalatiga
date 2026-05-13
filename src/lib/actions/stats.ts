@@ -40,13 +40,14 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
     .select("*", { count: "exact", head: true })
     .eq("status", "PENDING");
 
-  // 5. Transaksi Hari Ini
+  // 5. Transaksi Hari Ini (Hanya VERIFIED & LUNAS)
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const { count: todayCount } = await supabase
     .from("pembayaran")
     .select("*", { count: "exact", head: true })
-    .gte("created_at", todayStart.toISOString());
+    .gte("created_at", todayStart.toISOString())
+    .in("status", ["VERIFIED", "LUNAS"]);
 
   // 6. Real Dynamic Chart Data (Last 6 Months)
   const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
