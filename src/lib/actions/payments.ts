@@ -56,8 +56,7 @@ export async function getStudentBills(studentId: string) {
   const { data, error } = await supabase
     .from("tagihan")
     .select("*")
-    .eq("mahasiswa_id", studentId)
-    .eq("status", "BELUM_LUNAS");
+    .eq("mahasiswa_id", studentId);
     
   if (error) return { error: error.message };
   return { data };
@@ -68,8 +67,7 @@ export async function searchStudents(query: string) {
   const { data, error } = await supabase
     .from("mahasiswa")
     .select("id, nim, nama")
-    .or(`nama.ilike.%${query}%,nim.ilike.%${query}%`)
-    .limit(5);
+    .or(`nama.ilike.%${query}%,nim.ilike.%${query}%`);
 
   if (error) return { error: error.message };
   return { data };

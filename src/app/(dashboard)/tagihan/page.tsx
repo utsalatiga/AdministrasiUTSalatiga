@@ -35,70 +35,51 @@ export default function TagihanPage() {
     setIsLoading(true);
     try {
       let query = supabase
-        .from("tagihan")
+        .from("mahasiswa")
         .select(`
-          *,
-          mahasiswa:mahasiswa_id (
-            id,
-            nama,
-            nim,
-            email,
-            deposit
-          )
+          id,
+          nama,
+          nim,
+          email,
+          deposit,
+          tagihan (*)
         `);
 
-      if (filterStatus) {
-        query = query.eq("status", filterStatus);
-      }
-
       if (search) {
-        // Correct syntax for filtering on joined tables in Supabase
-        query = query.or(`nama.ilike.%${search}%,nim.ilike.%${search}%`, { foreignTable: 'mahasiswa' });
+        query = query.or(`nama.ilike.%${search}%,nim.ilike.%${search}%`);
       }
 
       const { data, error } = await query.order("created_at", { ascending: false });
       
       if (error) {
-        console.error("Error fetching bills:", error);
+        console.error("Error fetching students and bills:", error);
       }
 
-      if (data && data.length > 0) {
-        setBills(data);
+      if (data) {
+        // Flatten students with their bills, including those with no bills
+        const flattenedBills = data.flatMap(student => {
+          if (!student.tagihan || student.tagihan.length === 0) {
+            return [{ 
+              id: `no-bill-${student.id}`, 
+              mahasiswa: student, 
+              status: "BELUM_ADA",
+              isPlaceholder: true 
+            }];
+          }
+          return student.tagihan.map((bill: any) => ({
+            ...bill,
+            mahasiswa: student
+          }));
+        });
+
+        // Apply status filter on the flattened list
+        const filtered = filterStatus 
+          ? flattenedBills.filter(b => b.status === filterStatus)
+          : flattenedBills;
+
+        setBills(filtered);
       } else {
-        // Fallback dummy data for testing if DB is empty
-        if (!search && !filterStatus && (!data || data.length === 0)) {
-          const dummyBills = [
-            {
-              id: "dummy-1",
-              kode: "INV-DUMMY-001",
-              jenis: "SPP Semester Genap",
-              jumlah: 2500000,
-              sisa_tagihan: 2500000,
-              status: "BELUM_LUNAS",
-              created_at: new Date().toISOString(),
-              mahasiswa: {
-                nama: "Budi Santoso",
-                nim: "012345678",
-              }
-            },
-            {
-              id: "dummy-2",
-              kode: "INV-DUMMY-002",
-              jenis: "SPI",
-              jumlah: 5000000,
-              sisa_tagihan: 1500000,
-              status: "MENCICIL",
-              created_at: new Date().toISOString(),
-              mahasiswa: {
-                nama: "Siti Aminah",
-                nim: "087654321",
-              }
-            }
-          ];
-          setBills(dummyBills);
-        } else {
-          setBills([]);
-        }
+        setBills([]);
       }
     } catch (err) {
       console.error("Unexpected error:", err);
@@ -221,26 +202,33 @@ export default function TagihanPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6 text-sm text-slate-600 font-medium">
-                      {bill.jenis}
-                      <p className="text-[10px] text-slate-400 mt-1">{bill.kode}</p>
+                      {bill.isPlaceholder ? (
+                        <span className="italic text-slate-400">Belum Ada Tagihan</span>
+                      ) : (
+                        <>
+                          {bill.jenis}
+                          <p className="text-[10px] text-slate-400 mt-1">{bill.kode}</p>
+                        </>
+                      )}
                     </td>
                     <td className="px-8 py-6 text-right font-serif text-slate-900 font-tabular">
-                      <p className="text-sm font-bold">{formatRupiah(bill.jumlah)}</p>
+                      <p className="text-sm font-bold">{bill.isPlaceholder ? "-" : formatRupiah(bill.jumlah)}</p>
                     </td>
                     <td className="px-8 py-6 text-right font-serif text-emerald-600 font-tabular">
-                      <p className="text-sm font-bold">{formatRupiah(bill.jumlah - (bill.sisa_tagihan ?? bill.jumlah))}</p>
+                      <p className="text-sm font-bold">{bill.isPlaceholder ? "-" : formatRupiah(bill.jumlah - (bill.sisa_tagihan ?? bill.jumlah))}</p>
                     </td>
                     <td className="px-8 py-6 text-right font-serif text-slate-900 font-tabular">
-                      <p className="text-sm font-bold text-indigo-600">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
+                      <p className="text-sm font-bold text-indigo-600">{bill.isPlaceholder ? "-" : formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
                     </td>
                     <td className="px-8 py-6">
                       <div className={cn(
                         "flex items-center gap-2 w-fit px-3 py-1 rounded-full mx-auto",
                         bill.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
                         bill.status === "MENCICIL" ? "bg-amber-50 text-status-amber" :
+                        bill.status === "BELUM_ADA" ? "bg-slate-50 text-slate-400" :
                         "bg-rose-50 text-rose-600"
                       )}>
-                        {bill.status === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                        {bill.status === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : bill.status === "BELUM_ADA" ? <Info className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                         <span className="text-[10px] font-bold uppercase tracking-wider">{bill.status?.replace('_', ' ')}</span>
                       </div>
                     </td>
@@ -310,6 +298,7 @@ export default function TagihanPage() {
                     "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
                     bill.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
                     bill.status === "MENCICIL" ? "bg-amber-50 text-status-amber" :
+                    bill.status === "BELUM_ADA" ? "bg-slate-50 text-slate-400" :
                     "bg-rose-50 text-rose-600"
                   )}>
                     <span className="text-[9px] font-bold uppercase tracking-wider">{bill.status?.replace('_', ' ')}</span>
@@ -319,16 +308,20 @@ export default function TagihanPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jenis Tagihan</p>
-                    <p className="text-xs font-semibold text-slate-600">{bill.jenis}</p>
+                    <p className="text-xs font-semibold text-slate-600">
+                      {bill.isPlaceholder ? "Belum Ada" : bill.jenis}
+                    </p>
                   </div>
                   <div className="space-y-1 text-right">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sisa Tagihan</p>
-                    <p className="text-sm font-serif font-bold text-indigo-600">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
+                    <p className="text-sm font-serif font-bold text-indigo-600">
+                      {bill.isPlaceholder ? "-" : formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  {bill.status !== "LUNAS" && (
+                  {bill.status !== "LUNAS" && bill.status !== "BELUM_ADA" && (
                     <button 
                       onClick={() => setSelectedBill(bill)}
                       className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm shadow-indigo-100 flex items-center justify-center gap-2"

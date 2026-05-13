@@ -30,9 +30,9 @@ export default function NewPaymentPage() {
   const [showReceipt, setShowReceipt] = useState(false);
   const [paymentResult, setPaymentResult] = useState<any>(null);
   
-  // New State for Payment Method
   const [method, setMethod] = useState<"TUNAI" | "TRANSFER">("TUNAI");
   const [isAutoVerify, setIsAutoVerify] = useState(true);
+  const [jumlahBayar, setJumlahBayar] = useState<number>(0);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -64,6 +64,11 @@ export default function NewPaymentPage() {
     setIsLoading(false);
   };
 
+  const handleSelectBill = (bill: any) => {
+    setSelectedBill(bill);
+    setJumlahBayar(bill.jumlah);
+  };
+
   const handlePayment = async () => {
     if (!selectedBill) return;
     setIsSubmitting(true);
@@ -73,7 +78,7 @@ export default function NewPaymentPage() {
     
     const result = await createCashPayment({
       tagihan_id: selectedBill.id,
-      jumlah_bayar: selectedBill.jumlah,
+      jumlah_bayar: jumlahBayar,
       metode: method,
       status: status
     });
@@ -86,7 +91,7 @@ export default function NewPaymentPage() {
           nama: selectedStudent.nama,
           nim: selectedStudent.nim,
           untuk_pembayaran: selectedBill.jenis,
-          jumlah: selectedBill.jumlah,
+          jumlah: jumlahBayar,
           admin: "Admin Keuangan",
         });
         setShowReceipt(true);
@@ -236,7 +241,7 @@ export default function NewPaymentPage() {
                   {bills.map((bill) => (
                     <button
                       key={bill.id}
-                      onClick={() => setSelectedBill(bill)}
+                      onClick={() => handleSelectBill(bill)}
                       className={cn(
                         "w-full p-5 rounded-2xl border text-left transition-all flex items-center justify-between group",
                         selectedBill?.id === bill.id 
@@ -299,25 +304,59 @@ export default function NewPaymentPage() {
                       </div>
                     )}
 
-                    <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center justify-between shadow-xl shadow-slate-900/10">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mb-1">Total yang Dibayar</p>
-                        <p className="font-serif text-3xl font-tabular">{formatRupiah(selectedBill.jumlah)}</p>
+                    <div className="space-y-4">
+                      {jumlahBayar < selectedBill.jumlah && (
+                        <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in-95">
+                          <Info className="h-5 w-5 text-amber-500 shrink-0" />
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Pembayaran Cicilan</p>
+                            <p className="text-xs text-amber-700 font-medium leading-relaxed">
+                              Pembayaran kurang dari tagihan. Sisa <span className="font-bold">{formatRupiah(selectedBill.jumlah - jumlahBayar)}</span> akan ditagihkan kembali.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {jumlahBayar > selectedBill.jumlah && (
+                        <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in-95">
+                          <Wallet className="h-5 w-5 text-emerald-500 shrink-0" />
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Masuk Deposit</p>
+                            <p className="text-xs text-emerald-700 font-medium leading-relaxed">
+                              Kelebihan <span className="font-bold">{formatRupiah(jumlahBayar - selectedBill.jumlah)}</span> akan otomatis masuk ke Saldo Deposit mahasiswa.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="bg-slate-900 text-white p-6 rounded-2xl flex items-center justify-between shadow-xl shadow-slate-900/10">
+                        <div className="flex-1 mr-4">
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400 font-bold mb-1">Total yang Dibayar</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl font-serif text-slate-500">Rp</span>
+                            <input 
+                              type="number"
+                              value={jumlahBayar}
+                              onChange={(e) => setJumlahBayar(Number(e.target.value))}
+                              className="bg-transparent border-b border-slate-700 text-white text-3xl font-serif font-tabular focus:outline-none focus:border-primary w-full"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          onClick={handlePayment}
+                          disabled={isSubmitting || jumlahBayar <= 0}
+                          className="bg-primary hover:bg-blue-600 text-white px-8 py-4 rounded-xl font-bold transition-all flex items-center gap-2 disabled:opacity-50"
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <>
+                              {method === "TUNAI" ? "Konfirmasi Tunai" : "Simpan Transfer"}
+                              <ArrowRight className="h-5 w-5" />
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <button
-                        onClick={handlePayment}
-                        disabled={isSubmitting}
-                        className="bg-primary hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 disabled:opacity-50"
-                      >
-                        {isSubmitting ? (
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                          <>
-                            {method === "TUNAI" ? "Konfirmasi Tunai" : "Simpan Transfer"}
-                            <ArrowRight className="h-5 w-5" />
-                          </>
-                        )}
-                      </button>
                     </div>
                   </div>
                 )}
