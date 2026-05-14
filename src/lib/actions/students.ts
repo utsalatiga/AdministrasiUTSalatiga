@@ -250,3 +250,29 @@ export async function importBatchStudents(data: any[]) {
     return { error: error.message };
   }
 }
+
+export async function deleteMahasiswa(id: string) {
+  const supabase = createClient();
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (profile?.role !== 'super_admin') throw new Error("Akses Ditolak: Hanya Super Admin yang dapat menghapus data mahasiswa.");
+
+    // Cascade delete is handled by database if RLS and FK are set, 
+    // but we'll do it explicitly if needed.
+    const { error } = await supabase.from("mahasiswa").delete().eq("id", id);
+    if (error) throw error;
+
+    revalidatePath("/mahasiswa");
+    revalidatePath("/tagihan");
+    revalidatePath("/pembayaran");
+    revalidatePath("/");
+    
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}

@@ -12,12 +12,16 @@ import {
   CheckCircle2,
   TrendingDown,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  ShieldCheck
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { getStudentDetails } from "@/lib/actions/payments";
+import { deleteMahasiswa } from "@/lib/actions/students";
+import { getCurrentUserProfile } from "@/lib/actions/admins";
+import { useEffect } from "react";
 
 interface StudentTableProps {
   students: Student[];
@@ -46,6 +50,12 @@ export default function StudentTable({
   const queryClient = useQueryClient();
   const totalPages = Math.ceil(totalCount / pageSize);
   const [jumpPage, setJumpPage] = useState("");
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCurrentUserProfile().then(profile => setUserRole(profile?.role || "admin"));
+  }, []);
 
   const prefetchStudent = (id: string) => {
     queryClient.prefetchQuery({
@@ -57,13 +67,21 @@ export default function StudentTable({
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Apakah Anda yakin ingin menghapus data mahasiswa ini?")) {
+    if (userRole !== 'super_admin') {
+      alert("Hanya Super Admin yang memiliki akses untuk menghapus data.");
+      return;
+    }
+
+    if (confirm("Apakah Anda yakin ingin menghapus data mahasiswa ini secara permanen? Seluruh riwayat tagihan dan pembayaran juga akan ikut terhapus.")) {
       try {
-        const { error } = await supabase.from("mahasiswa").delete().eq("id", id);
-        if (error) throw error;
+        setIsDeleting(id);
+        const res = await deleteMahasiswa(id);
+        if (res.error) throw new Error(res.error);
         onRefresh();
       } catch (err: any) {
         alert(err.message || "Gagal menghapus data");
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
@@ -197,12 +215,15 @@ export default function StudentTable({
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
-                      <button 
-                        onClick={(e) => handleDelete(student.id, e)}
-                        className="p-2 text-slate-400 hover:text-status-rose hover:bg-rose-50 rounded-lg transition-all"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {userRole === 'super_admin' && (
+                        <button 
+                          onClick={(e) => handleDelete(student.id, e)}
+                          disabled={isDeleting === student.id}
+                          className="p-2 text-slate-400 hover:text-status-rose hover:bg-rose-50 rounded-lg transition-all disabled:opacity-30"
+                        >
+                          {isDeleting === student.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -275,13 +296,16 @@ export default function StudentTable({
                   <Edit2 className="h-3.5 w-3.5" />
                   Edit
                 </button>
-                <button 
-                  onClick={(e) => handleDelete(student.id, e)}
-                  className="flex-1 py-2 bg-rose-50 text-status-rose rounded-lg text-xs font-bold border border-rose-100 flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Hapus
-                </button>
+                {userRole === 'super_admin' && (
+                  <button 
+                    onClick={(e) => handleDelete(student.id, e)}
+                    disabled={isDeleting === student.id}
+                    className="flex-1 py-2 bg-rose-50 text-status-rose rounded-lg text-xs font-bold border border-rose-100 flex items-center justify-center gap-2 disabled:opacity-30"
+                  >
+                    {isDeleting === student.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    Hapus
+                  </button>
+                )}
               </div>
             </div>
           ))

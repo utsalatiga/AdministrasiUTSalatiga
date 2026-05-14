@@ -105,3 +105,39 @@ export async function createNewAdmin(formData: z.infer<typeof adminSchema>) {
     return { error: error.message };
   }
 }
+
+export async function deleteAdmin(id: string) {
+  const supabase = createClient();
+
+  try {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) throw new Error("Unauthorized");
+
+    if (currentUser.id === id) {
+      throw new Error("Anda tidak dapat menghapus akun Anda sendiri.");
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", currentUser.id)
+      .single();
+
+    if (profile?.role !== 'super_admin') {
+      throw new Error("Akses ditolak: Hanya Super Admin yang dapat menghapus admin.");
+    }
+
+    // 1. Delete from profiles (auth.users deletion requires supabaseAdmin)
+    const { error: profileError } = await supabase.from("profiles").delete().eq("id", id);
+    if (profileError) throw profileError;
+
+    // 2. Delete from auth.users
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authError) throw authError;
+
+    revalidatePath("/admins");
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}

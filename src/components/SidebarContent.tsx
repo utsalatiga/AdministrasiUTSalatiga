@@ -11,7 +11,8 @@ import {
   CheckCircle2, 
   BarChart3,
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -46,6 +47,7 @@ export default function SidebarContent({ onClose }: SidebarContentProps) {
   const menuItems = [...baseMenuItems];
   if (isAdmin) {
     menuItems.push({ name: "Admin", href: "/admins", icon: ShieldCheck });
+    menuItems.push({ name: "Settings", href: "/settings", icon: Settings });
   }
 
   const handleLogout = async () => {

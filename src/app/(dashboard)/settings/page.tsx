@@ -25,7 +25,7 @@ export default function SettingsPage() {
   };
 
   const handleReset = async () => {
-    if (confirmText !== "KONFIRMASI") return;
+    if (confirmText !== "RESET") return;
 
     setIsProcessing(true);
     let res;
@@ -36,7 +36,7 @@ export default function SettingsPage() {
     }
 
     if (res.success) {
-      setResult({ type: "success", message: "Nuclear Reset Berhasil. Membersihkan cache browser..." });
+      setResult({ type: "success", message: "Reset Berhasil. Membersihkan cache browser..." });
       setTimeout(() => {
         setIsConfirmOpen(false);
         setResult(null);
@@ -65,7 +65,7 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 className="font-serif text-xl text-slate-800">Zona Bahaya (Danger Zone)</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Gunakan dengan sangat hati-hati</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Hanya untuk Super Admin</p>
             </div>
           </div>
 
@@ -119,17 +119,17 @@ export default function SettingsPage() {
               <div className="space-y-3">
                 <h3 className="font-serif text-3xl text-slate-900">Konfirmasi Akhir</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  Tindakan ini akan menghapus permanen seluruh data mahasiswa, tagihan, dan pembayaran menggunakan sistem <span className="font-bold text-rose-600">TRUNCATE CASCADE</span>.
+                  Tindakan ini akan menghapus permanen data menggunakan sistem <span className="font-bold text-rose-600">TRUNCATE CASCADE</span>.
                 </p>
               </div>
 
               <div className="space-y-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Ketik 'KONFIRMASI' untuk memicu reset</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Ketik 'RESET' untuk memicu reset</p>
                 <input 
                   type="text" 
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="..."
+                  placeholder="Ketik RESET..."
                   className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center font-bold tracking-[0.3em] text-xl focus:outline-none focus:border-rose-500/30 focus:bg-white transition-all uppercase"
                 />
               </div>

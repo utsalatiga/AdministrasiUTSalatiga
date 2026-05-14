@@ -66,8 +66,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // Super Admin protection for /admins
-  if (request.nextUrl.pathname.startsWith('/admins')) {
+  // Super Admin protection for /admins and /settings
+  if (request.nextUrl.pathname.startsWith('/admins') || request.nextUrl.pathname.startsWith('/settings')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -75,7 +75,7 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (profile?.role !== 'super_admin') {
-      return NextResponse.redirect(new URL('/', request.url))
+      return NextResponse.redirect(new URL('/?error=access_denied', request.url))
     }
   }
 

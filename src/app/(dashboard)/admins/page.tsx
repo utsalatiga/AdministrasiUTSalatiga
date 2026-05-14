@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, UserPlus, Mail, Calendar, Shield, Loader2, User } from "lucide-react";
-import { getAdmins, getCurrentUserProfile } from "@/lib/actions/admins";
+import { ShieldCheck, UserPlus, Mail, Calendar, Shield, Loader2, User, Trash2 } from "lucide-react";
+import { getAdmins, getCurrentUserProfile, deleteAdmin } from "@/lib/actions/admins";
 import AddAdminModal from "@/components/admins/AddAdminModal";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,8 @@ export default function AdminsPage() {
   const [admins, setAdmins] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const fetchAdmins = async () => {
     setIsLoading(true);
@@ -22,10 +24,24 @@ export default function AdminsPage() {
       router.push("/");
       return;
     }
+    setCurrentUser(profile);
 
     const res = await getAdmins();
     if (res.data) setAdmins(res.data);
     setIsLoading(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Apakah Anda yakin ingin menghapus admin ini? Tindakan ini tidak dapat dibatalkan.")) {
+      setIsDeleting(id);
+      const res = await deleteAdmin(id);
+      if (res.success) {
+        fetchAdmins();
+      } else {
+        alert(res.error || "Gagal menghapus admin");
+      }
+      setIsDeleting(null);
+    }
   };
 
   useEffect(() => {
@@ -63,8 +79,9 @@ export default function AdminsPage() {
               <tr className="bg-slate-50/50 border-b border-slate-100">
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Admin</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Role</th>
-                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dibuat Oleh</th>
+                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dibuat Oleh</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Waktu</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -118,6 +135,17 @@ export default function AdminsPage() {
                         <Calendar className="h-3 w-3 text-slate-300" />
                         {new Date(admin.created_at).toLocaleDateString('id-ID')}
                       </div>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      {currentUser?.email !== admin.email && (
+                        <button 
+                          onClick={() => handleDelete(admin.id)}
+                          disabled={isDeleting === admin.id}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                        >
+                          {isDeleting === admin.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
