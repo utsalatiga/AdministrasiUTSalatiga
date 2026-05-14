@@ -11,7 +11,9 @@ import {
   AlertCircle
 } from "lucide-react";
 import { getPendingPayments } from "@/lib/actions/verification";
-import VerificationModal from "@/components/verification/VerificationModal";
+import dynamic from "next/dynamic";
+
+const VerificationModal = dynamic(() => import("@/components/verification/VerificationModal"), { ssr: false });
 
 import { useQuery } from "@tanstack/react-query";
 

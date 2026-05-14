@@ -1,6 +1,8 @@
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
-import MobileBottomNav from "@/components/MobileBottomNav";
+import NextDynamic from "next/dynamic";
+
+const Sidebar = NextDynamic(() => import("@/components/Sidebar"), { ssr: false });
+const Header = NextDynamic(() => import("@/components/Header"), { ssr: false });
+const MobileBottomNav = NextDynamic(() => import("@/components/MobileBottomNav"), { ssr: false });
 
 export const dynamic = "force-dynamic";
 

@@ -9,8 +9,10 @@ import {
   TrendingUp
 } from "lucide-react";
 import { getDashboardStats } from "@/lib/actions/stats";
-import AnalyticsChart from "@/components/dashboard/AnalyticsChart";
 import DashboardFilters from "@/components/dashboard/DashboardFilters";
+import dynamic from "next/dynamic";
+
+const AnalyticsChart = dynamic(() => import("@/components/dashboard/AnalyticsChart"), { ssr: false });
 
 export default async function DashboardPage({ 
   searchParams 

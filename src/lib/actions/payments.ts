@@ -65,7 +65,7 @@ export async function getStudentBills(studentId: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("tagihan")
-    .select("*")
+    .select("id, kode, jenis, jumlah, sisa_tagihan, status, jatuh_tempo")
     .eq("mahasiswa_id", studentId);
     
   if (error) return { error: error.message };
@@ -115,29 +115,34 @@ export async function getStudentDetails(studentId: string) {
   
   const { data: student } = await supabase
     .from("mahasiswa")
-    .select("*")
+    .select("id, nim, nama, prodi, angkatan, deposit, no_hp")
     .eq("id", studentId)
     .single();
 
   const { data: bills } = await supabase
     .from("tagihan")
-    .select("*")
+    .select("id, kode, jenis, jumlah, sisa_tagihan, status, jatuh_tempo")
     .eq("mahasiswa_id", studentId)
     .order("created_at", { ascending: false });
 
   // Get payments for these bills
+  const billIds = bills?.map(b => b.id) || [];
   const { data: payments } = await supabase
     .from("pembayaran")
     .select(`
-      *,
+      id,
+      jumlah_bayar,
+      metode,
+      bukti_url,
+      created_at,
+      status,
       tagihan:tagihan_id (
-        jenis,
-        mahasiswa_id
+        id,
+        jenis
       )
     `)
+    .in("tagihan_id", billIds)
     .order("created_at", { ascending: false });
 
-  const studentPayments = payments?.filter(p => p.tagihan.mahasiswa_id === studentId) || [];
-
-  return { student, bills: bills || [], payments: studentPayments };
+  return { student, bills: bills || [], payments: payments || [] };
 }

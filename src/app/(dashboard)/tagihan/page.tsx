@@ -17,9 +17,12 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import OfficialReceipt from "@/components/payments/OfficialReceipt";
-import PaymentModal from "@/components/payments/PaymentModal";
-import PaymentHistory from "@/components/payments/PaymentHistory";
+import dynamic from "next/dynamic";
+
+const OfficialReceipt = dynamic(() => import("@/components/payments/OfficialReceipt"), { ssr: false });
+const PaymentModal = dynamic(() => import("@/components/payments/PaymentModal"), { ssr: false });
+const PaymentHistory = dynamic(() => import("@/components/payments/PaymentHistory"), { ssr: false });
+
 import { History } from "lucide-react";
 
 export default function TagihanPage() {

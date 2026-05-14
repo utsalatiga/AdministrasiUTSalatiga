@@ -36,12 +36,12 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
   // 3. Mahasiswa Aktif
   const { count: studentCount } = await supabase
     .from("mahasiswa")
-    .select("*", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true });
 
   // 4. Pending Verification
   const { count: pendingCount } = await supabase
     .from("pembayaran")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("status", "PENDING");
 
   // 5. Transaksi Hari Ini (Hanya VERIFIED & LUNAS)
@@ -49,7 +49,7 @@ export async function getDashboardStats(filters?: { dateStart?: string; dateEnd?
   todayStart.setHours(0, 0, 0, 0);
   const { count: todayCount } = await supabase
     .from("pembayaran")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .gte("created_at", todayStart.toISOString())
     .in("status", ["VERIFIED", "LUNAS"]);
 
@@ -109,7 +109,12 @@ export async function getReports(filters: {
   let query = supabase
     .from("pembayaran")
     .select(`
-      *,
+      id,
+      created_at,
+      jumlah_bayar,
+      metode,
+      status,
+      bukti_url,
       tagihan:tagihan_id (
         id,
         jenis,
@@ -144,9 +149,23 @@ export async function getReports(filters: {
 
   if (error) return { error: error.message };
 
-  let filteredData = data;
+  // Normalize data (ensure relations are objects, not arrays)
+  const normalizedData = (data as any[])?.map(item => ({
+    ...item,
+    tagihan: Array.isArray(item.tagihan) ? item.tagihan[0] : item.tagihan,
+    mahasiswa: item.tagihan ? (Array.isArray(item.tagihan.mahasiswa) ? item.tagihan.mahasiswa[0] : item.tagihan.mahasiswa) : null
+  })).map(item => {
+    // If we normalized tagihan.mahasiswa into item.mahasiswa above, 
+    // let's make sure it's also available at the expected path for the UI
+    if (item.tagihan && item.mahasiswa) {
+      item.tagihan.mahasiswa = item.mahasiswa;
+    }
+    return item;
+  });
+
+  let filteredData = normalizedData;
   if (filters.type) {
-    filteredData = data?.filter(p => p.tagihan.jenis === filters.type) || [];
+    filteredData = normalizedData?.filter(p => p.tagihan?.jenis === filters.type) || [];
   }
 
   return { data: filteredData };

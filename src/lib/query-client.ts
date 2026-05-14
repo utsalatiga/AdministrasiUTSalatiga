@@ -3,10 +3,10 @@ import { QueryClient } from '@tanstack/react-query'
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000, // 30 detik - data dianggap fresh
-      gcTime: 5 * 60 * 1000, // 5 menit - cache disimpan
-      refetchOnWindowFocus: false,
-      retry: 1,
+      staleTime: 60 * 1000, // 1 menit - data dianggap fresh
+      gcTime: 10 * 60 * 1000, // 10 menit - cache disimpan lebih lama
+      refetchOnWindowFocus: false, // Penting agar tidak loading saat pindah tab
+      retry: 1, // Hanya retry 1 kali jika gagal
     },
   },
 })

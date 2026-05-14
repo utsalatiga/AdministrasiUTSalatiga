@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
+import { getStudentDetails } from "@/lib/actions/payments";
 
 interface StudentTableProps {
   students: Student[];
@@ -41,8 +43,17 @@ export default function StudentTable({
   onRefresh,
 }: StudentTableProps) {
   const supabase = createClient();
+  const queryClient = useQueryClient();
   const totalPages = Math.ceil(totalCount / pageSize);
   const [jumpPage, setJumpPage] = useState("");
+
+  const prefetchStudent = (id: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ["student-details", id],
+      queryFn: () => getStudentDetails(id),
+      staleTime: 60 * 1000,
+    });
+  };
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -136,6 +147,7 @@ export default function StudentTable({
                 <tr 
                   key={student.id} 
                   onClick={() => onView(student)}
+                  onMouseEnter={() => prefetchStudent(student.id)}
                   className="hover:bg-slate-50/80 transition-all group cursor-pointer"
                 >
                   <td className="px-6 py-4">

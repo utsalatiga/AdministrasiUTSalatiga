@@ -4,11 +4,12 @@ import { useState, Suspense } from "react";
 import { Search, UserPlus, FileUp, RefreshCw } from "lucide-react";
 import { useStudents, Student } from "@/hooks/useStudents";
 import StudentTable from "@/components/students/StudentTable";
-import StudentFormModal from "@/components/students/StudentFormModal";
-import ImportExcelModal from "@/components/students/ImportExcelModal";
-import StudentDetailModal from "@/components/students/StudentDetailModal";
-
 import { useSearchParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const StudentFormModal = dynamic(() => import("@/components/students/StudentFormModal"), { ssr: false });
+const ImportExcelModal = dynamic(() => import("@/components/students/ImportExcelModal"), { ssr: false });
+const StudentDetailModal = dynamic(() => import("@/components/students/StudentDetailModal"), { ssr: false });
 
 function MahasiswaContent() {
   const searchParams = useSearchParams();

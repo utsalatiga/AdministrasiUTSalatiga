@@ -69,23 +69,23 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
                   <div className="p-4 bg-slate-50 rounded-2xl sm:bg-transparent sm:p-0">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">NIM</label>
-                    <p className="font-serif text-2xl text-slate-900 font-tabular tracking-tight">{data.student.nim}</p>
+                    <p className="font-serif text-2xl text-slate-900 font-tabular tracking-tight">{data.student?.nim}</p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl sm:bg-transparent sm:p-0">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Nama Lengkap</label>
-                    <p className="text-lg font-bold text-slate-800">{data.student.nama}</p>
+                    <p className="text-lg font-bold text-slate-800">{data.student?.nama}</p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl sm:bg-transparent sm:p-0">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Program Studi</label>
-                    <p className="text-sm font-semibold text-slate-600">{data.student.prodi}</p>
+                    <p className="text-sm font-semibold text-slate-600">{data.student?.prodi}</p>
                   </div>
                   <div className="p-4 bg-slate-50 rounded-2xl sm:bg-transparent sm:p-0">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Angkatan</label>
-                    <p className="text-sm font-semibold text-slate-600">{data.student.angkatan}</p>
+                    <p className="text-sm font-semibold text-slate-600">{data.student?.angkatan}</p>
                   </div>
                   <div className="p-4 bg-emerald-50 rounded-2xl sm:p-4 border border-emerald-100">
                     <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest block mb-1">Saldo Deposit</label>
-                    <p className="text-xl font-bold text-emerald-700 font-serif">{formatRupiah(data.student.deposit || 0)}</p>
+                    <p className="text-xl font-bold text-emerald-700 font-serif">{formatRupiah(data.student?.deposit || 0)}</p>
                   </div>
                 </div>
               </div>

@@ -9,7 +9,11 @@ export async function getPendingPayments() {
   const { data, error } = await supabase
     .from("pembayaran")
     .select(`
-      *,
+      id,
+      created_at,
+      jumlah_bayar,
+      bukti_url,
+      status,
       tagihan:tagihan_id (
         id,
         jenis,
@@ -23,7 +27,20 @@ export async function getPendingPayments() {
     .order("created_at", { ascending: false });
 
   if (error) return { error: error.message };
-  return { data };
+
+  // Normalize data (ensure relations are objects, not arrays)
+  const normalizedData = (data as any[])?.map(item => ({
+    ...item,
+    tagihan: Array.isArray(item.tagihan) ? item.tagihan[0] : item.tagihan,
+    mahasiswa: item.tagihan ? (Array.isArray(item.tagihan.mahasiswa) ? item.tagihan.mahasiswa[0] : item.tagihan.mahasiswa) : null
+  })).map(item => {
+    if (item.tagihan && item.mahasiswa) {
+      item.tagihan.mahasiswa = item.mahasiswa;
+    }
+    return item;
+  });
+
+  return { data: normalizedData };
 }
 
 export async function verifyPayment(paymentId: string, billId: string, formData?: FormData) {
