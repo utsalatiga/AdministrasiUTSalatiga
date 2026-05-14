@@ -24,7 +24,7 @@ interface PaymentModalProps {
 
 export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalProps) {
   const [activeTab, setActiveTab] = useState<"TRANSFER" | "CASH">("TRANSFER");
-  const [jumlahBayar, setJumlahBayar] = useState<number>(bill.sisa_tagihan || bill.jumlah);
+  const [jumlahBayar, setJumlahBayar] = useState<number>(Number(bill.sisa_tagihan || bill.jumlah || 0));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -79,10 +79,12 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         ? `Cicilan - Sisa ${formatRupiah(Math.max(0, sisaSetelahBayar))}` 
         : activeTab === "CASH" ? catatan : "Lunas";
 
+      const finalJumlahBayar = Number(jumlahBayar) || 0;
+      
       // 2. Call RPC to process payment
       const { error: rpcError } = await supabase.rpc("process_manual_payment", {
         p_tagihan_id: bill.id,
-        p_jumlah_bayar: jumlahBayar,
+        p_jumlah_bayar: finalJumlahBayar,
         p_metode: activeTab === "TRANSFER" ? "TRANSFER_MANUAL" : "TUNAI",
         p_bank_pengirim: activeTab === "TRANSFER" ? bankPengirim : "Cash",
         p_bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",

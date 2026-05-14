@@ -97,7 +97,7 @@ export default function Header() {
                 <div className="absolute right-0 mt-3 w-56 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                   <div className="p-4 bg-slate-50 border-b border-slate-100">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">User Aktif</p>
-                    <p className="text-sm font-bold text-slate-800 truncate">{userProfile?.email || "Memuat..."}</p>
+                    <p className="text-sm font-bold text-slate-800 truncate">{userProfile?.email || "Admin"}</p>
                   </div>
                   <div className="p-2">
                     <button 

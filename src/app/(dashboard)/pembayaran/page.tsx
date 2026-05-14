@@ -16,11 +16,26 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import OfficialReceipt from "@/components/payments/OfficialReceipt";
 
+interface Payment {
+  id: string;
+  jumlah_bayar: number;
+  metode: string;
+  bukti_url: string | null;
+  created_at: string;
+  tagihan: {
+    jenis: string;
+    mahasiswa: {
+      nama: string;
+      nim: string;
+    };
+  } | any; // Use any as fallback if structure differs
+}
+
 export default function PaymentsHistoryPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const supabase = createClient();
 
-  const { data: payments = [], isLoading } = useQuery({
+  const { data: payments = [] as Payment[], isLoading } = useQuery({
     queryKey: ["payments"],
     queryFn: async () => {
       const { data, error } = await supabase

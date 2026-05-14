@@ -354,7 +354,7 @@ export default function TagihanPage() {
           bill={selectedBill}
           onClose={() => setSelectedBill(null)}
           onSuccess={() => {
-            fetchBills();
+            refetch();
             setSelectedBill(null);
           }}
         />
