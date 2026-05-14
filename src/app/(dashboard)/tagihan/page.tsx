@@ -38,18 +38,30 @@ export default function TagihanPage() {
     queryKey: ["bills", search, filterStatus, page],
     queryFn: async () => {
       let query = supabase
-        .from("mahasiswa")
+        .from("tagihan")
         .select(`
           id,
-          nama,
-          nim,
-          email,
-          deposit,
-          tagihan (id, kode, jenis, jumlah, sisa_tagihan, status, created_at)
+          kode,
+          jenis,
+          jumlah,
+          sisa_tagihan,
+          status,
+          created_at,
+          mahasiswa!inner (
+            id,
+            nama,
+            nim,
+            prodi,
+            deposit
+          )
         `);
 
       if (search) {
-        query = query.or(`nama.ilike.%${search}%,nim.ilike.%${search}%`);
+        query = query.or(`mahasiswa.nama.ilike.%${search}%,mahasiswa.nim.ilike.%${search}%`);
+      }
+
+      if (filterStatus) {
+        query = query.eq("status", filterStatus);
       }
 
       const from = (page - 1) * pageSize;
@@ -60,29 +72,14 @@ export default function TagihanPage() {
         .range(from, to);
       
       if (error) throw error;
+      
+      // Normalize data (ensure mahasiswa is an object, not an array)
+      const normalizedData = (data as any[])?.map(bill => ({
+        ...bill,
+        mahasiswa: Array.isArray(bill.mahasiswa) ? bill.mahasiswa[0] : bill.mahasiswa
+      }));
 
-      if (!data) return [];
-
-      // Flatten students with their bills, including those with no bills
-      const flattenedBills = data.flatMap(student => {
-        if (!student.tagihan || (student.tagihan as any[]).length === 0) {
-          return [{ 
-            id: `no-bill-${student.id}`, 
-            mahasiswa: student, 
-            status: "BELUM_ADA",
-            isPlaceholder: true 
-          }];
-        }
-        return (student.tagihan as any[]).map((bill: any) => ({
-          ...bill,
-          mahasiswa: student
-        }));
-      });
-
-      // Apply status filter on the flattened list
-      return filterStatus 
-        ? flattenedBills.filter(b => b.status === filterStatus)
-        : flattenedBills;
+      return normalizedData || [];
     },
     staleTime: 30000,
   });

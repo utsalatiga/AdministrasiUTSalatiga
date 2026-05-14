@@ -36,8 +36,20 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
 
   // Cash State
   const [catatan, setCatatan] = useState("Diterima langsung oleh Admin");
-  const [useDeposit, setUseDeposit] = useState(false);
   const [studentDeposit, setStudentDeposit] = useState(bill.mahasiswa?.deposit || 0);
+  const [useDeposit, setUseDeposit] = useState((bill.mahasiswa?.deposit || 0) > 0);
+
+  // Update initial jumlahBayar based on deposit
+  useEffect(() => {
+    const sisa = Number(bill.sisa_tagihan || bill.jumlah || 0);
+    if ((bill.mahasiswa?.deposit || 0) > 0) {
+      if (bill.mahasiswa.deposit >= sisa) {
+        setJumlahBayar(0);
+      } else {
+        setJumlahBayar(sisa - bill.mahasiswa.deposit);
+      }
+    }
+  }, [bill]);
 
   const supabase = createClient();
 
