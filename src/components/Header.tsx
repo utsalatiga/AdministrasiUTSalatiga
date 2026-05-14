@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import SidebarContent from "./SidebarContent";
 import { getCurrentUserProfile } from "@/lib/actions/admins";
 import ChangePasswordModal from "./admins/ChangePasswordModal";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Header() {
   const pathname = usePathname();
@@ -27,12 +28,21 @@ export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
   const supabase = createClient();
   
+  const { data: userProfile } = useQuery({
+    queryKey: ["current-profile"],
+    queryFn: async () => await getCurrentUserProfile(),
+    staleTime: 60000,
+  });
+
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+
   useEffect(() => {
-    getCurrentUserProfile().then(setUserProfile);
-  }, []);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) setSessionEmail(session.user.email);
+    });
+  }, [supabase]);
 
   const getPageTitle = () => {
     if (pathname === "/") return "Dashboard Overview";
@@ -97,7 +107,9 @@ export default function Header() {
                 <div className="absolute right-0 mt-3 w-56 bg-white border border-slate-100 shadow-2xl rounded-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 duration-200">
                   <div className="p-4 bg-slate-50 border-b border-slate-100">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">User Aktif</p>
-                    <p className="text-sm font-bold text-slate-800 truncate">{userProfile?.email || 'Admin UT Salatiga'}</p>
+                    <p className="text-sm font-bold text-slate-800 truncate">
+                      {userProfile?.email || sessionEmail || 'Admin UT Salatiga'}
+                    </p>
                   </div>
                   <div className="p-2">
                     <button 
