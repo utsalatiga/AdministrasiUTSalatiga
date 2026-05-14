@@ -87,7 +87,7 @@ export async function getStudentFinancialSummary(studentId: string) {
   
   const { data: bills, error: billsError } = await supabase
     .from("tagihan")
-    .select("jumlah, status")
+    .select("jumlah, sisa_tagihan, status")
     .eq("mahasiswa_id", studentId);
 
   if (billsError) return { error: billsError.message };

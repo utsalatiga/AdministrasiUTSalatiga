@@ -27,7 +27,7 @@ export function useStudents(searchQuery: string = "", page: number = 1, pageSize
     try {
       let query = supabase
         .from("mahasiswa")
-        .select("*, tagihan(jumlah, status)", { count: "exact" });
+        .select("*, tagihan(jumlah, sisa_tagihan, status)", { count: "exact" });
 
       if (searchQuery) {
         query = query.or(`nama.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%`);
