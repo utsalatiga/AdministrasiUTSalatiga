@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 
 export interface Student {
@@ -16,18 +16,14 @@ export interface Student {
 }
 
 export function useStudents(searchQuery: string = "", page: number = 1, pageSize: number = 10) {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
   const supabase = createClient();
 
-  const fetchStudents = useCallback(async () => {
-    setIsLoading(true);
-    try {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["students", searchQuery, page, pageSize],
+    queryFn: async () => {
       let query = supabase
         .from("mahasiswa")
-        .select("*, tagihan(jumlah, sisa_tagihan, status)", { count: "exact" });
+        .select("id, nim, nama, prodi, angkatan, deposit, created_at, tagihan(jumlah, sisa_tagihan, status)", { count: "exact" });
 
       if (searchQuery) {
         query = query.or(`nama.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%`);
@@ -59,24 +55,19 @@ export function useStudents(searchQuery: string = "", page: number = 1, pageSize
         };
       });
 
-      setStudents(processedData);
-      setTotalCount(count || 0);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [searchQuery, page, pageSize, supabase]);
-
-  useEffect(() => {
-    fetchStudents();
-  }, [fetchStudents]);
+      return {
+        students: processedData,
+        totalCount: count || 0
+      };
+    },
+    staleTime: 30000, // 30 seconds
+  });
 
   return {
-    students,
+    students: data?.students || [],
     isLoading,
-    error,
-    totalCount,
-    refresh: fetchStudents,
+    error: error ? (error as any).message : null,
+    totalCount: data?.totalCount || 0,
+    refresh: refetch,
   };
 }

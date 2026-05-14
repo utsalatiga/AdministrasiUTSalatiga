@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   FileDown, 
   Search, 
@@ -20,9 +20,9 @@ import { exportToExcel } from "@/lib/utils/export-excel";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
+import { useQuery } from "@tanstack/react-query";
+
 export default function LaporanPage() {
-  const [data, setData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     method: "",
@@ -33,16 +33,14 @@ export default function LaporanPage() {
     hasProof: false
   });
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    const result = await getReports(filters);
-    if (result.data) setData(result.data);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [filters]);
+  const { data = [], isLoading } = useQuery({
+    queryKey: ["reports", filters],
+    queryFn: async () => {
+      const result = await getReports(filters);
+      return result.data || [];
+    },
+    staleTime: 30000,
+  });
 
   const handleExport = () => {
     exportToExcel(data, "Laporan_Pembayaran_UT");

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { 
   Plus, 
   Wallet, 
@@ -16,35 +17,36 @@ import { createClient } from "@/lib/supabase/client";
 import OfficialReceipt from "@/components/payments/OfficialReceipt";
 
 export default function PaymentsHistoryPage() {
-  const [payments, setPayments] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
-  
   const supabase = createClient();
 
-  const fetchPayments = async () => {
-    setIsLoading(true);
-    const { data } = await supabase
-      .from("pembayaran")
-      .select(`
-        *,
-        tagihan:tagihan_id (
-          jenis,
-          mahasiswa:mahasiswa_id (
-            nama,
-            nim
+  const { data: payments = [], isLoading } = useQuery({
+    queryKey: ["payments"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pembayaran")
+        .select(`
+          id,
+          jumlah_bayar,
+          metode,
+          bukti_url,
+          created_at,
+          tagihan:tagihan_id (
+            jenis,
+            mahasiswa:mahasiswa_id (
+              nama,
+              nim
+            )
           )
-        )
-      `)
-      .order("created_at", { ascending: false });
-    
-    if (data) setPayments(data);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchPayments();
-  }, []);
+        `)
+        .order("created_at", { ascending: false })
+        .limit(100); // Limit to 100 recent payments for performance
+      
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30000,
+  });
 
   const handlePrint = (p: any) => {
     setSelectedReceipt({

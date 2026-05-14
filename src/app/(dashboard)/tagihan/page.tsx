@@ -14,6 +14,7 @@ import {
   Info
 } from "lucide-react";
 import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import OfficialReceipt from "@/components/payments/OfficialReceipt";
@@ -22,19 +23,20 @@ import PaymentHistory from "@/components/payments/PaymentHistory";
 import { History } from "lucide-react";
 
 export default function TagihanPage() {
-  const [bills, setBills] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [historyBillId, setHistoryBillId] = useState<string | null>(null);
 
   const supabase = createClient();
-
-  const fetchBills = async () => {
-    setIsLoading(true);
-    try {
+  const queryClient = useQueryClient();
+  const { data: bills = [], isLoading, refetch } = useQuery({
+    queryKey: ["bills", search, filterStatus, page],
+    queryFn: async () => {
       let query = supabase
         .from("mahasiswa")
         .select(`
@@ -43,57 +45,51 @@ export default function TagihanPage() {
           nim,
           email,
           deposit,
-          tagihan (*)
+          tagihan (id, kode, jenis, jumlah, sisa_tagihan, status, created_at)
         `);
 
       if (search) {
         query = query.or(`nama.ilike.%${search}%,nim.ilike.%${search}%`);
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error } = await query
+        .order("created_at", { ascending: false })
+        .range(from, to);
       
-      if (error) {
-        console.error("Error fetching students and bills:", error);
-      }
+      if (error) throw error;
 
-      if (data) {
-        // Flatten students with their bills, including those with no bills
-        const flattenedBills = data.flatMap(student => {
-          if (!student.tagihan || student.tagihan.length === 0) {
-            return [{ 
-              id: `no-bill-${student.id}`, 
-              mahasiswa: student, 
-              status: "BELUM_ADA",
-              isPlaceholder: true 
-            }];
-          }
-          return student.tagihan.map((bill: any) => ({
-            ...bill,
-            mahasiswa: student
-          }));
-        });
+      if (!data) return [];
 
-        // Apply status filter on the flattened list
-        const filtered = filterStatus 
-          ? flattenedBills.filter(b => b.status === filterStatus)
-          : flattenedBills;
+      // Flatten students with their bills, including those with no bills
+      const flattenedBills = data.flatMap(student => {
+        if (!student.tagihan || (student.tagihan as any[]).length === 0) {
+          return [{ 
+            id: `no-bill-${student.id}`, 
+            mahasiswa: student, 
+            status: "BELUM_ADA",
+            isPlaceholder: true 
+          }];
+        }
+        return (student.tagihan as any[]).map((bill: any) => ({
+          ...bill,
+          mahasiswa: student
+        }));
+      });
 
-        setBills(filtered);
-      } else {
-        setBills([]);
-      }
-    } catch (err) {
-      console.error("Unexpected error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // Apply status filter on the flattened list
+      return filterStatus 
+        ? flattenedBills.filter(b => b.status === filterStatus)
+        : flattenedBills;
+    },
+    staleTime: 30000,
+  });
 
+  // Reset page when filters change
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchBills();
-    }, 500);
-    return () => clearTimeout(delayDebounceFn);
+    setPage(1);
   }, [search, filterStatus]);
 
   const handlePrint = (bill: any) => {

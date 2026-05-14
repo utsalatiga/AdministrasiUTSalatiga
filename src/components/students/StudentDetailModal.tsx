@@ -1,21 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { 
-  X, 
-  Receipt, 
-  CreditCard, 
-  User, 
-  Calendar,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Coins,
-  Banknote
-} from "lucide-react";
+import { X, Receipt, CreditCard, User, Calendar, Loader2, CheckCircle2, XCircle, Clock, Coins, Banknote } from "lucide-react";
 import { getStudentDetails } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
+
+import { useQuery } from "@tanstack/react-query";
 
 interface StudentDetailModalProps {
   isOpen: boolean;
@@ -24,22 +13,15 @@ interface StudentDetailModalProps {
 }
 
 export default function StudentDetailModal({ isOpen, onClose, studentId }: StudentDetailModalProps) {
-  const [data, setData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen && studentId) {
-      const fetchData = async () => {
-        setIsLoading(true);
-        const result = await getStudentDetails(studentId);
-        setData(result);
-        setIsLoading(false);
-      };
-      fetchData();
-    } else {
-      setData(null);
-    }
-  }, [isOpen, studentId]);
+  const { data, isLoading } = useQuery({
+    queryKey: ["student-details", studentId],
+    queryFn: async () => {
+      if (!studentId) return null;
+      return await getStudentDetails(studentId);
+    },
+    enabled: isOpen && !!studentId,
+    staleTime: 30000,
+  });
 
   if (!isOpen) return null;
 

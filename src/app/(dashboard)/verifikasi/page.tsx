@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   CheckCircle2, 
   Clock, 
@@ -13,23 +13,21 @@ import {
 import { getPendingPayments } from "@/lib/actions/verification";
 import VerificationModal from "@/components/verification/VerificationModal";
 
+import { useQuery } from "@tanstack/react-query";
+
 export default function VerificationPage() {
-  const [payments, setPayments] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchPayments = async () => {
-    setIsLoading(true);
-    const { data, error } = await getPendingPayments();
-    if (data) setPayments(data);
-    if (error) alert(error);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchPayments();
-  }, []);
+  const { data: payments = [], isLoading, refetch } = useQuery({
+    queryKey: ["pending-payments"],
+    queryFn: async () => {
+      const { data, error } = await getPendingPayments();
+      if (error) throw new Error(error);
+      return data || [];
+    },
+    staleTime: 30000,
+  });
 
   const handleReview = (payment: any) => {
     setSelectedPayment(payment);
@@ -53,7 +51,7 @@ export default function VerificationPage() {
         </div>
         
         <button 
-          onClick={fetchPayments}
+          onClick={() => refetch()}
           className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-primary transition-all shadow-sm"
         >
           <RefreshCw className={isLoading ? "h-5 w-5 animate-spin" : "h-5 w-5"} />
@@ -204,7 +202,7 @@ export default function VerificationPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         data={selectedPayment}
-        onSuccess={fetchPayments}
+        onSuccess={refetch}
       />
     </div>
   );

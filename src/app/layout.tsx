@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "Sistem Administrasi & Keuangan Mahasiswa UT Salatiga",
 };
 
+import QueryProvider from "@/components/QueryProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +29,9 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className={`${inter.variable} ${merriweather.variable} font-sans antialiased`}>
-        {children}
+        <QueryProvider>
+          {children}
+        </QueryProvider>
       </body>
     </html>
   );
