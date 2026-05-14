@@ -25,7 +25,7 @@ export async function createCashPayment(formData: {
         p_bank_tujuan: formData.bank_tujuan || "Admin",
         p_bukti_url: formData.bukti_url || "Pencatatan Manual Admin",
         p_order_id: `MANUAL-${Date.now()}`,
-        p_use_deposit: false // Default to false for manual cash payment form
+        p_nominal_deposit: 0 // Default to 0 for manual cash payment form
       });
 
       if (rpcError) throw new Error(rpcError.message);

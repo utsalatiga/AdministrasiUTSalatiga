@@ -38,16 +38,17 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
   const [catatan, setCatatan] = useState("Diterima langsung oleh Admin");
   const [studentDeposit, setStudentDeposit] = useState(bill.mahasiswa?.deposit || 0);
   const [useDeposit, setUseDeposit] = useState((bill.mahasiswa?.deposit || 0) > 0);
+  const [nominalDeposit, setNominalDeposit] = useState<number>(0);
 
-  // Update initial jumlahBayar based on deposit
+  // Update initial nominalDeposit and jumlahBayar
   useEffect(() => {
     const sisa = Number(bill.sisa_tagihan || bill.jumlah || 0);
     if ((bill.mahasiswa?.deposit || 0) > 0) {
-      if (bill.mahasiswa.deposit >= sisa) {
-        setJumlahBayar(0);
-      } else {
-        setJumlahBayar(sisa - bill.mahasiswa.deposit);
-      }
+      const defaultDeposit = Math.min(bill.mahasiswa.deposit, sisa);
+      setNominalDeposit(defaultDeposit);
+      setJumlahBayar(sisa - defaultDeposit);
+    } else {
+      setJumlahBayar(sisa);
     }
   }, [bill]);
 
@@ -92,6 +93,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         : activeTab === "CASH" ? catatan : "Lunas";
 
       const finalJumlahBayar = Number(jumlahBayar) || 0;
+      const finalNominalDeposit = useDeposit ? (Number(nominalDeposit) || 0) : 0;
       
       // 2. Call RPC to process payment
       const { error: rpcError } = await supabase.rpc("process_manual_payment", {
@@ -102,7 +104,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         p_bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",
         p_bukti_url: activeTab === "TRANSFER" ? publicUrl : autoCatatan,
         p_order_id: `${activeTab}-${bill.kode}-${Date.now()}`,
-        p_use_deposit: useDeposit
+        p_nominal_deposit: finalNominalDeposit
       });
 
       if (rpcError) throw rpcError;
@@ -164,23 +166,46 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                 <p className="text-lg font-serif font-bold text-indigo-900">{formatRupiah(studentDeposit)}</p>
               </div>
             </div>
-            {studentDeposit > 0 && (
-              <label className="relative inline-flex items-center cursor-pointer">
+            <div className="flex items-center gap-6">
+              {useDeposit && (
+                <div className="flex-1 space-y-1.5 animate-in slide-in-from-right-2">
+                  <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest px-1">Nominal Deposit</p>
+                  <input 
+                    type="number"
+                    value={nominalDeposit}
+                    max={Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah))}
+                    onChange={(e) => {
+                      const val = Math.min(
+                        parseInt(e.target.value) || 0, 
+                        studentDeposit, 
+                        (bill.sisa_tagihan ?? bill.jumlah)
+                      );
+                      setNominalDeposit(val);
+                      setJumlahBayar((bill.sisa_tagihan ?? bill.jumlah) - val);
+                    }}
+                    className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-sm font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                </div>
+              )}
+              <label className={cn(
+                "relative inline-flex items-center cursor-pointer",
+                studentDeposit <= 0 && "opacity-50 cursor-not-allowed"
+              )}>
                 <input 
                   type="checkbox" 
                   checked={useDeposit}
+                  disabled={studentDeposit <= 0}
                   onChange={(e) => {
                     const isChecked = e.target.checked;
                     setUseDeposit(isChecked);
                     
                     const sisa = (bill.sisa_tagihan ?? bill.jumlah);
                     if (isChecked) {
-                      if (studentDeposit >= sisa) {
-                        setJumlahBayar(0);
-                      } else {
-                        setJumlahBayar(sisa - studentDeposit);
-                      }
+                      const defaultDep = Math.min(studentDeposit, sisa);
+                      setNominalDeposit(defaultDep);
+                      setJumlahBayar(sisa - defaultDep);
                     } else {
+                      setNominalDeposit(0);
                       setJumlahBayar(sisa);
                     }
                   }}
@@ -189,7 +214,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                 <span className="ml-3 text-[10px] font-bold text-indigo-700 uppercase tracking-widest">Gunakan</span>
               </label>
-            )}
+            </div>
           </div>
 
           {/* Summary Card */}
@@ -216,12 +241,16 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
           {/* Real-time Feedback Logic */}
           <div className="space-y-3">
             {useDeposit && (
-              <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-2 animate-in zoom-in-95">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                <p className="text-[10px] text-emerald-700 font-medium italic">
-                  {formatRupiah(Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)))} akan diambil dari deposit.
-                  {jumlahBayar > 0 ? ` Masukkan ${formatRupiah(jumlahBayar)} untuk melunasi sisanya.` : " Tagihan ini akan langsung LUNAS menggunakan deposit."}
-                </p>
+              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in zoom-in-95">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Ringkasan Pembayaran</p>
+                  <p className="text-xs text-emerald-700 font-medium leading-relaxed">
+                    Tagihan <span className="font-bold">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</span> akan dibayar dengan 
+                    <span className="font-bold"> Deposit ({formatRupiah(nominalDeposit)})</span> dan 
+                    <span className="font-bold"> {activeTab === "TRANSFER" ? "Transfer" : "Cash"} ({formatRupiah(jumlahBayar)})</span>.
+                  </p>
+                </div>
               </div>
             )}
             
