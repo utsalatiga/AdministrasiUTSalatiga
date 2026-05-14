@@ -45,13 +45,16 @@ export function useStudents(searchQuery: string = "", page: number = 1, pageSize
       // Map financial data
       const processedData = (data as any[]).map(student => {
         const bills = student.tagihan || [];
-        const total = bills.reduce((acc: number, curr: any) => acc + Number(curr.jumlah), 0);
-        const hasUnpaid = bills.some((b: any) => b.status === "BELUM_LUNAS");
-        const isLunas = bills.length > 0 && bills.every((b: any) => b.status === "LUNAS");
+        const totalSisa = bills.reduce((acc: number, curr: any) => {
+          const sisa = curr.sisa_tagihan !== null ? curr.sisa_tagihan : (curr.status === "LUNAS" ? 0 : curr.jumlah);
+          return acc + Number(sisa);
+        }, 0);
+        const hasUnpaid = bills.some((b: any) => b.status === "BELUM_LUNAS" || b.status === "MENCICIL");
+        const isLunas = bills.length > 0 && totalSisa === 0;
         
         return {
           ...student,
-          total_tagihan: total,
+          total_tagihan: totalSisa,
           status_keuangan: isLunas ? "LUNAS" : (hasUnpaid ? "MENUNGGAK" : "TIDAK ADA TAGIHAN")
         };
       });

@@ -42,7 +42,14 @@ export async function getCurrentUserProfile() {
     .eq("id", user.id)
     .single();
   
-  return profile || null;
+  if (profile) return profile;
+
+  // Fallback if profile doesn't exist yet (e.g. legacy admin)
+  return {
+    email: user.email,
+    nama: user.email?.split("@")[0] || "Admin",
+    role: "admin"
+  };
 }
 
 export async function createNewAdmin(formData: z.infer<typeof adminSchema>) {

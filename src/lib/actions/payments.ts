@@ -93,11 +93,13 @@ export async function getStudentFinancialSummary(studentId: string) {
   if (billsError) return { error: billsError.message };
 
   const totalTagihan = bills.reduce((acc, curr) => acc + Number(curr.jumlah), 0);
-  const totalPaid = bills.filter(b => b.status === "LUNAS").reduce((acc, curr) => acc + Number(curr.jumlah), 0);
-  const totalArrears = totalTagihan - totalPaid;
+  const totalArrears = bills.reduce((acc, curr) => {
+    const sisa = curr.sisa_tagihan !== null ? curr.sisa_tagihan : (curr.status === "LUNAS" ? 0 : curr.jumlah);
+    return acc + Number(sisa);
+  }, 0);
   
-  const isLunas = bills.length > 0 && bills.every(b => b.status === "LUNAS");
-  const hasUnpaid = bills.some(b => b.status === "BELUM_LUNAS");
+  const isLunas = bills.length > 0 && totalArrears === 0;
+  const hasUnpaid = bills.some(b => b.status === "BELUM_LUNAS" || b.status === "MENCICIL");
 
   return { 
     totalTagihan,
