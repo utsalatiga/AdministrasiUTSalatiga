@@ -34,6 +34,8 @@ export default function NewPaymentPage() {
   const [method, setMethod] = useState<"TUNAI" | "TRANSFER">("TUNAI");
   const [isAutoVerify, setIsAutoVerify] = useState(true);
   const [jumlahBayar, setJumlahBayar] = useState<number>(0);
+  const [useDeposit, setUseDeposit] = useState(false);
+  const [depositAmount, setDepositAmount] = useState<number>(0);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -67,7 +69,15 @@ export default function NewPaymentPage() {
 
   const handleSelectBill = (bill: any) => {
     setSelectedBill(bill);
-    setJumlahBayar(bill.sisa_tagihan ?? bill.jumlah);
+    const sisa = bill.sisa_tagihan ?? bill.jumlah;
+    if (useDeposit && selectedStudent?.deposit > 0) {
+      const dep = Math.min(selectedStudent.deposit, sisa);
+      setDepositAmount(dep);
+      setJumlahBayar(sisa - dep);
+    } else {
+      setDepositAmount(0);
+      setJumlahBayar(sisa);
+    }
   };
 
   const handlePayment = async () => {
@@ -81,7 +91,8 @@ export default function NewPaymentPage() {
       tagihan_id: selectedBill.id,
       jumlah_bayar: jumlahBayar,
       metode: method,
-      status: status
+      status: status,
+      nominal_deposit: useDeposit ? depositAmount : 0
     });
 
     if (result.success) {
@@ -324,6 +335,87 @@ export default function NewPaymentPage() {
                         </div>
                       )}
                       
+                      {/* Opsi Saldo Deposit */}
+                      <div className={cn(
+                        "p-6 rounded-2xl border transition-all space-y-4",
+                        selectedStudent?.deposit > 0 ? "bg-indigo-50/30 border-indigo-100" : "bg-slate-50 border-slate-100 opacity-60"
+                      )}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "p-2 rounded-lg",
+                              selectedStudent?.deposit > 0 ? "bg-indigo-100 text-indigo-600" : "bg-slate-200 text-slate-400"
+                            )}>
+                              <Wallet className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800 uppercase tracking-wider">Opsi Saldo Deposit</p>
+                              <p className="text-[10px] text-slate-500">Saldo Tersedia: <span className="font-bold text-indigo-600">{formatRupiah(selectedStudent?.deposit || 0)}</span></p>
+                            </div>
+                          </div>
+                          
+                          <label className={cn(
+                            "relative inline-flex items-center cursor-pointer",
+                            (selectedStudent?.deposit <= 0) && "cursor-not-allowed"
+                          )}>
+                            <input 
+                              type="checkbox" 
+                              checked={useDeposit}
+                              disabled={selectedStudent?.deposit <= 0}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                setUseDeposit(isChecked);
+                                const sisa = selectedBill.sisa_tagihan ?? selectedBill.jumlah;
+                                if (isChecked) {
+                                  const dep = Math.min(selectedStudent.deposit, sisa);
+                                  setDepositAmount(dep);
+                                  setJumlahBayar(sisa - dep);
+                                } else {
+                                  setDepositAmount(0);
+                                  setJumlahBayar(sisa);
+                                }
+                              }}
+                              className="sr-only peer" 
+                            />
+                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                          </label>
+                        </div>
+
+                        {useDeposit && (
+                          <div className="pt-4 border-t border-indigo-100 space-y-3 animate-in slide-in-from-top-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nominal Digunakan</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-serif text-slate-400">Rp</span>
+                                <input 
+                                  type="number"
+                                  value={depositAmount}
+                                  max={Math.min(selectedStudent.deposit, (selectedBill.sisa_tagihan ?? selectedBill.jumlah))}
+                                  onChange={(e) => {
+                                    const val = Math.min(
+                                      parseInt(e.target.value) || 0,
+                                      selectedStudent.deposit,
+                                      (selectedBill.sisa_tagihan ?? selectedBill.jumlah)
+                                    );
+                                    setDepositAmount(val);
+                                    setJumlahBayar((selectedBill.sisa_tagihan ?? selectedBill.jumlah) - val);
+                                  }}
+                                  className="w-32 bg-white border border-indigo-200 rounded-xl px-3 py-1.5 text-sm font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-right"
+                                />
+                              </div>
+                            </div>
+                            <div className="p-3 bg-indigo-100/50 rounded-xl flex items-start gap-2">
+                              <Info className="h-3.5 w-3.5 text-indigo-600 mt-0.5" />
+                              <p className="text-[10px] text-indigo-800 font-medium leading-relaxed">
+                                Tagihan <span className="font-bold">{formatRupiah(selectedBill.sisa_tagihan ?? selectedBill.jumlah)}</span> akan dibayar dengan 
+                                <span className="font-bold"> Deposit ({formatRupiah(depositAmount)})</span> dan sisanya 
+                                <span className="font-bold"> {method} ({formatRupiah(jumlahBayar)})</span>.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       {jumlahBayar > (selectedBill.sisa_tagihan ?? selectedBill.jumlah) && (
                         <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in-95">
                           <Wallet className="h-5 w-5 text-emerald-500 shrink-0" />

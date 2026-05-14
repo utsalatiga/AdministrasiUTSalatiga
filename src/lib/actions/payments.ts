@@ -11,6 +11,7 @@ export async function createCashPayment(formData: {
   bank_pengirim?: string;
   bank_tujuan?: string;
   bukti_url?: string;
+  nominal_deposit?: number;
 }) {
   const supabase = createClient();
 
@@ -25,7 +26,7 @@ export async function createCashPayment(formData: {
         p_bank_tujuan: formData.bank_tujuan || "Admin",
         p_bukti_url: formData.bukti_url || "Pencatatan Manual Admin",
         p_order_id: `MANUAL-${Date.now()}`,
-        p_nominal_deposit: 0 // Default to 0 for manual cash payment form
+        p_nominal_deposit: formData.nominal_deposit || 0
       });
 
       if (rpcError) throw new Error(rpcError.message);
@@ -75,7 +76,7 @@ export async function searchStudents(query: string) {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("mahasiswa")
-    .select("id, nim, nama")
+    .select("id, nim, nama, deposit")
     .or(`nama.ilike.%${query}%,nim.ilike.%${query}%`);
 
   if (error) return { error: error.message };
