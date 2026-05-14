@@ -104,6 +104,8 @@ export default function NewPaymentPage() {
           nim: selectedStudent.nim,
           untuk_pembayaran: selectedBill.jenis,
           jumlah: jumlahBayar,
+          nominal_deposit: useDeposit ? depositAmount : 0,
+          total_gabungan: jumlahBayar + (useDeposit ? depositAmount : 0),
           admin: "Admin Keuangan",
         });
         setShowReceipt(true);

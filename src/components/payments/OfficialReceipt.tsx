@@ -12,6 +12,8 @@ interface OfficialReceiptProps {
     nim: string;
     untuk_pembayaran: string;
     jumlah: number;
+    nominal_deposit?: number;
+    total_gabungan?: number;
     admin: string;
   };
   onClose: () => void;
@@ -83,9 +85,27 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
             {/* Amount Box */}
             <div className="mt-12 flex justify-between items-end">
               <div className="bg-slate-900 text-white p-6 rounded-lg min-w-[250px]">
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Terbilang (IDR)</div>
-                <div className="text-3xl font-bold font-tabular">{formatRupiah(data.jumlah)}</div>
+                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Gabungan (IDR)</div>
+                <div className="text-3xl font-bold font-tabular">{formatRupiah(data.total_gabungan || data.jumlah)}</div>
               </div>
+
+              {/* Breakdown Table for Printing */}
+              {(data.nominal_deposit || 0) > 0 && (
+                <div className="flex-1 max-w-[300px] ml-8">
+                   <table className="w-full text-[10px] uppercase font-bold tracking-widest text-slate-500 border-collapse">
+                    <tbody>
+                      <tr className="border-b border-slate-100">
+                        <td className="py-1">Cash / Transfer</td>
+                        <td className="py-1 text-right text-slate-900">{formatRupiah(data.jumlah)}</td>
+                      </tr>
+                      <tr className="border-b border-slate-100">
+                        <td className="py-1">Saldo Deposit</td>
+                        <td className="py-1 text-right text-indigo-600">{formatRupiah(data.nominal_deposit || 0)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
               
               <div className="text-center w-64">
                 <div className="text-sm text-slate-900 mb-2">Salatiga, {data.tanggal}</div>
@@ -99,7 +119,12 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
 
             {/* Watermark/Footer */}
             <div className="mt-20 pt-8 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              <span>Bukti pembayaran sah secara sistem</span>
+              <div className="space-y-1">
+                <span>Bukti pembayaran sah secara sistem</span>
+                {(data.nominal_deposit || 0) > 0 && (
+                  <p className="text-indigo-500 font-bold lowercase italic">* Pembayaran ini mencakup penggunaan deposit {formatRupiah(data.nominal_deposit || 0)}</p>
+                )}
+              </div>
               <span className="italic">Powered by Administrasi UT Salatiga</span>
             </div>
           </div>

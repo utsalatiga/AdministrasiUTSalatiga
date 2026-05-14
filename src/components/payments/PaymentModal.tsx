@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import OfficialReceipt from "./OfficialReceipt";
 
 interface PaymentModalProps {
   bill: any;
@@ -27,6 +28,8 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
   const [jumlahBayar, setJumlahBayar] = useState<number>(Number(bill.sisa_tagihan || bill.jumlah || 0));
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<any>(null);
   const router = useRouter();
   
   // Transfer State
@@ -109,9 +112,21 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
 
       if (rpcError) throw rpcError;
 
+      setPaymentResult({
+        no_kwitansi: `KW-${bill.kode}-${Date.now().toString().slice(-4)}`,
+        tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
+        nama: bill.mahasiswa.nama,
+        nim: bill.mahasiswa.nim,
+        untuk_pembayaran: bill.jenis,
+        jumlah: finalJumlahBayar,
+        nominal_deposit: finalNominalDeposit,
+        total_gabungan: finalJumlahBayar + finalNominalDeposit,
+        admin: "Admin Keuangan",
+      });
+      setShowReceipt(true);
+      
       onSuccess();
       router.refresh();
-      onClose();
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -404,6 +419,16 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
           </button>
         </form>
       </div>
+
+      {showReceipt && paymentResult && (
+        <OfficialReceipt 
+          data={paymentResult} 
+          onClose={() => {
+            setShowReceipt(false);
+            onClose();
+          }} 
+        />
+      )}
     </div>
   );
 }

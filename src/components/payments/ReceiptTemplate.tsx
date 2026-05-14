@@ -11,6 +11,8 @@ interface ReceiptProps {
     nim: string;
     untuk_pembayaran: string;
     jumlah: number;
+    nominal_deposit?: number;
+    total_gabungan?: number;
     admin: string;
   };
   onClose: () => void;
@@ -112,16 +114,41 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
               </div>
             </div>
 
-            <div className="amount-box bg-slate-50 border border-slate-100 p-8 rounded-2xl text-center mb-10">
-              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Jumlah Pembayaran</label>
+            <div className="amount-box bg-slate-50 border border-slate-100 p-8 rounded-2xl text-center mb-6">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Total Gabungan</label>
               <div className="font-serif text-4xl text-slate-900 font-tabular tracking-tighter">
-                {formatRupiah(data.jumlah)}
+                {formatRupiah(data.total_gabungan || data.jumlah)}
               </div>
             </div>
 
+            {/* Breakdown Table */}
+            {(data.nominal_deposit || 0) > 0 && (
+              <div className="mb-10 px-8 py-4 bg-indigo-50/30 border border-indigo-100 rounded-2xl animate-in zoom-in-95">
+                <table className="w-full text-[10px] uppercase font-bold tracking-widest text-slate-500">
+                  <tbody>
+                    <tr className="border-b border-indigo-100/50">
+                      <td className="py-2">Pembayaran (Cash/Transfer)</td>
+                      <td className="py-2 text-right text-slate-700">{formatRupiah(data.jumlah)}</td>
+                    </tr>
+                    <tr className="border-b border-indigo-100/50">
+                      <td className="py-2">Potongan Saldo Deposit</td>
+                      <td className="py-2 text-right text-indigo-600">{formatRupiah(data.nominal_deposit || 0)}</td>
+                    </tr>
+                    <tr className="text-slate-900">
+                      <td className="py-3">TOTAL PENERIMAAN</td>
+                      <td className="py-3 text-right text-lg font-serif">{formatRupiah(data.total_gabungan || data.jumlah)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             <div className="footer flex justify-between items-end mt-12">
-              <div className="text-slate-400 text-[10px] italic">
-                * Kwitansi ini adalah bukti pembayaran yang sah.
+              <div className="text-slate-400 text-[10px] italic space-y-1">
+                <p>* Kwitansi ini adalah bukti pembayaran yang sah.</p>
+                {(data.nominal_deposit || 0) > 0 && (
+                  <p className="text-indigo-500 font-bold">** Pembayaran ini menggunakan saldo deposit sebesar {formatRupiah(data.nominal_deposit || 0)}</p>
+                )}
               </div>
               <div className="signature text-center w-48">
                 <div className="text-[10px] text-slate-400 uppercase mb-16">Petugas Administrasi</div>
