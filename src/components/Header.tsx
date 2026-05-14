@@ -108,7 +108,7 @@ export default function Header() {
                   <div className="p-4 bg-slate-50 border-b border-slate-100">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">User Aktif</p>
                     <p className="text-sm font-bold text-slate-800 truncate">
-                      {userProfile?.email || sessionEmail || 'Admin UT Salatiga'}
+                      {sessionEmail || userProfile?.email || 'Admin UT Salatiga'}
                     </p>
                   </div>
                   <div className="p-2">
