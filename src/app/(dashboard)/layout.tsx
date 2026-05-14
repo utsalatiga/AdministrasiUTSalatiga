@@ -2,6 +2,8 @@ import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import MobileBottomNav from "@/components/MobileBottomNav";
 
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({
   children,
 }: {
