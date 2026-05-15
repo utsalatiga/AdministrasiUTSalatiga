@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import SidebarContent from "./SidebarContent";
 import { getCurrentUserProfile } from "@/lib/actions/admins";
+import { isSuperAdmin } from "@/lib/roles";
 import ChangePasswordModal from "./admins/ChangePasswordModal";
 import { useQuery } from "@tanstack/react-query";
 
@@ -95,7 +96,7 @@ export default function Header() {
               >
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-semibold text-slate-700 leading-none">{userProfile?.nama || "Admin UT"}</p>
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{userProfile?.role === 'admin' ? 'Super Administrator' : 'Staff Admin'}</p>
+                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">{isSuperAdmin(userProfile?.role) ? 'Super Administrator' : 'Staff Admin'}</p>
                 </div>
                 <div className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-all">
                   <User className="h-5 w-5" />

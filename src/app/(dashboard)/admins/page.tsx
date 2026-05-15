@@ -6,6 +6,7 @@ import { ShieldCheck, UserPlus, Mail, Calendar, Shield, Loader2, User, Trash2 } 
 import { getAdmins, getCurrentUserProfile, deleteAdmin } from "@/lib/actions/admins";
 import AddAdminModal from "@/components/admins/AddAdminModal";
 import { cn } from "@/lib/utils";
+import { isSuperAdmin } from "@/lib/roles";
 
 export default function AdminsPage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function AdminsPage() {
     
     // Security Check: Ensure only super_admins can see this
     const profile = await getCurrentUserProfile();
-    if (!profile || profile.role !== 'super_admin') {
+    if (!profile || !isSuperAdmin(profile.role)) {
       router.push("/");
       return;
     }
@@ -120,11 +121,11 @@ export default function AdminsPage() {
                       <span className={cn(
                         "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border",
                         admin.role === 'super_admin' 
-                          ? "bg-amber-50 text-amber-600 border-amber-100" 
-                          : "bg-indigo-50 text-indigo-600 border-indigo-100"
+                        ? "bg-amber-50 text-amber-600 border-amber-100" 
+                        : "bg-indigo-50 text-indigo-600 border-indigo-100"
                       )}>
                         <Shield className="h-3 w-3" />
-                        {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                        {isSuperAdmin(admin.role) ? 'Super Admin' : 'Admin'}
                       </span>
                     </td>
                     <td className="px-8 py-6">

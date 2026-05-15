@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { isSuperAdmin } from "@/lib/roles";
 
 const adminSchema = z.object({
   email: z.string().email("Email tidak valid"),
@@ -65,7 +66,7 @@ export async function createNewAdmin(formData: z.infer<typeof adminSchema>) {
     .eq("id", currentUser.id)
     .single();
 
-  if (profile?.role !== 'super_admin') {
+  if (!isSuperAdmin(profile?.role)) {
     throw new Error("Akses ditolak: Hanya Super Admin yang dapat menambah admin baru.");
   }
 
@@ -123,7 +124,7 @@ export async function deleteAdmin(id: string) {
       .eq("id", currentUser.id)
       .single();
 
-    if (profile?.role !== 'super_admin') {
+    if (!isSuperAdmin(profile?.role)) {
       throw new Error("Akses ditolak: Hanya Super Admin yang dapat menghapus admin.");
     }
 

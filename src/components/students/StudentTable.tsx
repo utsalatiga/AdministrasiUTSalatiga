@@ -21,6 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getStudentDetails } from "@/lib/actions/payments";
 import { deleteMahasiswa } from "@/lib/actions/students";
 import { getCurrentUserProfile } from "@/lib/actions/admins";
+import { isSuperAdmin } from "@/lib/roles";
 import { useEffect } from "react";
 
 interface StudentTableProps {
@@ -67,7 +68,7 @@ export default function StudentTable({
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (userRole !== 'super_admin') {
+    if (!isSuperAdmin(userRole)) {
       alert("Hanya Super Admin yang memiliki akses untuk menghapus data.");
       return;
     }
@@ -215,7 +216,7 @@ export default function StudentTable({
                       >
                         <Edit2 className="h-4 w-4" />
                       </button>
-                      {userRole === 'super_admin' && (
+                      {isSuperAdmin(userRole) && (
                         <button 
                           onClick={(e) => handleDelete(student.id, e)}
                           disabled={isDeleting === student.id}
@@ -296,7 +297,7 @@ export default function StudentTable({
                   <Edit2 className="h-3.5 w-3.5" />
                   Edit
                 </button>
-                {userRole === 'super_admin' && (
+                {isSuperAdmin(userRole) && (
                   <button 
                     onClick={(e) => handleDelete(student.id, e)}
                     disabled={isDeleting === student.id}

@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Loader2, Lock, User } from "lucide-react";
+import { isAdmin } from "@/lib/roles";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email tidak valid" }),
@@ -50,7 +51,7 @@ export default function LoginPage() {
         .eq("id", data.user.id)
         .single();
 
-      if (profileError || profile?.role !== "admin") {
+      if (profileError || !isAdmin(profile?.role)) {
         await supabase.auth.signOut();
         throw new Error("Akses ditolak. Hanya untuk Admin.");
       }

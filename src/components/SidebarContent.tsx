@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getCurrentUserProfile } from "@/lib/actions/admins";
+import { isSuperAdmin } from "@/lib/roles";
 
 const baseMenuItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -40,7 +41,7 @@ export default function SidebarContent({ onClose }: SidebarContentProps) {
 
   useEffect(() => {
     getCurrentUserProfile().then(profile => {
-      if (profile?.role === 'super_admin') setIsAdmin(true);
+      if (isSuperAdmin(profile?.role)) setIsAdmin(true);
     });
   }, []);
 

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { isSuperAdmin } from "@/lib/roles";
 
 export async function createStudent(data: {
   nim: string;
@@ -259,7 +260,7 @@ export async function deleteMahasiswa(id: string) {
     if (!user) throw new Error("Unauthorized");
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    if (profile?.role !== 'super_admin') throw new Error("Akses Ditolak: Hanya Super Admin yang dapat menghapus data mahasiswa.");
+    if (!isSuperAdmin(profile?.role)) throw new Error("Akses Ditolak: Hanya Super Admin yang dapat menghapus data mahasiswa.");
 
     // Cascade delete is handled by database if RLS and FK are set, 
     // but we'll do it explicitly if needed.

@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isSuperAdmin } from './lib/roles'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -74,7 +75,7 @@ export async function middleware(request: NextRequest) {
       .eq('id', session?.user.id)
       .single()
 
-    if (profile?.role !== 'super_admin') {
+    if (!isSuperAdmin(profile?.role)) {
       return NextResponse.redirect(new URL('/?error=access_denied', request.url))
     }
   }

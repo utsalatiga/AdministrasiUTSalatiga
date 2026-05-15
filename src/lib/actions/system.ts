@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { isSuperAdmin } from "@/lib/roles";
 
 /**
  * NUCLEAR RESET: Aggressively purges all data and resets identities.
@@ -22,7 +23,7 @@ export async function nuclearReset() {
     if (!user) throw new Error("Unauthorized");
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    if (profile?.role !== 'super_admin') throw new Error("Akses Ditolak: Hanya Super Admin yang dapat melakukan Reset Total.");
+    if (!isSuperAdmin(profile?.role)) throw new Error("Akses Ditolak: Hanya Super Admin yang dapat melakukan Reset Total.");
 
     // 1. Attempt to call the SQL TRUNCATE function
     const { error: rpcError } = await supabase.rpc("nuclear_reset");
@@ -52,7 +53,7 @@ export async function resetTransactions() {
     if (!user) throw new Error("Unauthorized");
 
     const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-    if (profile?.role !== 'super_admin') throw new Error("Akses Ditolak: Hanya Super Admin yang dapat melakukan Reset Transaksi.");
+    if (!isSuperAdmin(profile?.role)) throw new Error("Akses Ditolak: Hanya Super Admin yang dapat melakukan Reset Transaksi.");
 
     await supabase.from("pembayaran").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     await supabase.from("tagihan").update({ status: "BELUM_LUNAS" }).neq("id", 0);
