@@ -124,12 +124,12 @@ export default function SettingsPage() {
               </div>
 
               <div className="space-y-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Ketik 'RESET' untuk memicu reset</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Ketik 'RESET' untuk konfirmasi penghapusan</p>
                 <input 
                   type="text" 
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="Ketik RESET..."
+                  placeholder="KETIK RESET..."
                   className="w-full px-6 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center font-bold tracking-[0.3em] text-xl focus:outline-none focus:border-rose-500/30 focus:bg-white transition-all uppercase"
                 />
               </div>
@@ -153,7 +153,7 @@ export default function SettingsPage() {
                 </button>
                 <button 
                   onClick={handleReset}
-                  disabled={confirmText !== "KONFIRMASI" || isProcessing}
+                  disabled={confirmText !== "RESET" || isProcessing}
                   className="flex-2 py-4 px-6 bg-rose-600 text-white rounded-2xl font-bold hover:bg-rose-700 transition-all disabled:opacity-30 shadow-lg shadow-rose-900/20"
                 >
                   {isProcessing ? "Memproses..." : "Ya, Hancurkan Data"}
