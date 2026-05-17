@@ -10,7 +10,7 @@ import {
   Loader2,
   Calendar,
   Receipt,
-  Upload,
+  UploadCloud,
   RotateCcw
 } from "lucide-react";
 import { verifyPayment, rejectPayment } from "@/lib/actions/verification";
@@ -98,7 +98,8 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
     }).format(number);
   };
 
-  const activeImage = previewUrl || data.bukti_url;
+  const rawImage = previewUrl || data?.bukti_url;
+  const activeImage = rawImage && (rawImage.startsWith('http') || rawImage.startsWith('blob')) ? rawImage : null;
 
   return (
     <AnimatePresence>
@@ -151,14 +152,12 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
             ) : (
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center justify-center p-6 sm:p-10 border-2 border-dashed border-slate-200 rounded-3xl cursor-pointer hover:border-primary/50 hover:bg-white transition-all w-full h-full group"
+                className="flex flex-col items-center justify-center p-6 sm:p-10 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-slate-400 hover:bg-slate-100 transition-all w-full h-full"
               >
-                <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-slate-100 flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
-                  <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400 group-hover:text-primary" />
-                </div>
-                <h4 className="text-slate-800 font-bold mb-2 text-sm sm:text-base">Unggah Bukti Transfer</h4>
-                <p className="text-slate-400 text-xs text-center max-w-[200px]">
-                  Klik untuk melengkapi verifikasi
+                <UploadCloud className="h-10 w-10 sm:h-12 sm:w-12 text-slate-400 mb-4" />
+                <h4 className="font-semibold text-slate-600 mb-2 text-sm sm:text-base text-center">Upload Bukti Transfer</h4>
+                <p className="text-xs text-slate-400 text-center max-w-[250px]">
+                  Klik area ini atau tombol di atas untuk memilih file gambar
                 </p>
               </div>
             )}
