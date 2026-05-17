@@ -13,17 +13,20 @@ import {
   Image as ImageIcon,
   Eye,
   X,
-  Maximize2
+  Maximize2,
+  Printer
 } from "lucide-react";
 import { getReports } from "@/lib/actions/stats";
 import { exportToExcel } from "@/lib/utils/export-excel";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import OfficialReceipt from "@/components/payments/OfficialReceipt";
 
 import { useQuery } from "@tanstack/react-query";
 
 export default function LaporanPage() {
   const [selectedProof, setSelectedProof] = useState<string | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
   const [filters, setFilters] = useState({
     method: "",
     type: "",
@@ -44,6 +47,18 @@ export default function LaporanPage() {
 
   const handleExport = () => {
     exportToExcel(data, "Laporan_Pembayaran_UT");
+  };
+
+  const handlePrint = (p: any) => {
+    setSelectedReceipt({
+      no_kwitansi: `KW-${Date.now().toString().slice(-6)}`,
+      tanggal: new Date(p.created_at || Date.now()).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
+      nama: p.tagihan?.mahasiswa?.nama,
+      nim: p.tagihan?.mahasiswa?.nim,
+      untuk_pembayaran: p.tagihan?.jenis,
+      jumlah: p.jumlah_bayar,
+      admin: "Admin Keuangan",
+    });
   };
 
   const formatRupiah = (number: number) => {
@@ -149,20 +164,21 @@ export default function LaporanPage() {
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Metode</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
                 <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Nominal</th>
+                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan={7} className="px-8 py-6">
+                    <td colSpan={8} className="px-8 py-6">
                       <div className="h-8 bg-slate-100 rounded-xl w-full"></div>
                     </td>
                   </tr>
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-8 py-20 text-center text-slate-400 italic text-sm">
+                  <td colSpan={8} className="px-8 py-20 text-center text-slate-400 italic text-sm">
                     Data tidak ditemukan.
                   </td>
                 </tr>
@@ -217,6 +233,15 @@ export default function LaporanPage() {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <p className="font-serif text-lg text-slate-900 font-tabular">{formatRupiah(item.jumlah_bayar)}</p>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <button 
+                        onClick={() => handlePrint(item)}
+                        className="p-2 text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
+                        title="Cetak Kwitansi"
+                      >
+                        <Printer className="h-5 w-5" />
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -281,6 +306,14 @@ export default function LaporanPage() {
                     Lihat Bukti Transfer
                   </button>
                 )}
+
+                <button 
+                  onClick={() => handlePrint(item)}
+                  className="w-full py-3 bg-slate-50 text-primary rounded-xl text-xs font-bold border border-slate-100 flex items-center justify-center gap-2 mt-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Cetak Kwitansi
+                </button>
               </div>
             ))
           )}
@@ -336,6 +369,13 @@ export default function LaporanPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {selectedReceipt && (
+        <OfficialReceipt 
+          data={selectedReceipt} 
+          onClose={() => setSelectedReceipt(null)} 
+        />
+      )}
     </div>
   );
 }

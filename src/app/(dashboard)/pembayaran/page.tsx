@@ -33,6 +33,7 @@ interface Payment {
 
 export default function PaymentsHistoryPage() {
   const [selectedReceipt, setSelectedReceipt] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const supabase = createClient();
 
   const { data: payments = [] as Payment[], isLoading } = useQuery({
@@ -67,9 +68,9 @@ export default function PaymentsHistoryPage() {
     setSelectedReceipt({
       no_kwitansi: `KW-${Date.now().toString().slice(-6)}`,
       tanggal: new Date(p.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
-      nama: p.tagihan.mahasiswa.nama,
-      nim: p.tagihan.mahasiswa.nim,
-      untuk_pembayaran: p.tagihan.jenis,
+      nama: p.tagihan?.mahasiswa?.nama,
+      nim: p.tagihan?.mahasiswa?.nim,
+      untuk_pembayaran: p.tagihan?.jenis,
       jumlah: p.jumlah_bayar,
       admin: "Admin Keuangan",
     });
@@ -87,7 +88,13 @@ export default function PaymentsHistoryPage() {
   const today = new Date().toISOString().split('T')[0];
   const todayPayments = payments.filter(p => p.created_at.startsWith(today));
   const totalToday = todayPayments.reduce((acc, curr) => acc + Number(curr.jumlah_bayar), 0);
-  const countToday = todayPayments.length;
+
+  // Filter logic
+  const filteredRiwayat = payments.filter((item) => {
+    const nama = item.tagihan?.mahasiswa?.nama || "";
+    const nim = item.tagihan?.mahasiswa?.nim || "";
+    return nama.toLowerCase().includes(searchTerm.toLowerCase()) || nim.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -128,11 +135,21 @@ export default function PaymentsHistoryPage() {
 
       {/* Table Area */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+        <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h3 className="font-semibold text-slate-800 flex items-center gap-2 shrink-0">
             <History className="h-4 w-4 text-slate-400" />
             Riwayat Terkini
           </h3>
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Cari berdasarkan Nama atau NIM..."
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            />
+          </div>
         </div>
 
         <div className="hidden md:block overflow-x-auto">
@@ -154,14 +171,14 @@ export default function PaymentsHistoryPage() {
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-300" />
                   </td>
                 </tr>
-              ) : payments.length === 0 ? (
+              ) : filteredRiwayat.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-8 py-20 text-center text-slate-400 italic text-sm">
-                    Belum ada riwayat pembayaran yang tercatat.
+                    {searchTerm ? "Mahasiswa tidak ditemukan" : "Belum ada riwayat pembayaran yang tercatat."}
                   </td>
                 </tr>
               ) : (
-                payments.map((p) => (
+                filteredRiwayat.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-3">
@@ -224,12 +241,12 @@ export default function PaymentsHistoryPage() {
                 <div className="h-3 bg-slate-50 rounded w-1/3"></div>
               </div>
             ))
-          ) : payments.length === 0 ? (
+          ) : filteredRiwayat.length === 0 ? (
             <div className="p-10 text-center text-slate-400 italic text-sm">
-              Belum ada riwayat pembayaran yang tercatat.
+              {searchTerm ? "Mahasiswa tidak ditemukan" : "Belum ada riwayat pembayaran yang tercatat."}
             </div>
           ) : (
-            payments.map((p) => (
+            filteredRiwayat.map((p) => (
               <div key={p.id} className="p-6 space-y-4 active:bg-slate-50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
