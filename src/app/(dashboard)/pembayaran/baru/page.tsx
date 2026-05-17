@@ -37,6 +37,13 @@ export default function NewPaymentPage() {
   const [useDeposit, setUseDeposit] = useState(false);
   const [depositAmount, setDepositAmount] = useState<number>(0);
 
+  // Perhitungan Single Source of Truth
+  const totalTagihan = Number(selectedBill?.sisa_tagihan ?? selectedBill?.jumlah ?? 0);
+  const depositYangDigunakan = useDeposit ? (Number(depositAmount) || 0) : 0;
+  const uangMasukUtama = Number(jumlahBayar) || 0;
+  const totalKontribusi = uangMasukUtama + depositYangDigunakan;
+  const sisaAkhirTagihanReal = Math.max(0, totalTagihan - totalKontribusi);
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (search.length > 2) {
@@ -89,10 +96,10 @@ export default function NewPaymentPage() {
     
     const result = await createCashPayment({
       tagihan_id: selectedBill.id,
-      jumlah_bayar: jumlahBayar,
+      jumlah_bayar: uangMasukUtama,
       metode: method,
       status: status,
-      nominal_deposit: useDeposit ? depositAmount : 0
+      nominal_deposit: depositYangDigunakan
     });
 
     if (result.success) {
@@ -103,9 +110,9 @@ export default function NewPaymentPage() {
           nama: selectedStudent.nama,
           nim: selectedStudent.nim,
           untuk_pembayaran: selectedBill.jenis,
-          jumlah: jumlahBayar,
-          nominal_deposit: useDeposit ? depositAmount : 0,
-          total_gabungan: jumlahBayar + (useDeposit ? depositAmount : 0),
+          jumlah: uangMasukUtama,
+          nominal_deposit: depositYangDigunakan,
+          total_gabungan: totalKontribusi,
           admin: "Admin Keuangan",
         });
         setShowReceipt(true);
@@ -325,13 +332,13 @@ export default function NewPaymentPage() {
                     )}
 
                     <div className="space-y-4">
-                      {jumlahBayar < (selectedBill.sisa_tagihan ?? selectedBill.jumlah) && (
+                      {totalKontribusi > 0 && totalKontribusi < totalTagihan && (
                         <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in-95">
                           <Info className="h-5 w-5 text-amber-500 shrink-0" />
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Pembayaran Cicilan</p>
                             <p className="text-xs text-amber-700 font-medium leading-relaxed">
-                              Pembayaran kurang dari sisa tagihan. Sisa akhir menjadi <span className="font-bold">{formatRupiah((selectedBill.sisa_tagihan ?? selectedBill.jumlah) - jumlahBayar)}</span>.
+                              Pembayaran kurang dari sisa tagihan. Sisa akhir menjadi <span className="font-bold">{formatRupiah(sisaAkhirTagihanReal)}</span>.
                             </p>
                           </div>
                         </div>
@@ -367,14 +374,13 @@ export default function NewPaymentPage() {
                               onChange={(e) => {
                                 const isChecked = e.target.checked;
                                 setUseDeposit(isChecked);
-                                const sisa = selectedBill.sisa_tagihan ?? selectedBill.jumlah;
                                 if (isChecked) {
-                                  const dep = Math.min(selectedStudent.deposit, sisa);
+                                  const dep = Math.min(selectedStudent.deposit, totalTagihan);
                                   setDepositAmount(dep);
-                                  setJumlahBayar(sisa - dep);
+                                  setJumlahBayar(totalTagihan - dep);
                                 } else {
                                   setDepositAmount(0);
-                                  setJumlahBayar(sisa);
+                                  setJumlahBayar(totalTagihan);
                                 }
                               }}
                               className="sr-only peer" 
@@ -392,15 +398,15 @@ export default function NewPaymentPage() {
                                 <input 
                                   type="number"
                                   value={depositAmount}
-                                  max={Math.min(selectedStudent.deposit, (selectedBill.sisa_tagihan ?? selectedBill.jumlah))}
+                                  max={Math.min(selectedStudent.deposit, totalTagihan)}
                                   onChange={(e) => {
                                     const val = Math.min(
                                       parseInt(e.target.value) || 0,
                                       selectedStudent.deposit,
-                                      (selectedBill.sisa_tagihan ?? selectedBill.jumlah)
+                                      totalTagihan
                                     );
                                     setDepositAmount(val);
-                                    setJumlahBayar((selectedBill.sisa_tagihan ?? selectedBill.jumlah) - val);
+                                    setJumlahBayar(totalTagihan - val);
                                   }}
                                   className="w-32 bg-white border border-indigo-200 rounded-xl px-3 py-1.5 text-sm font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-right"
                                 />
@@ -409,22 +415,22 @@ export default function NewPaymentPage() {
                             <div className="p-3 bg-indigo-100/50 rounded-xl flex items-start gap-2">
                               <Info className="h-3.5 w-3.5 text-indigo-600 mt-0.5" />
                               <p className="text-[10px] text-indigo-800 font-medium leading-relaxed">
-                                Tagihan <span className="font-bold">{formatRupiah(selectedBill.sisa_tagihan ?? selectedBill.jumlah)}</span> akan dibayar dengan 
-                                <span className="font-bold"> Deposit ({formatRupiah(depositAmount)})</span> dan sisanya 
-                                <span className="font-bold"> {method} ({formatRupiah(jumlahBayar)})</span>.
+                                Tagihan <span className="font-bold">{formatRupiah(totalTagihan)}</span> akan dibayar dengan 
+                                <span className="font-bold"> Deposit ({formatRupiah(depositYangDigunakan)})</span> dan sisanya 
+                                <span className="font-bold"> {method} ({formatRupiah(uangMasukUtama)})</span>.
                               </p>
                             </div>
                           </div>
                         )}
                       </div>
 
-                      {jumlahBayar > (selectedBill.sisa_tagihan ?? selectedBill.jumlah) && (
+                      {totalKontribusi > totalTagihan && (
                         <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in fade-in zoom-in-95">
                           <Wallet className="h-5 w-5 text-emerald-500 shrink-0" />
                           <div className="space-y-1">
                             <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Masuk Deposit</p>
                             <p className="text-xs text-emerald-700 font-medium leading-relaxed">
-                              Kelebihan <span className="font-bold">{formatRupiah(jumlahBayar - (selectedBill.sisa_tagihan ?? selectedBill.jumlah))}</span> akan otomatis masuk ke Saldo Deposit mahasiswa.
+                              Kelebihan <span className="font-bold">{formatRupiah(totalKontribusi - totalTagihan)}</span> akan otomatis masuk ke Saldo Deposit mahasiswa.
                             </p>
                           </div>
                         </div>
@@ -445,7 +451,7 @@ export default function NewPaymentPage() {
                         </div>
                         <button
                           onClick={handlePayment}
-                          disabled={isSubmitting || jumlahBayar <= 0}
+                          disabled={isSubmitting || totalKontribusi <= 0}
                           className="bg-primary hover:bg-blue-600 text-white px-8 py-4 rounded-xl font-bold transition-all flex items-center gap-2 disabled:opacity-50"
                         >
                           {isSubmitting ? (
