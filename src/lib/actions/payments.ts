@@ -16,17 +16,21 @@ export async function createCashPayment(formData: {
   const supabase = createClient();
 
   try {
-    if (formData.status === "LUNAS") {
+    const jumlahBayar = formData.jumlah_bayar || 0;
+    const nominalDeposit = formData.nominal_deposit || 0;
+    const isFullDeposit = jumlahBayar === 0 && nominalDeposit > 0;
+
+    if (formData.status === "LUNAS" || isFullDeposit) {
       // Use the robust RPC to ensure atomic balance update and status change
       const { error: rpcError } = await supabase.rpc("process_manual_payment", {
         p_tagihan_id: formData.tagihan_id,
-        p_jumlah_bayar: formData.jumlah_bayar,
-        p_metode: formData.metode,
-        p_bank_pengirim: formData.bank_pengirim || (formData.metode === "TUNAI" ? "Cash" : "Transfer"),
+        p_jumlah_bayar: jumlahBayar,
+        p_metode: isFullDeposit ? "TUNAI" : formData.metode,
+        p_bank_pengirim: formData.bank_pengirim || (formData.metode === "TUNAI" || isFullDeposit ? "Cash" : "Transfer"),
         p_bank_tujuan: formData.bank_tujuan || "Admin",
-        p_bukti_url: formData.bukti_url || "Pencatatan Manual Admin",
+        p_bukti_url: formData.bukti_url || (isFullDeposit ? "Pembayaran Penuh via Deposit" : "Pencatatan Manual Admin"),
         p_order_id: `MANUAL-${Date.now()}`,
-        p_nominal_deposit: formData.nominal_deposit || 0
+        p_nominal_deposit: nominalDeposit
       });
 
       if (rpcError) throw new Error(rpcError.message);
