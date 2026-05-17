@@ -60,7 +60,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (activeTab === "TRANSFER" && (!buktiFile || !bankPengirim || !bankTujuan)) {
+    if (activeTab === "TRANSFER" && jumlahBayar > 0 && (!buktiFile || !bankPengirim || !bankTujuan)) {
       setError("Harap isi semua kolom dan unggah bukti transfer.");
       return;
     }
@@ -411,7 +411,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
 
           <button 
             type="submit"
-            disabled={isLoading || jumlahBayar <= 0}
+            disabled={isLoading || (jumlahBayar + (useDeposit ? nominalDeposit : 0)) <= 0}
             className="w-full py-4 bg-slate-900 hover:bg-black disabled:bg-slate-300 text-white rounded-2xl font-bold transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
           >
             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
