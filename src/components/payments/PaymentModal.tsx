@@ -57,10 +57,17 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
 
   const supabase = createClient();
 
+  // Perhitungan Tagihan & Pembayaran
+  const totalTagihan = Number(bill.sisa_tagihan ?? bill.jumlah ?? 0);
+  const depositAmount = useDeposit ? (Number(nominalDeposit) || 0) : 0;
+  const jumlahTransfer = Number(jumlahBayar) || 0;
+  const totalDibayar = jumlahTransfer + depositAmount;
+  const sisaAkhirTagihan = Math.max(0, totalTagihan - totalDibayar);
+
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (activeTab === "TRANSFER" && jumlahBayar > 0 && (!buktiFile || !bankPengirim || !bankTujuan)) {
+    if (activeTab === "TRANSFER" && jumlahTransfer > 0 && (!buktiFile || !bankPengirim || !bankTujuan)) {
       setError("Harap isi semua kolom dan unggah bukti transfer.");
       return;
     }
@@ -90,24 +97,20 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         publicUrl = url;
       }
 
-      const sisaSetelahBayar = (bill.sisa_tagihan ?? bill.jumlah) - (jumlahBayar + (useDeposit ? Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)) : 0));
-      const autoCatatan = (jumlahBayar + (useDeposit ? Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)) : 0)) < (bill.sisa_tagihan ?? bill.jumlah) 
-        ? `Cicilan - Sisa ${formatRupiah(Math.max(0, sisaSetelahBayar))}` 
+      const autoCatatan = totalDibayar < totalTagihan 
+        ? `Cicilan - Sisa ${formatRupiah(sisaAkhirTagihan)}` 
         : activeTab === "CASH" ? catatan : "Lunas";
-
-      const finalJumlahBayar = Number(jumlahBayar) || 0;
-      const finalNominalDeposit = useDeposit ? (Number(nominalDeposit) || 0) : 0;
       
       // 2. Call RPC to process payment
       const { error: rpcError } = await supabase.rpc("process_manual_payment", {
         p_tagihan_id: bill.id,
-        p_jumlah_bayar: finalJumlahBayar,
+        p_jumlah_bayar: jumlahTransfer,
         p_metode: activeTab === "TRANSFER" ? "TRANSFER_MANUAL" : "TUNAI",
         p_bank_pengirim: activeTab === "TRANSFER" ? bankPengirim : "Cash",
         p_bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",
         p_bukti_url: activeTab === "TRANSFER" ? publicUrl : autoCatatan,
         p_order_id: `${activeTab}-${bill.kode}-${Date.now()}`,
-        p_nominal_deposit: finalNominalDeposit
+        p_nominal_deposit: depositAmount
       });
 
       if (rpcError) throw rpcError;
@@ -118,9 +121,9 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         nama: bill.mahasiswa.nama,
         nim: bill.mahasiswa.nim,
         untuk_pembayaran: bill.jenis,
-        jumlah: finalJumlahBayar,
-        nominal_deposit: finalNominalDeposit,
-        total_gabungan: finalJumlahBayar + finalNominalDeposit,
+        jumlah: jumlahTransfer,
+        nominal_deposit: depositAmount,
+        total_gabungan: totalDibayar,
         admin: "Admin Keuangan",
       });
       setShowReceipt(true);
@@ -188,15 +191,15 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                   <input 
                     type="number"
                     value={nominalDeposit}
-                    max={Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah))}
+                    max={Math.min(studentDeposit, totalTagihan)}
                     onChange={(e) => {
                       const val = Math.min(
                         parseInt(e.target.value) || 0, 
                         studentDeposit, 
-                        (bill.sisa_tagihan ?? bill.jumlah)
+                        totalTagihan
                       );
                       setNominalDeposit(val);
-                      setJumlahBayar((bill.sisa_tagihan ?? bill.jumlah) - val);
+                      setJumlahBayar(totalTagihan - val);
                     }}
                     className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-sm font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
@@ -214,14 +217,13 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                     const isChecked = e.target.checked;
                     setUseDeposit(isChecked);
                     
-                    const sisa = (bill.sisa_tagihan ?? bill.jumlah);
                     if (isChecked) {
-                      const defaultDep = Math.min(studentDeposit, sisa);
+                      const defaultDep = Math.min(studentDeposit, totalTagihan);
                       setNominalDeposit(defaultDep);
-                      setJumlahBayar(sisa - defaultDep);
+                      setJumlahBayar(totalTagihan - defaultDep);
                     } else {
                       setNominalDeposit(0);
-                      setJumlahBayar(sisa);
+                      setJumlahBayar(totalTagihan);
                     }
                   }}
                   className="sr-only peer" 
@@ -236,7 +238,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
           <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sisa Tagihan</p>
-              <p className="text-xl font-serif font-bold text-slate-900">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</p>
+              <p className="text-xl font-serif font-bold text-slate-900">{formatRupiah(totalTagihan)}</p>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Jumlah Bayar</p>
@@ -261,35 +263,35 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Ringkasan Pembayaran</p>
                   <p className="text-xs text-emerald-700 font-medium leading-relaxed">
-                    Tagihan <span className="font-bold">{formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}</span> akan dibayar dengan 
-                    <span className="font-bold"> Deposit ({formatRupiah(nominalDeposit)})</span> dan 
-                    <span className="font-bold"> {activeTab === "TRANSFER" ? "Transfer" : "Cash"} ({formatRupiah(jumlahBayar)})</span>.
+                    Tagihan <span className="font-bold">{formatRupiah(totalTagihan)}</span> akan dibayar dengan 
+                    <span className="font-bold"> Deposit ({formatRupiah(depositAmount)})</span> dan 
+                    <span className="font-bold"> {activeTab === "TRANSFER" ? "Transfer" : "Cash"} ({formatRupiah(jumlahTransfer)})</span>.
                   </p>
                 </div>
               </div>
             )}
             
-            {jumlahBayar > (bill.sisa_tagihan ?? bill.jumlah) && (
+            {totalDibayar > totalTagihan && (
               <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-start gap-3 animate-in zoom-in-95">
                 <Coins className="h-5 w-5 text-emerald-500 shrink-0" />
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Kelebihan Bayar</p>
                   <p className="text-xs text-emerald-700 font-medium leading-relaxed">
-                    Kelebihan <span className="font-bold">{formatRupiah(jumlahBayar - (bill.sisa_tagihan ?? bill.jumlah))}</span> akan otomatis masuk ke <span className="font-bold text-emerald-800">Saldo Deposit</span> mahasiswa.
+                    Kelebihan <span className="font-bold">{formatRupiah(totalDibayar - totalTagihan)}</span> akan otomatis masuk ke <span className="font-bold text-emerald-800">Saldo Deposit</span> mahasiswa.
                   </p>
                 </div>
               </div>
             )}
 
             {/* Cicilan Info */}
-            {jumlahBayar > 0 && (jumlahBayar + (useDeposit ? Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)) : 0)) < (bill.sisa_tagihan ?? bill.jumlah) && (
+            {totalDibayar > 0 && totalDibayar < totalTagihan && (
               <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
                 <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Pembayaran Cicilan</p>
                   <p className="text-xs text-amber-700 font-medium leading-relaxed">
                     Pembayaran ini akan tercatat sebagai cicilan. Sisa tagihan akan menjadi 
-                    <span className="font-bold ml-1">{formatRupiah((bill.sisa_tagihan ?? bill.jumlah) - (jumlahBayar + (useDeposit ? Math.min(studentDeposit, (bill.sisa_tagihan ?? bill.jumlah)) : 0)))}</span>.
+                    <span className="font-bold ml-1">{formatRupiah(sisaAkhirTagihan)}</span>.
                     Status tagihan akan diperbarui menjadi <span className="font-bold text-amber-800 uppercase">Mencicil</span>.
                   </p>
                 </div>
@@ -411,7 +413,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
 
           <button 
             type="submit"
-            disabled={isLoading || (jumlahBayar + (useDeposit ? nominalDeposit : 0)) <= 0}
+            disabled={isLoading || totalDibayar <= 0}
             className="w-full py-4 bg-slate-900 hover:bg-black disabled:bg-slate-300 text-white rounded-2xl font-bold transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
           >
             {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
