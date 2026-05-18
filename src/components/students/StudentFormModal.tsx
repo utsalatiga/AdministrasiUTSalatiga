@@ -15,13 +15,18 @@ import {
   Wallet,
   Plus,
   Trash2,
-  Info
+  Info,
+  Edit2,
+  CheckCircle2,
+  Clock,
+  Receipt
 } from "lucide-react";
 import { Student } from "@/hooks/useStudents";
 import { createStudent, updateStudent } from "@/lib/actions/students";
-import { getStudentFinancialSummary } from "@/lib/actions/payments";
+import { getStudentFinancialSummary, getStudentDetails, updateBillAmount } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
 import { PRODI_UT, JENIS_TAGIHAN_DEFAULT } from "@/lib/constants";
+import { useRouter } from "next/navigation";
 
 const studentSchema = z.object({
   nim: z.string().min(1, "NIM wajib diisi"),
@@ -51,6 +56,13 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
   const [billCount, setBillCount] = useState<number | null>(null);
   const [customJenis, setCustomJenis] = useState<{[key: number]: boolean}>({});
 
+  const [existingBills, setExistingBills] = useState<any[]>([]);
+  const [editingBillId, setEditingBillId] = useState<string | null>(null);
+  const [newAmount, setNewAmount] = useState<number>(0);
+  const [isUpdatingBill, setIsUpdatingBill] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const router = useRouter();
+
   const defaultDueDate = new Date();
   defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
   const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
@@ -78,6 +90,17 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
     name: "billings"
   });
 
+  const fetchExistingBills = () => {
+    if (student) {
+      getStudentDetails(student.id).then(res => {
+        if (res && res.bills) {
+          setExistingBills(res.bills);
+          setBillCount(res.bills.length);
+        }
+      });
+    }
+  };
+
   useEffect(() => {
     setCustomJenis({});
     if (student) {
@@ -90,12 +113,10 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         billings: [] // Initialize empty for edit mode
       });
       
-      // Fetch current bill count
-      getStudentFinancialSummary(student.id).then(res => {
-        if (res && 'billsCount' in res) setBillCount(res.billsCount ?? 0);
-      });
+      fetchExistingBills();
     } else {
       setBillCount(null);
+      setExistingBills([]);
       reset({
         nim: "",
         nama: "",
@@ -113,6 +134,14 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
   }, [student, reset, isOpen, defaultDueDateStr]);
 
   if (!isOpen) return null;
+
+  const formatRupiah = (number: number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(number);
+  };
 
   const onSubmit = async (values: StudentFormValues) => {
     try {
@@ -178,6 +207,140 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
               <p className="text-sm font-semibold text-indigo-700">
                 Mahasiswa ini memiliki <span className="text-indigo-900 font-bold">{billCount}</span> tagihan terdaftar.
               </p>
+            </div>
+          )}
+
+          {/* Existing Bills List (Edit mode only) */}
+          {isEdit && billCount !== null && (
+            <div className="space-y-4 bg-indigo-50/50 border border-indigo-100 rounded-3xl p-6 animate-in fade-in">
+              <div className="flex items-center gap-3 pb-4 border-b border-indigo-100/80">
+                <div className="p-2.5 bg-indigo-100 text-indigo-600 rounded-2xl shadow-sm">
+                  <Receipt className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="font-serif text-base text-indigo-950 font-bold">Daftar Tagihan Mahasiswa</h4>
+                  <p className="text-xs font-medium text-indigo-700">
+                    Total terdaftar: <span className="text-indigo-900 font-bold">{billCount}</span> tagihan. Berikut adalah tagihan yang belum lunas.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                {existingBills
+                  .filter((bill: any) => bill.status !== "LUNAS" && (bill.sisa_tagihan ?? bill.jumlah) > 0)
+                  .map((bill: any) => {
+                    const totalTerbayar = bill.jumlah - (bill.sisa_tagihan ?? bill.jumlah);
+                    const isEditing = editingBillId === bill.id;
+
+                    return (
+                      <div key={bill.id} className="p-4 bg-white border border-indigo-100/80 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow transition-all">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "p-2 rounded-xl",
+                              bill.status === "MENCICIL" ? "bg-amber-100 text-status-amber" : "bg-rose-100 text-rose-600"
+                            )}>
+                              <Clock className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-800">{bill.jenis}</p>
+                              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{bill.kode}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center gap-1.5 justify-end mb-1">
+                              <span className="text-[10px] text-slate-400 font-medium">Terbayar: {formatRupiah(totalTerbayar)}</span>
+                              <span className="text-[10px] text-slate-300">/</span>
+                              <span className="text-[10px] text-slate-400 font-medium">Total: {formatRupiah(bill.jumlah)}</span>
+                            </div>
+                            <p className="font-serif text-lg text-slate-900 font-bold leading-tight">
+                              {formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}
+                            </p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Sisa Tagihan</p>
+                            <div className={cn(
+                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-md mt-2",
+                              (bill.sisa_tagihan ?? bill.jumlah) < bill.jumlah ? "bg-amber-50 text-status-amber" : "bg-rose-50 text-rose-600"
+                            )}>
+                              <span className="text-[9px] font-bold uppercase tracking-widest">
+                                {(bill.sisa_tagihan ?? bill.jumlah) < bill.jumlah ? "DICICIL" : "BELUM LUNAS"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Edit Button & Form */}
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                          {!isEditing ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingBillId(bill.id);
+                                setNewAmount(bill.jumlah);
+                                setUpdateError(null);
+                              }}
+                              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg shadow-sm"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                              Edit Nominal
+                            </button>
+                          ) : (
+                            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 w-full justify-end bg-slate-50 p-3 rounded-xl border border-indigo-100 shadow-sm animate-in fade-in">
+                              <div className="w-full sm:w-auto flex-1 space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">Total Tagihan Baru (Rp)</label>
+                                <input
+                                  type="number"
+                                  value={newAmount}
+                                  min={totalTerbayar}
+                                  onChange={(e) => setNewAmount(parseInt(e.target.value) || 0)}
+                                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                {newAmount < totalTerbayar && (
+                                  <p className="text-[10px] text-rose-500 font-medium">Nominal tidak boleh di bawah total yang sudah dibayar ({formatRupiah(totalTerbayar)}).</p>
+                                )}
+                              </div>
+                              <div className="flex gap-2 w-full sm:w-auto justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingBillId(null)}
+                                  disabled={isUpdatingBill}
+                                  className="px-3 py-1.5 bg-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-300 transition-all disabled:opacity-50"
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isUpdatingBill || newAmount < totalTerbayar}
+                                  onClick={async () => {
+                                    setIsUpdatingBill(true);
+                                    setUpdateError(null);
+                                    const res = await updateBillAmount(bill.id, newAmount);
+                                    if (res.success) {
+                                      setEditingBillId(null);
+                                      fetchExistingBills();
+                                      router.refresh();
+                                    } else {
+                                      setUpdateError(res.error || "Gagal mengubah tagihan.");
+                                    }
+                                    setIsUpdatingBill(false);
+                                  }}
+                                  className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm shadow-indigo-500/20"
+                                >
+                                  {isUpdatingBill ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Simpan"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {isEditing && updateError && (
+                          <p className="text-xs text-rose-500 font-medium text-right">{updateError}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                {existingBills.filter((bill: any) => bill.status !== "LUNAS" && (bill.sisa_tagihan ?? bill.jumlah) > 0).length === 0 && (
+                  <p className="text-xs text-slate-400 italic text-center py-4 bg-white rounded-2xl border border-indigo-100/60">Tidak ada tagihan tertunda / belum lunas untuk mahasiswa ini.</p>
+                )}
+              </div>
             </div>
           )}
 
