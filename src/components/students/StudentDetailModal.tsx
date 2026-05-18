@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { X, Receipt, CreditCard, User, Calendar, Loader2, CheckCircle2, XCircle, Clock, Coins, Banknote } from "lucide-react";
+import { X, Receipt, CreditCard, User, Calendar, Loader2, CheckCircle2, XCircle, Clock, Coins, Banknote, Edit2 } from "lucide-react";
 import { getStudentDetails, updateBillAmount } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -14,13 +15,14 @@ interface StudentDetailModalProps {
 }
 
 export default function StudentDetailModal({ isOpen, onClose, studentId }: StudentDetailModalProps) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
   const [newAmount, setNewAmount] = useState<number>(0);
   const [isUpdatingBill, setIsUpdatingBill] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["student-details", studentId],
     queryFn: async () => {
       if (!studentId) return null;
@@ -107,6 +109,7 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
                   {data.bills.map((bill: any) => {
                     const totalTerbayar = bill.jumlah - (bill.sisa_tagihan ?? bill.jumlah);
                     const isEditing = editingBillId === bill.id;
+                    const isLunas = bill.status === "LUNAS" || (bill.sisa_tagihan ?? bill.jumlah) <= 0;
 
                     return (
                     <div key={bill.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-3">
@@ -150,66 +153,71 @@ export default function StudentDetailModal({ isOpen, onClose, studentId }: Stude
                       </div>
 
                       {/* Edit Button & Form */}
-                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60">
-                        {!isEditing ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingBillId(bill.id);
-                              setNewAmount(bill.jumlah);
-                              setUpdateError(null);
-                            }}
-                            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-lg"
-                          >
-                            Edit Nominal Tagihan
-                          </button>
-                        ) : (
-                          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 w-full justify-end bg-white p-3 rounded-xl border border-indigo-100 shadow-sm animate-in fade-in">
-                            <div className="w-full sm:w-auto flex-1 space-y-1">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">Total Tagihan Baru (Rp)</label>
-                              <input
-                                type="number"
-                                value={newAmount}
-                                min={totalTerbayar}
-                                onChange={(e) => setNewAmount(parseInt(e.target.value) || 0)}
-                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                              />
-                              {newAmount < totalTerbayar && (
-                                <p className="text-[10px] text-rose-500 font-medium">Nominal tidak boleh di bawah total yang sudah dibayar ({formatRupiah(totalTerbayar)}).</p>
-                              )}
+                      {!isLunas && (
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/60">
+                          {!isEditing ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingBillId(bill.id);
+                                setNewAmount(bill.jumlah);
+                                setUpdateError(null);
+                              }}
+                              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg shadow-sm"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                              Edit
+                            </button>
+                          ) : (
+                            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 w-full justify-end bg-white p-3 rounded-xl border border-indigo-100 shadow-sm animate-in fade-in">
+                              <div className="w-full sm:w-auto flex-1 space-y-1">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase">Total Tagihan Baru (Rp)</label>
+                                <input
+                                  type="number"
+                                  value={newAmount}
+                                  min={totalTerbayar}
+                                  onChange={(e) => setNewAmount(parseInt(e.target.value) || 0)}
+                                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                {newAmount < totalTerbayar && (
+                                  <p className="text-[10px] text-rose-500 font-medium">Nominal tidak boleh di bawah total yang sudah dibayar ({formatRupiah(totalTerbayar)}).</p>
+                                )}
+                              </div>
+                              <div className="flex gap-2 w-full sm:w-auto justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingBillId(null)}
+                                  disabled={isUpdatingBill}
+                                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all disabled:opacity-50"
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isUpdatingBill || newAmount < totalTerbayar}
+                                  onClick={async () => {
+                                    setIsUpdatingBill(true);
+                                    setUpdateError(null);
+                                    const res = await updateBillAmount(bill.id, newAmount);
+                                    if (res.success) {
+                                      setEditingBillId(null);
+                                      queryClient.invalidateQueries({ queryKey: ["student-details", studentId] });
+                                      refetch();
+                                      router.refresh();
+                                    } else {
+                                      setUpdateError(res.error || "Gagal mengubah tagihan.");
+                                    }
+                                    setIsUpdatingBill(false);
+                                  }}
+                                  className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm shadow-indigo-500/20"
+                                >
+                                  {isUpdatingBill ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Simpan"}
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex gap-2 w-full sm:w-auto justify-end">
-                              <button
-                                type="button"
-                                onClick={() => setEditingBillId(null)}
-                                disabled={isUpdatingBill}
-                                className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all disabled:opacity-50"
-                              >
-                                Batal
-                              </button>
-                              <button
-                                type="button"
-                                disabled={isUpdatingBill || newAmount < totalTerbayar}
-                                onClick={async () => {
-                                  setIsUpdatingBill(true);
-                                  setUpdateError(null);
-                                  const res = await updateBillAmount(bill.id, newAmount);
-                                  if (res.success) {
-                                    setEditingBillId(null);
-                                    queryClient.invalidateQueries({ queryKey: ["student-details", studentId] });
-                                  } else {
-                                    setUpdateError(res.error || "Gagal mengubah tagihan.");
-                                  }
-                                  setIsUpdatingBill(false);
-                                }}
-                                className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm shadow-indigo-500/20"
-                              >
-                                {isUpdatingBill ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Simpan"}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                       {isEditing && updateError && (
                         <p className="text-xs text-rose-500 font-medium text-right">{updateError}</p>
                       )}
