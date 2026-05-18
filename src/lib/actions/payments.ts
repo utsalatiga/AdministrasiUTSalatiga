@@ -15,8 +15,7 @@ export async function generateNoKwitansi(tagihanId: string) {
       mahasiswa:mahasiswa_id (
         id,
         nim,
-        nama,
-        semester
+        nama
       )
     `)
     .eq("id", tagihanId)
@@ -35,8 +34,8 @@ export async function generateNoKwitansi(tagihanId: string) {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const ddmm = `${day}${month}`;
 
-  // 3. Penentuan semester (fallback otomatis jika kosong)
-  let semester = billData?.semester || mhs?.semester;
+  // 3. Penentuan semester (hanya dari tagihan, dengan fallback otomatis jika kosong/null)
+  let semester = billData?.semester;
   if (!semester) {
     semester = now.getMonth() < 6 ? `${year}.1` : `${year}.2`;
   }
