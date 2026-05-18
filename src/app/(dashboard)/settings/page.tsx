@@ -109,7 +109,7 @@ export default function SettingsPage() {
                   {isSavingPrefix ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>
-              <p className="text-xs text-slate-500">Nomor kwitansi yang dicetak akan menggunakan prefix ini (misal: KW-...). Perubahan langsung aktif di seluruh sistem.</p>
+              <p className="text-xs text-slate-500">Pengaturan prefix ini sebelumnya digunakan untuk format lama (KW-...). Saat ini sistem telah dimigrasi ke format terstruktur otomatis YYYY/DDMM/Semester/NIM/NoUrut.</p>
               {prefixResult && (
                 <div className={cn(
                   "p-4 rounded-2xl text-xs font-bold animate-in fade-in",

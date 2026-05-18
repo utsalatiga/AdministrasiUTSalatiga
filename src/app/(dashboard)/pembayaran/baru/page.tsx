@@ -96,6 +96,21 @@ export default function NewPaymentPage() {
     }
   };
 
+  const getClientNoKwitansi = (student: any, bill?: any, realNo?: string) => {
+    if (realNo) return realNo;
+    const now = new Date();
+    const year = now.getFullYear();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const ddmm = `${day}${month}`;
+    let semester = bill?.semester || student?.semester;
+    if (!semester) {
+      semester = now.getMonth() < 6 ? `${year}.1` : `${year}.2`;
+    }
+    const nim = student?.nim || "000000000";
+    return `${year}/${ddmm}/${semester}/${nim}/001`;
+  };
+
   const handlePayment = async () => {
     if (!selectedBill) return;
 
@@ -123,7 +138,7 @@ export default function NewPaymentPage() {
     if (result.success) {
       if (status === "LUNAS") {
         setPaymentResult({
-          no_kwitansi: `KW-${Date.now().toString().slice(-6)}`,
+          no_kwitansi: getClientNoKwitansi(selectedStudent, selectedBill, result.no_kwitansi),
           tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
           nama: selectedStudent.nama,
           nim: selectedStudent.nim,

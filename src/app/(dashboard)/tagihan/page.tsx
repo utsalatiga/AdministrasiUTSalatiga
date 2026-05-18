@@ -92,9 +92,24 @@ export default function TagihanPage() {
     setPage(1);
   }, [search, filterStatus]);
 
+  const getClientNoKwitansi = (student: any, bill?: any, realNo?: string) => {
+    if (realNo) return realNo;
+    const now = new Date();
+    const year = now.getFullYear();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const ddmm = `${day}${month}`;
+    let semester = bill?.semester || student?.semester;
+    if (!semester) {
+      semester = now.getMonth() < 6 ? `${year}.1` : `${year}.2`;
+    }
+    const nim = student?.nim || "000000000";
+    return `${year}/${ddmm}/${semester}/${nim}/001`;
+  };
+
   const handlePrint = (bill: any) => {
     setSelectedReceipt({
-      no_kwitansi: `KW-${bill.kode}-${Date.now().toString().slice(-4)}`,
+      no_kwitansi: getClientNoKwitansi(bill.mahasiswa, bill),
       tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
       nama: bill.mahasiswa.nama,
       nim: bill.mahasiswa.nim,

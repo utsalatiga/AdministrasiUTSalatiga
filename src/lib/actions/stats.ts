@@ -115,6 +115,7 @@ export async function getReports(filters: {
       metode,
       status,
       bukti_url,
+      no_kwitansi,
       tagihan:tagihan_id (
         id,
         jenis,

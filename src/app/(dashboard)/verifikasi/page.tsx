@@ -33,6 +33,21 @@ export default function VerificationPage() {
     staleTime: 30000,
   });
 
+  const getClientNoKwitansi = (student: any, bill?: any, realNo?: string) => {
+    if (realNo) return realNo;
+    const now = new Date();
+    const year = now.getFullYear();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const ddmm = `${day}${month}`;
+    let semester = bill?.semester || student?.semester;
+    if (!semester) {
+      semester = now.getMonth() < 6 ? `${year}.1` : `${year}.2`;
+    }
+    const nim = student?.nim || "000000000";
+    return `${year}/${ddmm}/${semester}/${nim}/001`;
+  };
+
   const handleReview = (payment: any) => {
     setSelectedPayment(payment);
     setIsModalOpen(true);
@@ -210,7 +225,7 @@ export default function VerificationPage() {
           refetch();
           if (verifiedData) {
             setActiveReceipt({
-              no_kwitansi: `KW-${Date.now().toString().slice(-6)}`,
+              no_kwitansi: getClientNoKwitansi(verifiedData.tagihan?.mahasiswa, verifiedData.tagihan, verifiedData.no_kwitansi),
               tanggal: new Date(verifiedData.created_at || Date.now()).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
               nama: verifiedData.tagihan?.mahasiswa?.nama,
               nim: verifiedData.tagihan?.mahasiswa?.nim,
