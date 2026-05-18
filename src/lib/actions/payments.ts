@@ -6,12 +6,11 @@ import { revalidatePath } from "next/cache";
 export async function generateNoKwitansi(tagihanId: string) {
   const supabase = createClient();
   
-  // 1. Ambil data tagihan dan mahasiswa
+  // 1. Ambil data tagihan dan mahasiswa (tanpa memanggil kolom semester agar tidak memicu error column does not exist)
   const { data: billData, error: billErr } = await supabase
     .from("tagihan")
     .select(`
       id,
-      semester,
       mahasiswa:mahasiswa_id (
         id,
         nim,
@@ -34,11 +33,8 @@ export async function generateNoKwitansi(tagihanId: string) {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const ddmm = `${day}${month}`;
 
-  // 3. Penentuan semester (hanya dari tagihan, dengan fallback otomatis jika kosong/null)
-  let semester = billData?.semester;
-  if (!semester) {
-    semester = now.getMonth() < 6 ? `${year}.1` : `${year}.2`;
-  }
+  // 3. Penentuan semester (menggunakan 100% logika Fallback Otomatis yang paling aman)
+  const semester = now.getMonth() < 6 ? `${year}.1` : `${year}.2`;
 
   // 4. Nomor urut transaksi hari ini (3 digit)
   const todayStr = now.toISOString().split('T')[0];
