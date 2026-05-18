@@ -123,14 +123,16 @@ export default function Header() {
                       <Key className="h-4 w-4" />
                       Ganti Password
                     </button>
-                    <Link 
-                      href="/settings"
-                      onClick={() => setIsProfileOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-xl transition-all"
-                    >
-                      <Settings className="h-4 w-4" />
-                      Pengaturan Sistem
-                    </Link>
+                    {isSuperAdmin(userProfile?.role) && (
+                      <Link 
+                        href="/settings"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary rounded-xl transition-all"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Pengaturan Sistem
+                      </Link>
+                    )}
                     <div className="h-[1px] bg-slate-50 my-2"></div>
                     <button 
                       onClick={handleLogout}
