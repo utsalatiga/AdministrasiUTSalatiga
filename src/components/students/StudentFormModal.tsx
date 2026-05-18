@@ -90,20 +90,27 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
     name: "billings"
   });
 
-  const fetchExistingBills = () => {
+  const fetchExistingBills = (mountedFlag?: { value: boolean }) => {
     if (student) {
       getStudentDetails(student.id).then(res => {
         if (res && res.bills) {
-          setExistingBills(res.bills);
-          setBillCount(res.bills.length);
+          if (!mountedFlag || mountedFlag.value) {
+            setExistingBills(res.bills);
+            setBillCount(res.bills.length);
+          }
         }
       });
     }
   };
 
   useEffect(() => {
+    let isMounted = { value: true };
     setCustomJenis({});
-    if (student) {
+    setEditingBillId(null);
+    setExistingBills([]); // Reset state existingBills menjadi array kosong sebelum fetch data baru
+
+    if (isOpen && student) {
+      setBillCount(null);
       reset({
         nim: student.nim,
         nama: student.nama,
@@ -113,7 +120,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         billings: [] // Initialize empty for edit mode
       });
       
-      fetchExistingBills();
+      fetchExistingBills(isMounted);
     } else {
       setBillCount(null);
       setExistingBills([]);
@@ -131,7 +138,18 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         }]
       });
     }
+
+    return () => {
+      isMounted.value = false;
+    };
   }, [student, reset, isOpen, defaultDueDateStr]);
+
+  const handleClose = () => {
+    setExistingBills([]);
+    setEditingBillId(null);
+    setBillCount(null);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -168,7 +186,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
       
       if (res.success) {
         onSuccess();
-        onClose();
+        handleClose();
       } else {
         throw new Error(res.error);
       }
@@ -190,7 +208,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
             </h3>
           </div>
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-slate-200 rounded-full transition-colors"
           >
             <X className="h-5 w-5 text-slate-500" />
@@ -545,7 +563,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           <div className="pt-6 flex flex-col sm:flex-row gap-4">
             <button 
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1 px-6 py-4 border border-slate-200 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all order-2 sm:order-1"
             >
               Batalkan
