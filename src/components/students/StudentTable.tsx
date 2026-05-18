@@ -205,7 +205,9 @@ export default function StudentTable({
                     )}>
                       {student.status_keuangan === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : 
                        student.status_keuangan === "MENUNGGAK" ? <AlertCircle className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                      <span className="text-[10px] font-bold uppercase tracking-wider">{student.status_keuangan}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider">
+                        {student.status_keuangan === "MENUNGGAK" ? "BELUM LUNAS" : student.status_keuangan}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -273,7 +275,9 @@ export default function StudentTable({
                   student.status_keuangan === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
                   student.status_keuangan === "MENUNGGAK" ? "bg-rose-50 text-status-rose" : "bg-slate-100 text-slate-400"
                 )}>
-                  <span className="text-[9px] font-bold uppercase tracking-wider">{student.status_keuangan}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wider">
+                    {student.status_keuangan === "MENUNGGAK" ? "BELUM LUNAS" : student.status_keuangan}
+                  </span>
                 </div>
               </div>
 

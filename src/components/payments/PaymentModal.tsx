@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import OfficialReceipt from "./OfficialReceipt";
+import { getRekeningKampus } from "@/lib/actions/payments";
+import { getAppSetting } from "@/lib/actions/system";
 
 interface PaymentModalProps {
   bill: any;
@@ -42,6 +44,14 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
   const [studentDeposit, setStudentDeposit] = useState(bill.mahasiswa?.deposit || 0);
   const [useDeposit, setUseDeposit] = useState((bill.mahasiswa?.deposit || 0) > 0);
   const [nominalDeposit, setNominalDeposit] = useState<number>(0);
+
+  const [rekenings, setRekenings] = useState<any[]>([]);
+  const [kwPrefix, setKwPrefix] = useState("KW");
+
+  useEffect(() => {
+    getRekeningKampus().then(data => setRekenings(data));
+    getAppSetting("kwitansi_prefix", "KW").then(val => setKwPrefix(val));
+  }, []);
 
   // Update initial nominalDeposit and jumlahBayar
   useEffect(() => {
@@ -116,7 +126,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
       if (rpcError) throw rpcError;
 
       setPaymentResult({
-        no_kwitansi: `KW-${bill.kode}-${Date.now().toString().slice(-4)}`,
+        no_kwitansi: `${kwPrefix}-${bill.kode}-${Date.now().toString().slice(-4)}`,
         tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
         nama: bill.mahasiswa.nama,
         nim: bill.mahasiswa.nim,
@@ -144,12 +154,6 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
       minimumFractionDigits: 0,
     }).format(number);
   };
-
-  const rekenings = [
-    { id: "1", name: "Bank Mandiri - UT Salatiga", account: "123-00-0123456-7" },
-    { id: "2", name: "Bank BRI - UT Salatiga", account: "0123-01-000456-50-1" },
-    { id: "3", name: "Bank BNI - UT Salatiga", account: "0987654321" },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -314,7 +318,12 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
             </button>
             <button 
               type="button"
-              onClick={() => setActiveTab("CASH")}
+              onClick={() => {
+                setActiveTab("CASH");
+                setBankTujuan("");
+                setBankPengirim("");
+                setBuktiFile(null);
+              }}
               className={cn(
                 "flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all",
                 activeTab === "CASH" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
@@ -355,7 +364,9 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                   >
                     <option value="">Pilih Rekening</option>
                     {rekenings.map(rek => (
-                      <option key={rek.id} value={rek.name}>{rek.name}</option>
+                      <option key={rek.id} value={rek.bank_name || rek.name}>
+                        {rek.bank_name || rek.name} ({rek.account_number || rek.account})
+                      </option>
                     ))}
                   </select>
                 </div>

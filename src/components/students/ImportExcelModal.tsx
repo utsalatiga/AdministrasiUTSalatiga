@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { importBatchStudents } from "@/lib/actions/students";
 import { cn } from "@/lib/utils";
+import { PRODI_UT } from "@/lib/constants";
 
 interface ImportExcelModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface ImportExcelModalProps {
 
 export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportExcelModalProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [defaultProdi, setDefaultProdi] = useState<string>("");
   const [isImporting, setIsImporting] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [progress, setProgress] = useState(0);
@@ -82,7 +84,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             return {
               nim: getVal(["NIM"]),
               nama: getVal(["NAMA", "NAMA MAHASISWA"]),
-              prodi: getVal(["PRODI", "PROGRAM STUDI"]),
+              prodi: getVal(["PRODI", "PROGRAM STUDI"]).trim() || defaultProdi,
               angkatan: getVal(["ANGKATAN"]),
               jenis_tagihan: getVal(["JENIS TAGIHAN", "JENIS", "KETERANGAN"]),
               nominal: getNum(["NOMINAL", "JUMLAH", "TOTAL"]),
@@ -167,6 +169,21 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
                   Sistem menggunakan <span className="font-bold">Batch Processing (500 data/batch)</span>. 
                   Sanggup memproses ribuan data mahasiswa, tagihan, dan pembayaran dalam waktu singkat.
                 </p>
+              </div>
+
+              <div className="mb-6 space-y-2">
+                <label className="text-xs font-bold text-slate-700 ml-1">Program Studi Default (Opsional)</label>
+                <select
+                  value={defaultProdi}
+                  onChange={(e) => setDefaultProdi(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-xs appearance-none cursor-pointer font-semibold"
+                >
+                  <option value="">Pilih Prodi Default (Jika di Excel kosong)</option>
+                  {PRODI_UT.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 ml-1">Digunakan jika kolom prodi pada baris Excel kosong atau tidak ditemukan.</p>
               </div>
 
               <div 

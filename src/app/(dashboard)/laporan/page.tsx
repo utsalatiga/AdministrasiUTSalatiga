@@ -224,10 +224,10 @@ export default function LaporanPage() {
                     <td className="px-8 py-6 text-center">
                       <div className={cn(
                         "flex items-center gap-2 w-fit px-3 py-1 rounded-full mx-auto",
-                        item.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
+                        item.status === "LUNAS" || item.status === "VERIFIED" ? "bg-emerald-50 text-status-emerald" : 
                         item.status === "PENDING" ? "bg-amber-50 text-status-amber" : "bg-rose-50 text-status-rose"
                       )}>
-                        {item.status === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                        {item.status === "LUNAS" || item.status === "VERIFIED" ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                         <span className="text-[10px] font-bold uppercase tracking-wider">{item.status}</span>
                       </div>
                     </td>
@@ -276,7 +276,7 @@ export default function LaporanPage() {
                   </div>
                   <div className={cn(
                     "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
-                    item.status === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
+                    item.status === "LUNAS" || item.status === "VERIFIED" ? "bg-emerald-50 text-status-emerald" : 
                     item.status === "PENDING" ? "bg-amber-50 text-status-amber" : "bg-rose-50 text-status-rose"
                   )}>
                     <span className="text-[9px] font-bold uppercase tracking-wider">{item.status}</span>

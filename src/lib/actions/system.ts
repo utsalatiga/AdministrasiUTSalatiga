@@ -64,3 +64,42 @@ export async function resetTransactions() {
     return { error: error.message };
   }
 }
+
+export async function getAppSetting(key: string, defaultValue: string = "") {
+  const supabase = createClient();
+  try {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", key)
+      .single();
+
+    if (error || !data) return defaultValue;
+    return data.value;
+  } catch (err) {
+    return defaultValue;
+  }
+}
+
+export async function updateAppSetting(key: string, value: string) {
+  const supabase = createClient();
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (!isSuperAdmin(profile?.role)) throw new Error("Akses Ditolak: Hanya Super Admin yang dapat mengubah pengaturan sistem.");
+
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key, value, updated_at: new Date().toISOString() });
+
+    if (error) throw error;
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+

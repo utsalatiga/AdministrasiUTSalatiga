@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   Trash2, 
   AlertTriangle, 
@@ -8,7 +8,7 @@ import {
   RotateCcw,
   Zap
 } from "lucide-react";
-import { nuclearReset, resetTransactions } from "@/lib/actions/system";
+import { nuclearReset, resetTransactions, getAppSetting, updateAppSetting } from "@/lib/actions/system";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
@@ -17,6 +17,27 @@ export default function SettingsPage() {
   const [confirmText, setConfirmText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const [prefixKwitansi, setPrefixKwitansi] = useState("");
+  const [isSavingPrefix, setIsSavingPrefix] = useState(false);
+  const [prefixResult, setPrefixResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  useEffect(() => {
+    getAppSetting("kwitansi_prefix", "KW").then(val => setPrefixKwitansi(val));
+  }, []);
+
+  const handleSavePrefix = async () => {
+    setIsSavingPrefix(true);
+    setPrefixResult(null);
+    const res = await updateAppSetting("kwitansi_prefix", prefixKwitansi.trim() || "KW");
+    if (res.success) {
+      setPrefixResult({ type: "success", message: "Prefix kwitansi berhasil disimpan & di-revalidate." });
+      setTimeout(() => setPrefixResult(null), 3000);
+    } else {
+      setPrefixResult({ type: "error", message: res.error || "Gagal menyimpan prefix." });
+    }
+    setIsSavingPrefix(false);
+  };
 
   const handleOpenConfirm = (type: "transactions" | "nuclear") => {
     setConfirmType(type);
@@ -57,6 +78,50 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
+        {/* Kwitansi Config Card */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-8 border-b border-slate-50 flex items-center gap-4 bg-slate-50/50">
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+              <ShieldAlert className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="font-serif text-xl text-slate-800">Pengaturan Kwitansi</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Konfigurasi Penomoran Otomatis</p>
+            </div>
+          </div>
+
+          <div className="p-8 space-y-6">
+            <div className="space-y-4 max-w-md">
+              <label className="text-sm font-semibold text-slate-700 block">Prefix Nomor Kwitansi</label>
+              <div className="flex gap-4">
+                <input
+                  type="text"
+                  value={prefixKwitansi}
+                  onChange={(e) => setPrefixKwitansi(e.target.value)}
+                  placeholder="Contoh: KW"
+                  className="flex-1 px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold uppercase"
+                />
+                <button
+                  onClick={handleSavePrefix}
+                  disabled={isSavingPrefix}
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-indigo-900/10"
+                >
+                  {isSavingPrefix ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">Nomor kwitansi yang dicetak akan menggunakan prefix ini (misal: KW-...). Perubahan langsung aktif di seluruh sistem.</p>
+              {prefixResult && (
+                <div className={cn(
+                  "p-4 rounded-2xl text-xs font-bold animate-in fade-in",
+                  prefixResult.type === "success" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                )}>
+                  {prefixResult.message}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Reset Card */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-8 border-b border-slate-50 flex items-center gap-4 bg-slate-50/50">

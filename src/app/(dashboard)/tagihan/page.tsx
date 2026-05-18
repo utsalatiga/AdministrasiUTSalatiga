@@ -151,7 +151,7 @@ export default function TagihanPage() {
           >
             <option value="">Semua Status</option>
             <option value="LUNAS">Lunas</option>
-            <option value="MENCICIL">Mencicil</option>
+            <option value="MENCICIL">Dicicil</option>
             <option value="BELUM_LUNAS">Belum Lunas</option>
           </select>
         </div>
@@ -226,7 +226,9 @@ export default function TagihanPage() {
                         "bg-rose-50 text-rose-600"
                       )}>
                         {bill.status === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : bill.status === "BELUM_ADA" ? <Info className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{bill.status?.replace('_', ' ')}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                          {bill.status === "MENCICIL" ? "DICICIL" : bill.status === "MENUNGGAK" ? "BELUM LUNAS" : bill.status?.replace('_', ' ')}
+                        </span>
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
@@ -298,7 +300,9 @@ export default function TagihanPage() {
                     bill.status === "BELUM_ADA" ? "bg-slate-50 text-slate-400" :
                     "bg-rose-50 text-rose-600"
                   )}>
-                    <span className="text-[9px] font-bold uppercase tracking-wider">{bill.status?.replace('_', ' ')}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider">
+                      {bill.status === "MENCICIL" ? "DICICIL" : bill.status === "MENUNGGAK" ? "BELUM LUNAS" : bill.status?.replace('_', ' ')}
+                    </span>
                   </div>
                 </div>
 

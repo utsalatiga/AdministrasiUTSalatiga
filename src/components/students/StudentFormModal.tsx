@@ -21,6 +21,7 @@ import { Student } from "@/hooks/useStudents";
 import { createStudent, updateStudent } from "@/lib/actions/students";
 import { getStudentFinancialSummary } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
+import { PRODI_UT, JENIS_TAGIHAN_DEFAULT } from "@/lib/constants";
 
 const studentSchema = z.object({
   nim: z.string().min(1, "NIM wajib diisi"),
@@ -48,6 +49,7 @@ interface StudentFormModalProps {
 export default function StudentFormModal({ isOpen, onClose, onSuccess, student }: StudentFormModalProps) {
   const isEdit = !!student;
   const [billCount, setBillCount] = useState<number | null>(null);
+  const [customJenis, setCustomJenis] = useState<{[key: number]: boolean}>({});
 
   const defaultDueDate = new Date();
   defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
@@ -63,7 +65,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
     resolver: zodResolver(studentSchema),
     defaultValues: {
       billings: [{
-        jenis: "SPP Semester 1",
+        jenis: "Uang Semester",
         nominal: 0,
         jatuh_tempo: defaultDueDateStr,
         status: "BELUM_LUNAS"
@@ -77,6 +79,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
   });
 
   useEffect(() => {
+    setCustomJenis({});
     if (student) {
       reset({
         nim: student.nim,
@@ -100,7 +103,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         angkatan: "",
         no_hp: "",
         billings: [{
-          jenis: "SPP Semester 1",
+          jenis: "Uang Semester",
           nominal: 0,
           jatuh_tempo: defaultDueDateStr,
           status: "BELUM_LUNAS"
@@ -223,11 +226,15 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 ml-1">Program Studi</label>
-                <input
+                <select
                   {...register("prodi")}
-                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                  placeholder="Manajemen"
-                />
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all appearance-none cursor-pointer font-semibold"
+                >
+                  <option value="">Pilih Program Studi</option>
+                  {PRODI_UT.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
                 {errors.prodi && <p className="text-xs text-status-rose ml-1 font-medium">{errors.prodi.message}</p>}
               </div>
               <div className="space-y-2">
@@ -251,7 +258,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
               </h4>
               <button
                 type="button"
-                onClick={() => append({ jenis: isEdit ? "" : "SPP Semester 1", nominal: 0, jatuh_tempo: defaultDueDateStr, status: "BELUM_LUNAS" })}
+                onClick={() => append({ jenis: isEdit ? "" : "Uang Semester", nominal: 0, jatuh_tempo: defaultDueDateStr, status: "BELUM_LUNAS" })}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -278,12 +285,43 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                       <div className="sm:col-span-5 space-y-2">
                         <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Jenis Tagihan</label>
                         <div className="relative">
-                          <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                          <input
-                            {...register(`billings.${index}.jenis` as const)}
-                            className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
-                            placeholder="Contoh: SPP Semester 1"
-                          />
+                          <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
+                          {customJenis[index] ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                {...register(`billings.${index}.jenis` as const)}
+                                autoFocus
+                                className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
+                                placeholder="Ketik jenis tagihan custom..."
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCustomJenis(prev => ({...prev, [index]: false}));
+                                }}
+                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                title="Batal Custom"
+                              >
+                                <X className="h-5 w-5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <select
+                              {...register(`billings.${index}.jenis` as const)}
+                              onChange={(e) => {
+                                register(`billings.${index}.jenis`).onChange(e);
+                                if (e.target.value === "Pembayaran Lain") {
+                                  setCustomJenis(prev => ({...prev, [index]: true}));
+                                }
+                              }}
+                              className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none cursor-pointer font-medium"
+                            >
+                              <option value="">Pilih Jenis Tagihan</option>
+                              {JENIS_TAGIHAN_DEFAULT.map((j) => (
+                                <option key={j} value={j}>{j}</option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                       </div>
 

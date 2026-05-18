@@ -150,3 +150,83 @@ export async function getStudentDetails(studentId: string) {
 
   return { student, bills: bills || [], payments: payments || [] };
 }
+
+export async function getRekeningKampus() {
+  const supabase = createClient();
+  const defaultRekenings = [
+    { id: "1", bank_name: "Bank Mandiri - UT Salatiga", account_number: "123-00-0123456-7", account_name: "UT Salatiga Operasional" },
+    { id: "2", bank_name: "Bank BRI - UT Salatiga", account_number: "0123-01-000456-50-1", account_name: "UT Salatiga Penerimaan" },
+    { id: "3", bank_name: "Bank BNI - UT Salatiga", account_number: "0987654321", account_name: "UT Salatiga BPP" },
+  ];
+
+  try {
+    const { data, error } = await supabase
+      .from("rekening_kampus")
+      .select("*")
+      .eq("is_active", true);
+
+    if (error || !data || data.length === 0) return defaultRekenings;
+    return data;
+  } catch (err) {
+    return defaultRekenings;
+  }
+}
+
+export async function updateBillAmount(billId: string, newJumlah: number) {
+  const supabase = createClient();
+
+  try {
+    // 1. Fetch existing bill
+    const { data: bill, error: fetchError } = await supabase
+      .from("tagihan")
+      .select("jumlah, sisa_tagihan, status, mahasiswa_id")
+      .eq("id", billId)
+      .single();
+
+    if (fetchError || !bill) throw new Error("Tagihan tidak ditemukan");
+
+    const currentJumlah = Number(bill.jumlah);
+    const currentSisa = bill.sisa_tagihan !== null ? Number(bill.sisa_tagihan) : currentJumlah;
+    const totalTerbayar = currentJumlah - currentSisa;
+
+    let sisaBaru = newJumlah - totalTerbayar;
+    let statusBaru = bill.status;
+
+    if (bill.status === "MENCICIL") {
+      sisaBaru = newJumlah - totalTerbayar;
+      if (sisaBaru <= 0) {
+        sisaBaru = 0;
+        statusBaru = "LUNAS";
+      }
+    } else if (bill.status === "BELUM_LUNAS") {
+      sisaBaru = newJumlah;
+      statusBaru = "BELUM_LUNAS";
+    } else {
+      // If LUNAS or other
+      sisaBaru = Math.max(0, newJumlah - totalTerbayar);
+      if (sisaBaru > 0) statusBaru = "MENCICIL";
+      else statusBaru = "LUNAS";
+    }
+
+    const { error: updateError } = await supabase
+      .from("tagihan")
+      .update({
+        jumlah: newJumlah,
+        sisa_tagihan: sisaBaru,
+        status: statusBaru,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", billId);
+
+    if (updateError) throw updateError;
+
+    revalidatePath("/tagihan");
+    revalidatePath("/mahasiswa");
+    revalidatePath("/");
+
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
