@@ -8,7 +8,7 @@ DROP FUNCTION IF EXISTS public.process_manual_payment(UUID, BIGINT, TEXT, TEXT, 
 DROP FUNCTION IF EXISTS public.process_manual_payment(UUID, BIGINT, TEXT, TEXT, TEXT, TEXT, TEXT, BIGINT, TEXT);
 DROP FUNCTION IF EXISTS public.process_manual_payment(TEXT, BIGINT, TEXT, TEXT, TEXT, TEXT, TEXT, BIGINT, TEXT);
 
--- 2. Buat ulang fungsi dengan 9 parameter yang sinkron 100% dengan frontend
+-- 2. Buat ulang fungsi dengan 9 parameter yang sinkron 100% dengan frontend (tanpa kolom updated_at pada tagihan)
 CREATE OR REPLACE FUNCTION public.process_manual_payment(
   p_tagihan_id UUID,
   p_jumlah_bayar BIGINT,
@@ -56,11 +56,10 @@ BEGIN
   IF v_total_pembayaran > v_sisa_tagihan THEN
     v_kelebihan := v_total_pembayaran - v_sisa_tagihan;
     
-    -- Update sisa tagihan menjadi 0 (LUNAS)
+    -- Update sisa tagihan menjadi 0 (LUNAS) tanpa memanggil updated_at
     UPDATE tagihan 
     SET sisa_tagihan = 0, 
-        status = 'LUNAS',
-        updated_at = NOW()
+        status = 'LUNAS'
     WHERE id = p_tagihan_id;
 
     -- Tambahkan kelebihan ke deposit mahasiswa
@@ -68,14 +67,13 @@ BEGIN
     SET deposit = deposit + v_kelebihan 
     WHERE id = v_mahasiswa_id;
   ELSE
-    -- Pembayaran biasa atau cicilan
+    -- Pembayaran biasa atau cicilan tanpa memanggil updated_at
     UPDATE tagihan 
     SET sisa_tagihan = v_sisa_tagihan - v_total_pembayaran,
         status = CASE 
           WHEN v_sisa_tagihan - v_total_pembayaran <= 0 THEN 'LUNAS' 
           ELSE 'MENCICIL' 
-        END,
-        updated_at = NOW()
+        END
     WHERE id = p_tagihan_id;
   END IF;
 
