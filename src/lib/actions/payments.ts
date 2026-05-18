@@ -45,7 +45,9 @@ export async function createCashPayment(formData: {
             jumlah_bayar: formData.jumlah_bayar,
             metode: formData.metode,
             status: "PENDING",
-            bukti_url: formData.bukti_url || "Menunggu Verifikasi"
+            bukti_url: formData.bukti_url || "Menunggu Verifikasi",
+            bank_pengirim: formData.bank_pengirim,
+            bank_tujuan: formData.bank_tujuan
           },
         ]);
 

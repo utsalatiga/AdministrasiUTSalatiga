@@ -15,7 +15,7 @@ import {
   Upload,
   Info
 } from "lucide-react";
-import { searchStudents, getStudentBills, createCashPayment, getStudentFinancialSummary } from "@/lib/actions/payments";
+import { searchStudents, getStudentBills, createCashPayment, getStudentFinancialSummary, getRekeningKampus } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
 import ReceiptTemplate from "@/components/payments/ReceiptTemplate";
 
@@ -43,6 +43,15 @@ export default function NewPaymentPage() {
   const uangMasukUtama = Number(jumlahBayar) || 0;
   const totalKontribusi = uangMasukUtama + depositYangDigunakan;
   const sisaAkhirTagihanReal = Math.max(0, totalTagihan - totalKontribusi);
+
+  const [rekenings, setRekenings] = useState<any[]>([]);
+  const [bankTujuan, setBankTujuan] = useState("");
+  const [bankPengirim, setBankPengirim] = useState("");
+  const [atasNamaPengirim, setAtasNamaPengirim] = useState("");
+
+  useEffect(() => {
+    getRekeningKampus().then(data => setRekenings(data));
+  }, []);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -89,6 +98,12 @@ export default function NewPaymentPage() {
 
   const handlePayment = async () => {
     if (!selectedBill) return;
+
+    if (method === "TRANSFER" && (!bankTujuan || !atasNamaPengirim || !bankPengirim)) {
+      alert("Harap pilih Bank Tujuan, isi Bank Pengirim, dan Atas Nama Pengirim terlebih dahulu.");
+      return;
+    }
+
     setIsSubmitting(true);
     
     // Status is LUNAS if Tunai or if Transfer with AutoVerify checked
@@ -99,7 +114,10 @@ export default function NewPaymentPage() {
       jumlah_bayar: uangMasukUtama,
       metode: method,
       status: status,
-      nominal_deposit: depositYangDigunakan
+      nominal_deposit: depositYangDigunakan,
+      bank_pengirim: method === "TRANSFER" ? (atasNamaPengirim ? `${bankPengirim} (a.n. ${atasNamaPengirim})` : bankPengirim) : "Cash",
+      bank_tujuan: method === "TRANSFER" ? bankTujuan : "Admin",
+      bukti_url: method === "TRANSFER" ? (status === "LUNAS" ? "Transfer Bank (Terverifikasi Langsung)" : "Transfer Bank (Menunggu Verifikasi)") : "Tunai"
     });
 
     if (result.success) {
@@ -236,7 +254,12 @@ export default function NewPaymentPage() {
                   {/* Method Toggle */}
                   <div className="flex p-1 bg-slate-100 rounded-xl w-fit">
                     <button 
-                      onClick={() => setMethod("TUNAI")}
+                      onClick={() => {
+                        setMethod("TUNAI");
+                        setBankTujuan("");
+                        setBankPengirim("");
+                        setAtasNamaPengirim("");
+                      }}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all",
                         method === "TUNAI" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"
@@ -307,7 +330,7 @@ export default function NewPaymentPage() {
                 {selectedBill && (
                   <div className="pt-6 border-t border-slate-100 mt-8 space-y-6">
                     {method === "TRANSFER" && (
-                      <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-3">
+                      <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-4">
                         <div className="flex items-center justify-between">
                           <label className="text-xs font-bold text-status-amber uppercase tracking-wider flex items-center gap-2">
                             <Upload className="h-4 w-4" />
@@ -328,6 +351,53 @@ export default function NewPaymentPage() {
                             ? "Admin telah memvalidasi bukti transfer secara manual. Status akan langsung LUNAS." 
                             : "Pembayaran akan dicatat sebagai PENDING untuk diverifikasi kemudian."}
                         </p>
+
+                        <div className="space-y-4 pt-4 border-t border-amber-100/80">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Bank Pengirim</label>
+                              <input 
+                                type="text"
+                                placeholder="Contoh: BCA, Mandiri, BRI"
+                                className="w-full px-4 py-3 bg-white border border-amber-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 shadow-sm"
+                                value={bankPengirim}
+                                onChange={(e) => setBankPengirim(e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Atas Nama Pengirim / Pemilik Rekening</label>
+                              <input 
+                                type="text"
+                                placeholder="Contoh: Ahmad Pratama"
+                                className="w-full px-4 py-3 bg-white border border-amber-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium text-slate-800 shadow-sm"
+                                value={atasNamaPengirim}
+                                onChange={(e) => setAtasNamaPengirim(e.target.value)}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1">Bank Tujuan Transfer</label>
+                            <select 
+                              className="w-full px-4 py-3 bg-white border border-amber-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer font-medium text-slate-800 shadow-sm"
+                              value={bankTujuan}
+                              onChange={(e) => setBankTujuan(e.target.value)}
+                            >
+                              <option value="">Pilih Rekening Bank Tujuan</option>
+                              {rekenings.map(rek => {
+                                const bankName = rek.bank_name || rek.name;
+                                const accNumber = rek.account_number || rek.account;
+                                const accName = rek.account_name || rek.holder || "UT Salatiga";
+                                const displayStr = `${bankName} - ${accNumber} (a.n. ${accName})`;
+                                return (
+                                  <option key={rek.id} value={displayStr}>
+                                    {displayStr}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -451,8 +521,8 @@ export default function NewPaymentPage() {
                         </div>
                         <button
                           onClick={handlePayment}
-                          disabled={isSubmitting || totalKontribusi <= 0}
-                          className="bg-primary hover:bg-blue-600 text-white px-8 py-4 rounded-xl font-bold transition-all flex items-center gap-2 disabled:opacity-50"
+                          disabled={isSubmitting || totalKontribusi <= 0 || (method === "TRANSFER" && (!bankTujuan || !atasNamaPengirim || !bankPengirim))}
+                          className="bg-primary hover:bg-blue-600 text-white px-8 py-4 rounded-xl font-bold transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isSubmitting ? (
                             <Loader2 className="h-5 w-5 animate-spin" />
