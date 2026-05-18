@@ -3,6 +3,59 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
+export async function generateNoKwitansi(tagihanId: string) {
+  const supabase = createClient();
+  
+  // 1. Ambil data tagihan dan mahasiswa
+  const { data: billData, error: billErr } = await supabase
+    .from("tagihan")
+    .select(`
+      id,
+      semester,
+      mahasiswa:mahasiswa_id (
+        id,
+        nim,
+        nama,
+        semester
+      )
+    `)
+    .eq("id", tagihanId)
+    .single();
+
+  if (billErr) throw new Error("Gagal mengambil data tagihan: " + billErr.message);
+
+  // Periksa apakah mahasiswa berupa array atau objek tunggal
+  const mhs = Array.isArray(billData?.mahasiswa) ? billData?.mahasiswa[0] : billData?.mahasiswa;
+  const nim = mhs?.nim || "000000000";
+
+  // 2. Waktu server saat ini (menjaga dari masalah zona waktu)
+  const now = new Date();
+  const year = now.getFullYear();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const ddmm = `${day}${month}`;
+
+  // 3. Penentuan semester (fallback otomatis jika kosong)
+  let semester = billData?.semester || mhs?.semester;
+  if (!semester) {
+    semester = now.getMonth() < 6 ? `${year}.1` : `${year}.2`;
+  }
+
+  // 4. Nomor urut transaksi hari ini (3 digit)
+  const todayStr = now.toISOString().split('T')[0];
+  const { count, error: countErr } = await supabase
+    .from("pembayaran")
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", `${todayStr}T00:00:00.000Z`)
+    .lte("created_at", `${todayStr}T23:59:59.999Z`);
+
+  const nextUrut = (count || 0) + 1;
+  const noUrut = String(nextUrut).padStart(3, '0');
+
+  // 5. Rakit menjadi satu string terstruktur
+  return `${year}/${ddmm}/${semester}/${nim}/${noUrut}`;
+}
+
 export async function createCashPayment(formData: {
   tagihan_id: string;
   jumlah_bayar: number;
@@ -20,6 +73,9 @@ export async function createCashPayment(formData: {
     const nominalDeposit = formData.nominal_deposit || 0;
     const isFullDeposit = jumlahBayar === 0 && nominalDeposit > 0;
 
+    // Generate nomor kwitansi otomatis dengan format terstruktur
+    const noKwitansi = await generateNoKwitansi(formData.tagihan_id);
+
     if (formData.status === "LUNAS" || isFullDeposit) {
       // Use the robust RPC to ensure atomic balance update and status change
       const { error: rpcError } = await supabase.rpc("process_manual_payment", {
@@ -30,7 +86,8 @@ export async function createCashPayment(formData: {
         p_bank_tujuan: formData.bank_tujuan || "Admin",
         p_bukti_url: formData.bukti_url || (isFullDeposit ? "Pembayaran Penuh via Deposit" : "Pencatatan Manual Admin"),
         p_order_id: `MANUAL-${Date.now()}`,
-        p_nominal_deposit: nominalDeposit
+        p_nominal_deposit: nominalDeposit,
+        p_no_kwitansi: noKwitansi
       });
 
       if (rpcError) throw new Error(rpcError.message);
@@ -47,7 +104,8 @@ export async function createCashPayment(formData: {
             status: "PENDING",
             bukti_url: formData.bukti_url || "Menunggu Verifikasi",
             bank_pengirim: formData.bank_pengirim,
-            bank_tujuan: formData.bank_tujuan
+            bank_tujuan: formData.bank_tujuan,
+            no_kwitansi: noKwitansi
           },
         ]);
 
@@ -60,7 +118,7 @@ export async function createCashPayment(formData: {
     revalidatePath("/dashboard");
     revalidatePath("/verifikasi");
     
-    return { success: true };
+    return { success: true, no_kwitansi: noKwitansi };
   } catch (error: any) {
     return { error: error.message };
   }

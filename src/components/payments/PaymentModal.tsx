@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import OfficialReceipt from "./OfficialReceipt";
-import { getRekeningKampus } from "@/lib/actions/payments";
+import { getRekeningKampus, generateNoKwitansi } from "@/lib/actions/payments";
 import { getAppSetting } from "@/lib/actions/system";
 
 interface PaymentModalProps {
@@ -112,6 +112,9 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         ? `Cicilan - Sisa ${formatRupiah(sisaAkhirTagihan)}` 
         : activeTab === "CASH" ? catatan : "Lunas";
       
+      // Generate nomor kwitansi otomatis dengan format terstruktur
+      const noKwitansi = await generateNoKwitansi(bill.id);
+
       // 2. Call RPC to process payment
       const { error: rpcError } = await supabase.rpc("process_manual_payment", {
         p_tagihan_id: bill.id,
@@ -121,13 +124,14 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         p_bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",
         p_bukti_url: activeTab === "TRANSFER" ? publicUrl : autoCatatan,
         p_order_id: `${activeTab}-${bill.kode}-${Date.now()}`,
-        p_nominal_deposit: depositAmount
+        p_nominal_deposit: depositAmount,
+        p_no_kwitansi: noKwitansi
       });
 
       if (rpcError) throw rpcError;
 
       setPaymentResult({
-        no_kwitansi: `${kwPrefix}-${bill.kode}-${Date.now().toString().slice(-4)}`,
+        no_kwitansi: noKwitansi,
         tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
         nama: bill.mahasiswa.nama,
         nim: bill.mahasiswa.nim,
