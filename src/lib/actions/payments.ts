@@ -47,8 +47,8 @@ export async function generateNoKwitansi(tagihanId: string) {
   const nextUrut = (count || 0) + 1;
   const noUrut = String(nextUrut).padStart(3, '0');
 
-  // 5. Rakit menjadi satu string terstruktur
-  return `${year}/${ddmm}/${semester}/${nim}/${noUrut}`;
+  // 5. Rakit menjadi satu string terstruktur sesuai format resmi institusi
+  return `${nim}/${semester}/UT/${noUrut}`;
 }
 
 export async function createCashPayment(formData: {

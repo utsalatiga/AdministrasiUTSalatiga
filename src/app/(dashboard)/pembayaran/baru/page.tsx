@@ -108,7 +108,7 @@ export default function NewPaymentPage() {
       semester = now.getMonth() < 6 ? `${year}.1` : `${year}.2`;
     }
     const nim = student?.nim || "000000000";
-    return `${year}/${ddmm}/${semester}/${nim}/001`;
+    return `${nim}/${semester}/UT/001`;
   };
 
   const handlePayment = async () => {
