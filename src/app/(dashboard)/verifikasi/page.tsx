@@ -16,10 +16,12 @@ import dynamic from "next/dynamic";
 const VerificationModal = dynamic(() => import("@/components/verification/VerificationModal"), { ssr: false });
 
 import { useQuery } from "@tanstack/react-query";
+import OfficialReceipt from "@/components/payments/OfficialReceipt";
 
 export default function VerificationPage() {
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeReceipt, setActiveReceipt] = useState<any>(null);
 
   const { data: payments = [], isLoading, refetch } = useQuery({
     queryKey: ["pending-payments"],
@@ -204,8 +206,28 @@ export default function VerificationPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         data={selectedPayment}
-        onSuccess={refetch}
+        onSuccess={(verifiedData) => {
+          refetch();
+          if (verifiedData) {
+            setActiveReceipt({
+              no_kwitansi: `KW-${Date.now().toString().slice(-6)}`,
+              tanggal: new Date(verifiedData.created_at || Date.now()).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
+              nama: verifiedData.tagihan?.mahasiswa?.nama,
+              nim: verifiedData.tagihan?.mahasiswa?.nim,
+              untuk_pembayaran: verifiedData.tagihan?.jenis,
+              jumlah: verifiedData.jumlah_bayar,
+              admin: "Admin Keuangan",
+            });
+          }
+        }}
       />
+
+      {activeReceipt && (
+        <OfficialReceipt 
+          data={activeReceipt} 
+          onClose={() => setActiveReceipt(null)} 
+        />
+      )}
     </div>
   );
 }

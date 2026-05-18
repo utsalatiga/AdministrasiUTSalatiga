@@ -19,7 +19,7 @@ interface VerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   data: any;
-  onSuccess: () => void;
+  onSuccess: (data?: any) => void;
 }
 
 export default function VerificationModal({ isOpen, onClose, data, onSuccess }: VerificationModalProps) {
@@ -69,7 +69,7 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
 
     const result = await verifyPayment(data.id, data.tagihan.id, formData);
     if (result.success) {
-      onSuccess();
+      onSuccess(data);
       onClose();
     } else {
       alert(result.error);
