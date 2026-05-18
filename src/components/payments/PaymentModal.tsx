@@ -36,6 +36,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
   
   // Transfer State
   const [bankPengirim, setBankPengirim] = useState("");
+  const [atasNamaPengirim, setAtasNamaPengirim] = useState("");
   const [bankTujuan, setBankTujuan] = useState("");
   const [buktiFile, setBuktiFile] = useState<File | null>(null);
 
@@ -77,8 +78,8 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (activeTab === "TRANSFER" && jumlahTransfer > 0 && (!buktiFile || !bankPengirim || !bankTujuan)) {
-      setError("Harap isi semua kolom dan unggah bukti transfer.");
+    if (activeTab === "TRANSFER" && jumlahTransfer > 0 && (!buktiFile || !bankPengirim || !bankTujuan || !atasNamaPengirim)) {
+      setError("Harap isi semua kolom transfer (Bank Pengirim, Atas Nama Pengirim, Bank Tujuan, dan Bukti Transfer).");
       return;
     }
 
@@ -116,7 +117,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         p_tagihan_id: bill.id,
         p_jumlah_bayar: jumlahTransfer,
         p_metode: activeTab === "TRANSFER" ? "TRANSFER_MANUAL" : "TUNAI",
-        p_bank_pengirim: activeTab === "TRANSFER" ? bankPengirim : "Cash",
+        p_bank_pengirim: activeTab === "TRANSFER" ? (atasNamaPengirim ? `${bankPengirim} (a.n. ${atasNamaPengirim})` : bankPengirim) : "Cash",
         p_bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",
         p_bukti_url: activeTab === "TRANSFER" ? publicUrl : autoCatatan,
         p_order_id: `${activeTab}-${bill.kode}-${Date.now()}`,
@@ -322,6 +323,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                 setActiveTab("CASH");
                 setBankTujuan("");
                 setBankPengirim("");
+                setAtasNamaPengirim("");
                 setBuktiFile(null);
               }}
               className={cn(
@@ -344,32 +346,49 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
           {/* Tab Content */}
           {activeTab === "TRANSFER" ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Bank Pengirim</label>
                   <input 
                     type="text"
-                    placeholder="Contoh: BCA, Mandiri"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
+                    placeholder="Contoh: BCA, Mandiri, BRI"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 font-medium text-slate-800"
                     value={bankPengirim}
                     onChange={(e) => setBankPengirim(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Rekening Tujuan</label>
-                  <select 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
-                    value={bankTujuan}
-                    onChange={(e) => setBankTujuan(e.target.value)}
-                  >
-                    <option value="">Pilih Rekening</option>
-                    {rekenings.map(rek => (
-                      <option key={rek.id} value={rek.bank_name || rek.name}>
-                        {rek.bank_name || rek.name} ({rek.account_number || rek.account})
-                      </option>
-                    ))}
-                  </select>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Atas Nama Pengirim / Pemilik Rekening</label>
+                  <input 
+                    type="text"
+                    placeholder="Contoh: Ahmad Pratama"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 font-medium text-slate-800"
+                    value={atasNamaPengirim}
+                    onChange={(e) => setAtasNamaPengirim(e.target.value)}
+                  />
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1">Bank Tujuan Transfer</label>
+                <select 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/10 appearance-none cursor-pointer font-medium text-slate-800"
+                  value={bankTujuan}
+                  onChange={(e) => setBankTujuan(e.target.value)}
+                >
+                  <option value="">Pilih Rekening Bank Tujuan</option>
+                  {rekenings.map(rek => {
+                    const bankName = rek.bank_name || rek.name;
+                    const accNumber = rek.account_number || rek.account;
+                    const accName = rek.account_name || rek.holder || "UT Salatiga";
+                    const displayStr = `${bankName} - ${accNumber} (a.n. ${accName})`;
+                    return (
+                      <option key={rek.id} value={displayStr}>
+                        {displayStr}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
 
               <div className="space-y-1.5">
