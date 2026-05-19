@@ -1,6 +1,6 @@
 -- ====================================================================
 -- MIGRATION: 20260519_fix_profiles_rls_and_admin_auth.sql
--- DESCRIPTION: Perbaikan RLS, Grants, Trigger, dan Akun Super Admin
+-- DESCRIPTION: Perbaikan RLS, Grants, Registrasi Admin, dan Reload Schema Cache
 -- ====================================================================
 
 -- 1. MEMBERIKAN HAK AKSES DASAR SCHEMA DAN TABEL
@@ -15,96 +15,105 @@ GRANT ALL PRIVILEGES ON TABLE public.profiles TO postgres;
 -- Memberikan hak akses select untuk anon demi keamanan komunikasi API saat inisiasi handshake
 GRANT SELECT ON TABLE public.profiles TO anon;
 
--- 2. KONFIGURASI ROW LEVEL SECURITY (RLS)
--- Aktifkan RLS pada tabel profiles
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+-- 2. MENAKTIFKAN ROW LEVEL SECURITY (RLS) SECARA TOTAL PADA TABEL PROFILES
+-- Sesuai instruksi untuk menonaktifkan RLS agar Next.js dapat membaca skema profil tanpa hambatan
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 
--- Hapus kebijakan RLS lama yang berpotensi bentrok
-DROP POLICY IF EXISTS "Allow authenticated users to read all profiles" ON public.profiles;
-DROP POLICY IF EXISTS "Allow users to read their own profile" ON public.profiles;
-DROP POLICY IF EXISTS "Allow individual select" ON public.profiles;
-DROP POLICY IF EXISTS "Allow admin insert" ON public.profiles;
-DROP POLICY IF EXISTS "Allow admin update" ON public.profiles;
-DROP POLICY IF EXISTS "Allow admin delete" ON public.profiles;
-DROP POLICY IF EXISTS "Allow all for service_role" ON public.profiles;
-DROP POLICY IF EXISTS "Allow select for authenticated" ON public.profiles;
-DROP POLICY IF EXISTS "Allow insert for authenticated" ON public.profiles;
-DROP POLICY IF EXISTS "Allow update for authenticated" ON public.profiles;
-DROP POLICY IF EXISTS "Allow delete for authenticated" ON public.profiles;
-
--- Buat kebijakan RLS baru yang bersih dan terstruktur
--- SELECT: Mengizinkan semua user terautentikasi membaca data profil (untuk cek role & list admin)
-CREATE POLICY "Allow select for authenticated" 
-ON public.profiles 
-FOR SELECT 
-TO authenticated 
-USING (true);
-
--- INSERT: Mengizinkan user terautentikasi membuat profil baru (misal saat Super Admin mendaftarkan admin baru)
-CREATE POLICY "Allow insert for authenticated" 
-ON public.profiles 
-FOR INSERT 
-TO authenticated 
-WITH CHECK (true);
-
--- UPDATE: Mengizinkan user terautentikasi memperbarui profil (misal edit nama, role)
-CREATE POLICY "Allow update for authenticated" 
-ON public.profiles 
-FOR UPDATE 
-TO authenticated 
-USING (true)
-WITH CHECK (true);
-
--- DELETE: Mengizinkan user terautentikasi menghapus profil (misal hapus admin)
-CREATE POLICY "Allow delete for authenticated" 
-ON public.profiles 
-FOR DELETE 
-TO authenticated 
-USING (true);
-
--- 3. PERBAIKAN DAN PENYELARASAN TRIGGER AUTOMATIS
--- Mengubah fungsi trigger handle_new_user agar aman dari konflik insert ganda (ON CONFLICT DO NOTHING / UPDATE)
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger AS $$
+-- 3. PROGRAMMATIC REGISTRATION & UPSERT DUA SUPER ADMIN BARU
+-- Menggunakan PL/pgSQL untuk melakukan pendaftaran secara aman di sisi database
+DO $$
+DECLARE
+  v_user1_id UUID;
+  v_user2_id UUID;
 BEGIN
-  INSERT INTO public.profiles (id, email, nama, role)
-  VALUES (
-    new.id,
-    new.email,
-    COALESCE(new.raw_user_meta_data->>'nama', new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    'admin' -- Default role adalah admin
+  -- Dapatkan atau buat UUID baru untuk arientadwi@gmail.com
+  SELECT id INTO v_user1_id FROM auth.users WHERE email = 'arientadwi@gmail.com';
+  IF v_user1_id IS NULL THEN
+    v_user1_id := gen_random_uuid();
+  END IF;
+
+  -- Dapatkan atau buat UUID baru untuk tdelano007@gmail.com
+  SELECT id INTO v_user2_id FROM auth.users WHERE email = 'tdelano007@gmail.com';
+  IF v_user2_id IS NULL THEN
+    v_user2_id := gen_random_uuid();
+  END IF;
+
+  -- A. UPSERT DI TABEL auth.users (Dengan enkripsi bcrypt/pgcrypto untuk password '123456789')
+  INSERT INTO auth.users (
+    id, instance_id, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, aud, role, created_at, updated_at,
+    confirmation_token, recovery_token, email_change_token_new, email_change_token_current,
+    phone_change, phone_change_token, email_change, is_super_admin
+  ) VALUES (
+    v_user1_id, '00000000-0000-0000-0000-000000000000', 'arientadwi@gmail.com',
+    extensions.crypt('123456789', extensions.gen_salt('bf', 10)), now(),
+    '{"provider": "email", "providers": ["email"]}'::jsonb, '{"nama": "Arienta Dwi"}'::jsonb,
+    'authenticated', 'authenticated', now(), now(),
+    '', '', '', '', '', '', '', false
   )
-  ON CONFLICT (id) DO UPDATE
-  SET 
+  ON CONFLICT (id) DO UPDATE SET
+    encrypted_password = EXCLUDED.encrypted_password,
+    email_confirmed_at = COALESCE(auth.users.email_confirmed_at, now()),
+    updated_at = now();
+
+  INSERT INTO auth.users (
+    id, instance_id, email, encrypted_password, email_confirmed_at,
+    raw_app_meta_data, raw_user_meta_data, aud, role, created_at, updated_at,
+    confirmation_token, recovery_token, email_change_token_new, email_change_token_current,
+    phone_change, phone_change_token, email_change, is_super_admin
+  ) VALUES (
+    v_user2_id, '00000000-0000-0000-0000-000000000000', 'tdelano007@gmail.com',
+    extensions.crypt('123456789', extensions.gen_salt('bf', 10)), now(),
+    '{"provider": "email", "providers": ["email"]}'::jsonb, '{"nama": "T Delano"}'::jsonb,
+    'authenticated', 'authenticated', now(), now(),
+    '', '', '', '', '', '', '', false
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    encrypted_password = EXCLUDED.encrypted_password,
+    email_confirmed_at = COALESCE(auth.users.email_confirmed_at, now()),
+    updated_at = now();
+
+  -- B. UPSERT DI TABEL auth.identities (Penting untuk melacak provider email)
+  INSERT INTO auth.identities (
+    id, user_id, identity_data, provider, provider_id, created_at, updated_at
+  ) VALUES (
+    v_user1_id::text, v_user1_id,
+    jsonb_build_object('sub', v_user1_id::text, 'email', 'arientadwi@gmail.com'),
+    'email', 'arientadwi@gmail.com', now(), now()
+  )
+  ON CONFLICT (provider, provider_id) DO UPDATE SET
+    identity_data = EXCLUDED.identity_data,
+    updated_at = now();
+
+  INSERT INTO auth.identities (
+    id, user_id, identity_data, provider, provider_id, created_at, updated_at
+  ) VALUES (
+    v_user2_id::text, v_user2_id,
+    jsonb_build_object('sub', v_user2_id::text, 'email', 'tdelano007@gmail.com'),
+    'email', 'tdelano007@gmail.com', now(), now()
+  )
+  ON CONFLICT (provider, provider_id) DO UPDATE SET
+    identity_data = EXCLUDED.identity_data,
+    updated_at = now();
+
+  -- C. UPSERT DI TABEL public.profiles (Sebagai role super_admin)
+  INSERT INTO public.profiles (id, email, nama, role)
+  VALUES (v_user1_id, 'arientadwi@gmail.com', 'Arienta Dwi', 'super_admin')
+  ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
-    nama = COALESCE(public.profiles.nama, EXCLUDED.nama);
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+    nama = EXCLUDED.nama,
+    role = 'super_admin';
 
--- Recreate trigger pada auth.users
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+  INSERT INTO public.profiles (id, email, nama, role)
+  VALUES (v_user2_id, 'tdelano007@gmail.com', 'T Delano', 'super_admin')
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    nama = EXCLUDED.nama,
+    role = 'super_admin';
 
--- 4. PEMBERSIHAN DAN SINKRONISASI AKUN ADMIN BARU
--- Bersihkan data kotor di profiles jika ada email yang terasosiasi dengan ID yang tidak valid (bukan dari auth.users)
-DELETE FROM public.profiles 
-WHERE email IN ('arientadwi@gmail.com', 'tdelano007@gmail.com')
-  AND id NOT IN (SELECT id FROM auth.users WHERE email IN ('arientadwi@gmail.com', 'tdelano007@gmail.com'));
+END $$;
 
--- Sinkronisasi/Masukkan user baru dari auth.users ke public.profiles dengan role 'super_admin'
-INSERT INTO public.profiles (id, email, nama, role)
-SELECT 
-  id, 
-  email, 
-  COALESCE(raw_user_meta_data->>'nama', raw_user_meta_data->>'full_name', split_part(email, '@', 1)) as nama, 
-  'super_admin' as role
-FROM auth.users
-WHERE email IN ('arientadwi@gmail.com', 'tdelano007@gmail.com')
-ON CONFLICT (id) DO UPDATE
-SET 
-  email = EXCLUDED.email,
-  nama = COALESCE(public.profiles.nama, EXCLUDED.nama),
-  role = 'super_admin';
+-- 4. FORCE RELOAD CACHE SKEMA POSTGREST
+-- Memaksa reload agar skema baru terbaca langsung oleh API Next.js/PostgREST
+NOTIFY pgrst, 'reload schema';
+SELECT pg_notification_queue_usage();
