@@ -86,6 +86,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
     handleSubmit,
     reset,
     control,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<StudentFormValues>({
     resolver: zodResolver(studentSchema),
@@ -98,6 +99,12 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
       }]
     }
   });
+
+  const handleDepositChange = (val: number) => {
+    setTotalDeposit(val);
+    setTotalBillingUtama(val);
+    setValue("billings.0.nominal", val);
+  };
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -200,8 +207,20 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
     }).format(number);
   };
 
+  const formatWhatsApp = (num: string): string => {
+    let cleaned = num.trim();
+    if (cleaned.startsWith("0")) {
+      cleaned = "+62" + cleaned.slice(1);
+    } else if (cleaned.startsWith("62")) {
+      cleaned = "+" + cleaned;
+    }
+    return cleaned;
+  };
+
   const onSubmit = async (values: StudentFormValues) => {
     try {
+      const formattedNoWa = formatWhatsApp(noWa);
+      setNoWa(formattedNoWa);
       let res;
       if (isEdit && student) {
         res = await updateStudent(student.id, {
@@ -209,12 +228,12 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           nama: values.nama,
           prodi: values.prodi,
           angkatan: values.angkatan,
-          no_hp: noWa || values.no_hp || undefined,
+          no_hp: formattedNoWa || values.no_hp || undefined,
           new_billings: values.billings,
           nik,
           tanggalLahir,
           namaIbu,
-          noWa,
+          noWa: formattedNoWa,
           lokasiUjian,
           totalDeposit,
           nomorBillingUtama,
@@ -228,12 +247,12 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           nama: values.nama,
           prodi: values.prodi,
           angkatan: values.angkatan,
-          no_hp: noWa || values.no_hp || undefined,
+          no_hp: formattedNoWa || values.no_hp || undefined,
           billings: values.billings,
           nik,
           tanggalLahir,
           namaIbu,
-          noWa,
+          noWa: formattedNoWa,
           lokasiUjian,
           totalDeposit,
           nomorBillingUtama,
@@ -434,6 +453,11 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                 <label className="text-sm font-semibold text-slate-700 ml-1">NIM</label>
                 <input
                   {...register("nim")}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                    setValue("nim", val, { shouldValidate: true });
+                  }}
+                  maxLength={9}
                   className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   placeholder="Contoh: 041234567"
                 />
@@ -446,7 +470,11 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                 <input
                   type="text"
                   value={nik}
-                  onChange={(e) => setNik(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 16);
+                    setNik(val);
+                  }}
+                  maxLength={16}
                   className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                   placeholder="Nomor Induk Kependudukan (16 digit)"
                 />
@@ -565,7 +593,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                 <input
                   type="number"
                   value={totalDeposit}
-                  onChange={(e) => setTotalDeposit(Number(e.target.value) || 0)}
+                  onChange={(e) => handleDepositChange(Number(e.target.value) || 0)}
                   className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold"
                   placeholder="0"
                 />
