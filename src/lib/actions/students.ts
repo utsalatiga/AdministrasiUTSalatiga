@@ -18,7 +18,6 @@ export async function createStudent(data: {
     id?: string;
     jenis: string;
     nominal: number;
-    nomor_billing?: string;
     status: "LUNAS" | "BELUM_LUNAS";
   }[];
   nik?: string;
@@ -27,6 +26,10 @@ export async function createStudent(data: {
   noWa?: string;
   lokasiUjian?: string;
   totalDeposit?: number;
+  nomorBillingUtama?: string;
+  totalBillingUtama?: number;
+  nomorBillingTambahan?: string;
+  totalBillingTambahan?: number;
 }) {
   const supabase = createClient();
 
@@ -60,7 +63,8 @@ export async function createStudent(data: {
         const billData = data.billings[i];
         if (billData.nominal <= 0) continue;
 
-        const isUtama = i === 0;
+        const isUtama = i === 0 || billData.jenis === "Uang Semester";
+        const nomorBilling = isUtama ? data.nomorBillingUtama : data.nomorBillingTambahan;
         const sisa = billData.status === "LUNAS" ? 0 : billData.nominal;
 
         const { data: bill, error: billError } = await supabase
@@ -74,7 +78,7 @@ export async function createStudent(data: {
             status: billData.status,
             jatuh_tempo: defaultDueDateStr,
             tipe_billing: isUtama ? "utama" : "tambahan",
-            nomor_billing: billData.nomor_billing || null
+            nomor_billing: nomorBilling || null
           })
           .select()
           .single();
@@ -119,7 +123,6 @@ export async function updateStudent(id: string, data: {
     id?: string;
     jenis: string;
     nominal: number;
-    nomor_billing?: string;
     status: "LUNAS" | "BELUM_LUNAS";
   }[];
   nik?: string;
@@ -128,6 +131,10 @@ export async function updateStudent(id: string, data: {
   noWa?: string;
   lokasiUjian?: string;
   totalDeposit?: number;
+  nomorBillingUtama?: string;
+  totalBillingUtama?: number;
+  nomorBillingTambahan?: string;
+  totalBillingTambahan?: number;
 }) {
   const supabase = createClient();
 
@@ -182,7 +189,8 @@ export async function updateStudent(id: string, data: {
         const billData = data.billings[i];
         if (billData.nominal <= 0) continue;
 
-        const isUtama = i === 0;
+        const isUtama = i === 0 || billData.jenis === "Uang Semester";
+        const nomorBilling = isUtama ? data.nomorBillingUtama : data.nomorBillingTambahan;
         const sisa = billData.status === "LUNAS" ? 0 : billData.nominal;
 
         if (billData.id) {
@@ -194,7 +202,7 @@ export async function updateStudent(id: string, data: {
               jumlah: billData.nominal,
               sisa_tagihan: sisa,
               status: billData.status,
-              nomor_billing: billData.nomor_billing || null,
+              nomor_billing: nomorBilling || null,
               tipe_billing: isUtama ? "utama" : "tambahan"
             })
             .eq("id", billData.id);
@@ -242,7 +250,7 @@ export async function updateStudent(id: string, data: {
               status: billData.status,
               jatuh_tempo: defaultDueDateStr,
               tipe_billing: isUtama ? "utama" : "tambahan",
-              nomor_billing: billData.nomor_billing || null
+              nomor_billing: nomorBilling || null
             })
             .select()
             .single();

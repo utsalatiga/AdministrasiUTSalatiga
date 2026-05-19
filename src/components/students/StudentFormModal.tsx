@@ -38,9 +38,12 @@ const studentSchema = z.object({
     id: z.string().optional(),
     jenis: z.string().min(1, "Jenis wajib diisi"),
     nominal: z.preprocess((val) => Number(val), z.number().min(0)),
-    nomor_billing: z.string().min(1, "Nomor billing wajib diisi"),
     status: z.enum(["LUNAS", "BELUM_LUNAS"]),
   })).optional(),
+  nomorBillingUtama: z.string().optional().or(z.literal("")),
+  totalBillingUtama: z.preprocess((val) => Number(val) || 0, z.number().min(0)).optional(),
+  nomorBillingTambahan: z.string().optional().or(z.literal("")),
+  totalBillingTambahan: z.preprocess((val) => Number(val) || 0, z.number().min(0)).optional(),
 });
 
 type StudentFormValues = z.infer<typeof studentSchema>;
@@ -78,9 +81,12 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
       billings: [{
         jenis: "Uang Semester",
         nominal: 0,
-        nomor_billing: "",
         status: "BELUM_LUNAS"
-      }]
+      }],
+      nomorBillingUtama: "",
+      totalBillingUtama: 0,
+      nomorBillingTambahan: "",
+      totalBillingTambahan: 0,
     }
   });
 
@@ -146,9 +152,16 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
             id: bill.id,
             jenis: bill.jenis,
             nominal: bill.jumlah,
-            nomor_billing: bill.nomor_billing || "",
             status: (bill.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS") as "LUNAS" | "BELUM_LUNAS"
           }));
+
+          const utamaBills = (res.bills as any[]).filter((bill: any) => bill.tipe_billing === "utama");
+          const tambahanBills = (res.bills as any[]).filter((bill: any) => bill.tipe_billing === "tambahan");
+
+          const nomorBillingUtama = utamaBills[0]?.nomor_billing || "";
+          const totalBillingUtama = utamaBills.reduce((acc: number, curr: any) => acc + (curr.jumlah || 0), 0);
+          const nomorBillingTambahan = tambahanBills[0]?.nomor_billing || "";
+          const totalBillingTambahan = tambahanBills.reduce((acc: number, curr: any) => acc + (curr.jumlah || 0), 0);
 
           reset({
             nim: student.nim,
@@ -159,9 +172,12 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
             billings: loadedBillings.length > 0 ? loadedBillings : [{
               jenis: "Uang Semester",
               nominal: 0,
-              nomor_billing: "",
               status: "BELUM_LUNAS"
-            }]
+            }],
+            nomorBillingUtama,
+            totalBillingUtama,
+            nomorBillingTambahan,
+            totalBillingTambahan
           });
         }
       });
@@ -175,9 +191,12 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         billings: [{
           jenis: "Uang Semester",
           nominal: 0,
-          nomor_billing: "",
           status: "BELUM_LUNAS"
-        }]
+        }],
+        nomorBillingUtama: "",
+        totalBillingUtama: 0,
+        nomorBillingTambahan: "",
+        totalBillingTambahan: 0
       });
 
       setNik("");
@@ -253,7 +272,11 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           namaIbu,
           noWa: formattedNoWa,
           lokasiUjian,
-          totalDeposit
+          totalDeposit,
+          nomorBillingUtama: values.nomorBillingUtama,
+          totalBillingUtama: values.totalBillingUtama,
+          nomorBillingTambahan: values.nomorBillingTambahan,
+          totalBillingTambahan: values.totalBillingTambahan
         });
       } else {
         res = await createStudent({
@@ -268,7 +291,11 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           namaIbu,
           noWa: formattedNoWa,
           lokasiUjian,
-          totalDeposit
+          totalDeposit,
+          nomorBillingUtama: values.nomorBillingUtama,
+          totalBillingUtama: values.totalBillingUtama,
+          nomorBillingTambahan: values.nomorBillingTambahan,
+          totalBillingTambahan: values.totalBillingTambahan
         });
       }
       
@@ -488,7 +515,6 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                   onClick={() => append({
                     jenis: "Uang Semester",
                     nominal: 0,
-                    nomor_billing: "",
                     status: "BELUM_LUNAS"
                   })}
                   className="text-xs font-bold text-primary hover:text-primary-dark transition-colors flex items-center gap-1 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl"
@@ -522,7 +548,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Kategori Tagihan */}
                         <div className="space-y-1">
                           <label className="text-xs font-semibold text-slate-500">Kategori</label>
@@ -534,22 +560,6 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                               <option key={item} value={item}>{item}</option>
                             ))}
                           </select>
-                        </div>
-
-                        {/* Nomor Billing */}
-                        <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-500">Nomor Billing</label>
-                          <input
-                            {...register(`billings.${index}.nomor_billing` as const)}
-                            type="text"
-                            placeholder="Contoh: 8234567890"
-                            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs"
-                          />
-                          {errors.billings?.[index]?.nomor_billing && (
-                            <p className="text-[10px] text-status-rose ml-1 font-medium">
-                              {errors.billings[index]?.nomor_billing?.message}
-                            </p>
-                          )}
                         </div>
 
                         {/* Nominal Tagihan */}
@@ -580,6 +590,58 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Menu Billing Bank */}
+            <div className="space-y-4 pt-6 border-t border-slate-100">
+              <label className="text-sm font-semibold text-slate-700 ml-1">Menu Billing Bank</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Kolom A: Billing Utama */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-[2rem] space-y-3">
+                  <span className="text-xs font-bold text-primary">Billing Utama (Semester)</span>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-500">Nomor Billing Utama</label>
+                    <input
+                      {...register("nomorBillingUtama")}
+                      type="text"
+                      placeholder="Contoh: 8234567890"
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-500">Total Billing Utama (Rp)</label>
+                    <input
+                      {...register("totalBillingUtama")}
+                      type="number"
+                      placeholder="0"
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs font-bold"
+                    />
+                  </div>
+                </div>
+
+                {/* Kolom B: Billing Tambahan */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-[2rem] space-y-3">
+                  <span className="text-xs font-bold text-indigo-600">Billing Tambahan (Lain-lain)</span>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-500">Nomor Billing Tambahan</label>
+                    <input
+                      {...register("nomorBillingTambahan")}
+                      type="text"
+                      placeholder="Contoh: 8234567890"
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-500">Total Billing Tambahan (Rp)</label>
+                    <input
+                      {...register("totalBillingTambahan")}
+                      type="number"
+                      placeholder="0"
+                      className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs font-bold"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
