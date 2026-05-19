@@ -3,10 +3,13 @@ import { cookies } from 'next/headers'
 
 export function createClient() {
   const cookieStore = cookies()
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const isValid = url.startsWith('http://') || url.startsWith('https://');
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    isValid ? url : 'https://placeholder.supabase.co',
+    isValid ? key : 'placeholder',
     {
       cookies: {
         get(name: string) {
