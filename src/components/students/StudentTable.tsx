@@ -13,7 +13,8 @@ import {
   TrendingDown,
   ChevronsLeft,
   ChevronsRight,
-  ShieldCheck
+  ShieldCheck,
+  Clock
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -202,12 +203,17 @@ export default function StudentTable({
                     <div className={cn(
                       "flex items-center gap-2 w-fit px-3 py-1 rounded-full mx-auto",
                       student.status_keuangan === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
-                      student.status_keuangan === "MENUNGGAK" ? "bg-rose-50 text-status-rose" : "bg-slate-100 text-slate-400"
+                      student.status_keuangan === "DICICIL" ? "bg-amber-50 text-status-amber" :
+                      student.status_keuangan === "MENUNGGAK" || student.status_keuangan === "BELUM_LUNAS" ? "bg-rose-50 text-status-rose" : 
+                      "bg-slate-100 text-slate-400"
                     )}>
                       {student.status_keuangan === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : 
-                       student.status_keuangan === "MENUNGGAK" ? <AlertCircle className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                       student.status_keuangan === "DICICIL" ? <Clock className="h-3 w-3" /> :
+                       student.status_keuangan === "MENUNGGAK" || student.status_keuangan === "BELUM_LUNAS" ? <AlertCircle className="h-3 w-3" /> : 
+                       <TrendingDown className="h-3 w-3" />}
                       <span className="text-[10px] font-bold uppercase tracking-wider">
-                        {student.status_keuangan === "MENUNGGAK" ? "BELUM LUNAS" : student.status_keuangan}
+                        {student.status_keuangan === "MENUNGGAK" || student.status_keuangan === "BELUM_LUNAS" ? "BELUM LUNAS" : 
+                         student.status_keuangan === "TIDAK ADA TAGIHAN" ? "BELUM ADA TAGIHAN" : student.status_keuangan}
                       </span>
                     </div>
                   </td>
@@ -236,10 +242,28 @@ export default function StudentTable({
                     <td colSpan={6} className="p-0">
                       <div className="animate-in fade-in slide-in-from-top-2 duration-300 p-6 border-b border-slate-100">
                         <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                            Biodata Lengkap
-                          </h4>
+                          <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100/80">
+                            <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest flex items-center gap-2">
+                              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                              Biodata Lengkap
+                            </h4>
+                            <div className={cn(
+                              "flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                              student.status_keuangan === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
+                              student.status_keuangan === "DICICIL" ? "bg-amber-50 text-status-amber" :
+                              student.status_keuangan === "MENUNGGAK" || student.status_keuangan === "BELUM_LUNAS" ? "bg-rose-50 text-status-rose" : 
+                              "bg-slate-100 text-slate-400"
+                            )}>
+                              {student.status_keuangan === "LUNAS" ? <CheckCircle2 className="h-3 w-3" /> : 
+                               student.status_keuangan === "DICICIL" ? <Clock className="h-3 w-3" /> :
+                               student.status_keuangan === "MENUNGGAK" || student.status_keuangan === "BELUM_LUNAS" ? <AlertCircle className="h-3 w-3" /> : 
+                               <TrendingDown className="h-3 w-3" />}
+                              <span>
+                                {student.status_keuangan === "MENUNGGAK" || student.status_keuangan === "BELUM_LUNAS" ? "BELUM LUNAS" : 
+                                 student.status_keuangan === "TIDAK ADA TAGIHAN" ? "BELUM ADA TAGIHAN" : student.status_keuangan}
+                              </span>
+                            </div>
+                          </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Grup A: Kependudukan */}
                             <div className="space-y-4">
@@ -322,10 +346,13 @@ export default function StudentTable({
                 <div className={cn(
                   "flex items-center gap-1.5 px-2.5 py-1 rounded-full",
                   student.status_keuangan === "LUNAS" ? "bg-emerald-50 text-status-emerald" : 
-                  student.status_keuangan === "MENUNGGAK" ? "bg-rose-50 text-status-rose" : "bg-slate-100 text-slate-400"
+                  student.status_keuangan === "DICICIL" ? "bg-amber-50 text-status-amber" :
+                  student.status_keuangan === "MENUNGGAK" || student.status_keuangan === "BELUM_LUNAS" ? "bg-rose-50 text-status-rose" : 
+                  "bg-slate-100 text-slate-400"
                 )}>
                   <span className="text-[9px] font-bold uppercase tracking-wider">
-                    {student.status_keuangan === "MENUNGGAK" ? "BELUM LUNAS" : student.status_keuangan}
+                    {student.status_keuangan === "MENUNGGAK" || student.status_keuangan === "BELUM_LUNAS" ? "BELUM LUNAS" : 
+                     student.status_keuangan === "TIDAK ADA TAGIHAN" ? "BELUM ADA TAGIHAN" : student.status_keuangan}
                   </span>
                 </div>
               </div>

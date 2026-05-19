@@ -158,13 +158,28 @@ export async function getStudentFinancialSummary(studentId: string) {
     return acc + Number(sisa);
   }, 0);
   
-  const isLunas = bills.length > 0 && totalArrears === 0;
-  const hasUnpaid = bills.some(b => b.status === "BELUM_LUNAS" || b.status === "MENCICIL");
+  let status = "TIDAK ADA TAGIHAN";
+  if (bills.length > 0) {
+    if (totalArrears === 0) {
+      status = "LUNAS";
+    } else {
+      const unpaidBills = bills.filter((b: any) => {
+        const sisa = b.sisa_tagihan !== null ? b.sisa_tagihan : (b.status === "LUNAS" ? 0 : b.jumlah);
+        return sisa > 0;
+      });
+      const hasBelumLunas = unpaidBills.some((b: any) => b.status === "BELUM_LUNAS");
+      if (hasBelumLunas || unpaidBills.length === 0) {
+        status = "MENUNGGAK";
+      } else {
+        status = "DICICIL";
+      }
+    }
+  }
 
   return { 
     totalTagihan,
     totalArrears,
-    status: isLunas ? "LUNAS" : (hasUnpaid ? "MENUNGGAK" : "TIDAK ADA TAGIHAN"),
+    status,
     billsCount: bills.length
   };
 }

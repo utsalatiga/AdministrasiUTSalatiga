@@ -17,7 +17,7 @@ export interface Student {
   created_at: string;
   total_tagihan?: number;
   deposit?: number;
-  status_keuangan?: "LUNAS" | "MENUNGGAK" | "TIDAK ADA TAGIHAN";
+  status_keuangan?: "LUNAS" | "MENUNGGAK" | "DICICIL" | "BELUM_LUNAS" | "TIDAK ADA TAGIHAN";
 }
 
 export function useStudents(searchQuery: string = "", page: number = 1, pageSize: number = 10) {
@@ -50,13 +50,30 @@ export function useStudents(searchQuery: string = "", page: number = 1, pageSize
           const sisa = curr.sisa_tagihan !== null ? curr.sisa_tagihan : (curr.status === "LUNAS" ? 0 : curr.jumlah);
           return acc + Number(sisa);
         }, 0);
-        const hasUnpaid = bills.some((b: any) => b.status === "BELUM_LUNAS" || b.status === "MENCICIL");
-        const isLunas = bills.length > 0 && totalSisa === 0;
+        
+        let status_keuangan: "LUNAS" | "MENUNGGAK" | "DICICIL" | "BELUM_LUNAS" | "TIDAK ADA TAGIHAN" = "TIDAK ADA TAGIHAN";
+        if (bills.length > 0) {
+          if (totalSisa === 0) {
+            status_keuangan = "LUNAS";
+          } else {
+            const unpaidBills = bills.filter((b: any) => {
+              const sisa = b.sisa_tagihan !== null ? b.sisa_tagihan : (b.status === "LUNAS" ? 0 : b.jumlah);
+              return sisa > 0;
+            });
+            
+            const hasBelumLunas = unpaidBills.some((b: any) => b.status === "BELUM_LUNAS");
+            if (hasBelumLunas || unpaidBills.length === 0) {
+              status_keuangan = "MENUNGGAK";
+            } else {
+              status_keuangan = "DICICIL";
+            }
+          }
+        }
         
         return {
           ...student,
           total_tagihan: totalSisa,
-          status_keuangan: isLunas ? "LUNAS" : (hasUnpaid ? "MENUNGGAK" : "TIDAK ADA TAGIHAN")
+          status_keuangan
         };
       });
 
