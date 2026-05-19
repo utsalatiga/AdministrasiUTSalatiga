@@ -255,14 +255,6 @@ export default function TagihanPage() {
                         >
                           <History className="h-5 w-5" />
                         </button>
-                        {bill.status !== "LUNAS" && (
-                          <button 
-                            onClick={() => setSelectedBill(bill)}
-                            className="px-4 py-1.5 bg-indigo-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-indigo-700 transition-all"
-                          >
-                            Bayar
-                          </button>
-                        )}
                         {bill.status === "LUNAS" && (
                           <button 
                             onClick={() => handlePrint(bill)}
@@ -337,18 +329,17 @@ export default function TagihanPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  {bill.status !== "LUNAS" && bill.status !== "BELUM_ADA" && (
-                    <button 
-                      onClick={() => setSelectedBill(bill)}
-                      className="flex-1 py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-sm shadow-indigo-100 flex items-center justify-center gap-2"
-                    >
-                      Bayar Sekarang
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => setHistoryBillId(bill.id)}
+                    className="flex-1 py-3 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold border border-slate-100 flex items-center justify-center gap-2"
+                  >
+                    <History className="h-4 w-4" />
+                    Riwayat
+                  </button>
                   {bill.status === "LUNAS" && (
                     <button 
                       onClick={() => handlePrint(bill)}
-                      className="w-full py-3 bg-slate-50 text-primary rounded-xl text-xs font-bold border border-slate-100 flex items-center justify-center gap-2"
+                      className="flex-1 py-3 bg-slate-50 text-primary rounded-xl text-xs font-bold border border-slate-100 flex items-center justify-center gap-2"
                     >
                       <Printer className="h-4 w-4" />
                       Cetak Kwitansi
