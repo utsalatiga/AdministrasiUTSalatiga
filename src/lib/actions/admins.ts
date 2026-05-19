@@ -83,10 +83,10 @@ export async function createNewAdmin(formData: z.infer<typeof adminSchema>) {
 
     if (authError) throw authError;
 
-    // 4. Insert into profiles table
+    // 4. Insert into profiles table (using upsert to avoid conflict with auth triggers)
     const { error: profileError } = await supabase
       .from("profiles")
-      .insert({
+      .upsert({
         id: newUser.user.id,
         email: validated.email,
         nama: validated.nama,
