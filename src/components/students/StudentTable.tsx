@@ -273,14 +273,6 @@ export default function StudentTable({
                             </div>
                           </div>
                           
-                          <div className="mt-6 flex justify-end gap-3 pt-6 border-t border-slate-100">
-                             <button 
-                               onClick={(e) => { e.stopPropagation(); onView(student); }} 
-                               className="px-6 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-slate-900 transition-colors shadow-lg shadow-slate-900/10"
-                             >
-                               Lihat Detail Tagihan
-                             </button>
-                          </div>
                         </div>
                       </div>
                     </td>
