@@ -11,8 +11,10 @@ export async function createStudent(data: {
   angkatan: string;
   no_hp?: string;
   billings?: {
+    id?: string;
     jenis: string;
     nominal: number;
+    nomor_billing?: string;
     jatuh_tempo: string;
     status: "LUNAS" | "BELUM_LUNAS";
   }[];
@@ -22,10 +24,6 @@ export async function createStudent(data: {
   noWa?: string;
   lokasiUjian?: string;
   totalDeposit?: number;
-  nomorBillingUtama?: string;
-  totalBillingUtama?: number;
-  nomorBillingTambahan?: string;
-  totalBillingTambahan?: number;
 }) {
   const supabase = createClient();
 
@@ -50,69 +48,17 @@ export async function createStudent(data: {
 
     if (studentError) throw studentError;
 
-    // 2. Handle Billing Utama & Pembayaran Otomatis
-    if (data.totalDeposit && data.totalDeposit > 0) {
-      const timestamp = Date.now();
-      const { data: bill, error: billError } = await supabase
-        .from("tagihan")
-        .insert({
-          mahasiswa_id: student.id,
-          kode: `INV-${data.nim}-${timestamp}-utama`,
-          jenis: "Uang Semester",
-          jumlah: data.totalDeposit,
-          sisa_tagihan: 0,
-          status: "LUNAS",
-          jatuh_tempo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          tipe_billing: "utama",
-          nomor_billing: data.nomorBillingUtama || null
-        })
-        .select()
-        .single();
+    let remainingDeposit = data.totalDeposit || 0;
+    const timestamp = Date.now();
 
-      if (billError) throw billError;
-
-      const { error: paymentError } = await supabase
-        .from("pembayaran")
-        .insert({
-          tagihan_id: bill.id,
-          jumlah_bayar: data.totalDeposit,
-          metode: "DEPOSIT_AWAL",
-          status: "VERIFIED"
-        });
-
-      if (paymentError) throw paymentError;
-    }
-
-    // 3. Handle Billing Tambahan
-    if (data.nomorBillingTambahan && data.totalBillingTambahan && data.totalBillingTambahan > 0) {
-      const timestamp = Date.now();
-      const { error: additionalBillError } = await supabase
-        .from("tagihan")
-        .insert({
-          mahasiswa_id: student.id,
-          kode: `INV-${data.nim}-${timestamp}-tambahan`,
-          jenis: "Uang Semester (Tambahan)",
-          jumlah: data.totalBillingTambahan,
-          sisa_tagihan: data.totalBillingTambahan,
-          status: "BELUM_LUNAS",
-          jatuh_tempo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          tipe_billing: "tambahan",
-          nomor_billing: data.nomorBillingTambahan
-        });
-
-      if (additionalBillError) throw additionalBillError;
-    }
-
-    // 4. Handle standard billings if passed and not duplication
+    // 2. Handle Billings
     if (data.billings && data.billings.length > 0) {
-      const timestamp = Date.now();
-      
       for (let i = 0; i < data.billings.length; i++) {
         const billData = data.billings[i];
         if (billData.nominal <= 0) continue;
 
-        // Skip the first one if it matches the billing utama to avoid duplication
-        if (data.totalDeposit && data.totalDeposit > 0 && i === 0) continue;
+        const isUtama = i === 0;
+        const sisa = billData.status === "LUNAS" ? 0 : billData.nominal;
 
         const { data: bill, error: billError } = await supabase
           .from("tagihan")
@@ -121,27 +67,32 @@ export async function createStudent(data: {
             kode: `INV-${data.nim}-${timestamp}-${i}`,
             jenis: billData.jenis,
             jumlah: billData.nominal,
-            sisa_tagihan: billData.status === "LUNAS" ? 0 : billData.nominal,
+            sisa_tagihan: sisa,
             status: billData.status,
             jatuh_tempo: billData.jatuh_tempo,
-            tipe_billing: "utama",
-            nomor_billing: data.nomorBillingUtama || null
+            tipe_billing: isUtama ? "utama" : "tambahan",
+            nomor_billing: billData.nomor_billing || null
           })
           .select()
           .single();
 
         if (billError) throw billError;
 
+        // 3. Handle Pembayaran
         if (billData.status === "LUNAS") {
+          const useDeposit = Math.min(remainingDeposit, billData.nominal);
+          const metode = useDeposit > 0 ? "DEPOSIT_AWAL" : "TUNAI";
+          if (useDeposit > 0) remainingDeposit -= useDeposit;
+
           const { error: paymentError } = await supabase
             .from("pembayaran")
             .insert({
               tagihan_id: bill.id,
               jumlah_bayar: billData.nominal,
-              metode: "TUNAI",
+              metode,
               status: "VERIFIED"
             });
-          
+
           if (paymentError) throw paymentError;
         }
       }
@@ -161,9 +112,11 @@ export async function updateStudent(id: string, data: {
   prodi: string;
   angkatan: string;
   no_hp?: string;
-  new_billings?: {
+  billings?: {
+    id?: string;
     jenis: string;
     nominal: number;
+    nomor_billing?: string;
     jatuh_tempo: string;
     status: "LUNAS" | "BELUM_LUNAS";
   }[];
@@ -173,10 +126,6 @@ export async function updateStudent(id: string, data: {
   noWa?: string;
   lokasiUjian?: string;
   totalDeposit?: number;
-  nomorBillingUtama?: string;
-  totalBillingUtama?: number;
-  nomorBillingTambahan?: string;
-  totalBillingTambahan?: number;
 }) {
   const supabase = createClient();
 
@@ -200,44 +149,121 @@ export async function updateStudent(id: string, data: {
 
     if (studentError) throw studentError;
 
-    // 2. Handle New Billings if provided
-    if (data.new_billings && data.new_billings.length > 0) {
-      const timestamp = Date.now();
+    // 2. Sync Billings
+    if (data.billings) {
+      // Get existing billings from database
+      const { data: dbBills, error: fetchError } = await supabase
+        .from("tagihan")
+        .select("id")
+        .eq("mahasiswa_id", id);
       
-      for (let i = 0; i < data.new_billings.length; i++) {
-        const billData = data.new_billings[i];
+      if (fetchError) throw fetchError;
+      
+      const dbBillIds = dbBills?.map((b: any) => b.id) || [];
+      const incomingBillIds = data.billings.map((b: any) => b.id).filter(Boolean) as string[];
+
+      // Delete bills that are not in incoming list
+      const billsToDelete = dbBillIds.filter(bid => !incomingBillIds.includes(bid));
+      if (billsToDelete.length > 0) {
+        // Delete payments associated with these bills first
+        await supabase.from("pembayaran").delete().in("tagihan_id", billsToDelete);
+        // Delete the bills
+        const { error: deleteError } = await supabase.from("tagihan").delete().in("id", billsToDelete);
+        if (deleteError) throw deleteError;
+      }
+
+      let remainingDeposit = data.totalDeposit || 0;
+      const timestamp = Date.now();
+
+      // Process incoming bills
+      for (let i = 0; i < data.billings.length; i++) {
+        const billData = data.billings[i];
         if (billData.nominal <= 0) continue;
 
-        const { data: bill, error: billError } = await supabase
-          .from("tagihan")
-          .insert({
-            mahasiswa_id: id,
-            kode: `INV-${data.nim}-${timestamp}-${i}`,
-            jenis: billData.jenis,
-            jumlah: billData.nominal,
-            sisa_tagihan: billData.status === "LUNAS" ? 0 : billData.nominal,
-            status: billData.status,
-            jatuh_tempo: billData.jatuh_tempo,
-            tipe_billing: "utama",
-            nomor_billing: data.nomorBillingUtama || null
-          })
-          .select()
-          .single();
+        const isUtama = i === 0;
+        const sisa = billData.status === "LUNAS" ? 0 : billData.nominal;
 
-        if (billError) throw billError;
+        if (billData.id) {
+          // Update existing bill
+          const { error: updateError } = await supabase
+            .from("tagihan")
+            .update({
+              jenis: billData.jenis,
+              jumlah: billData.nominal,
+              sisa_tagihan: sisa,
+              status: billData.status,
+              jatuh_tempo: billData.jatuh_tempo,
+              nomor_billing: billData.nomor_billing || null,
+              tipe_billing: isUtama ? "utama" : "tambahan"
+            })
+            .eq("id", billData.id);
 
-        // 3. Handle Auto-Payment if LUNAS
-        if (billData.status === "LUNAS") {
-          const { error: paymentError } = await supabase
-            .from("pembayaran")
+          if (updateError) throw updateError;
+
+          // If LUNAS, check if payment exists
+          if (billData.status === "LUNAS") {
+            const { data: payments } = await supabase
+              .from("pembayaran")
+              .select("id")
+              .eq("tagihan_id", billData.id)
+              .limit(1);
+
+            if (!payments || payments.length === 0) {
+              const useDeposit = Math.min(remainingDeposit, billData.nominal);
+              const metode = useDeposit > 0 ? "DEPOSIT_AWAL" : "TUNAI";
+              if (useDeposit > 0) remainingDeposit -= useDeposit;
+
+              const { error: paymentError } = await supabase
+                .from("pembayaran")
+                .insert({
+                  tagihan_id: billData.id,
+                  jumlah_bayar: billData.nominal,
+                  metode,
+                  status: "VERIFIED"
+                });
+
+              if (paymentError) throw paymentError;
+            }
+          } else {
+            // If status is changed back to BELUM_LUNAS, delete any existing payments
+            await supabase.from("pembayaran").delete().eq("tagihan_id", billData.id);
+          }
+        } else {
+          // Insert new bill
+          const { data: newBill, error: insertError } = await supabase
+            .from("tagihan")
             .insert({
-              tagihan_id: bill.id,
-              jumlah_bayar: billData.nominal,
-              metode: "TUNAI",
-              status: "VERIFIED"
-            });
-          
-          if (paymentError) throw paymentError;
+              mahasiswa_id: id,
+              kode: `INV-${data.nim}-${timestamp}-${i}`,
+              jenis: billData.jenis,
+              jumlah: billData.nominal,
+              sisa_tagihan: sisa,
+              status: billData.status,
+              jatuh_tempo: billData.jatuh_tempo,
+              tipe_billing: isUtama ? "utama" : "tambahan",
+              nomor_billing: billData.nomor_billing || null
+            })
+            .select()
+            .single();
+
+          if (insertError) throw insertError;
+
+          if (billData.status === "LUNAS") {
+            const useDeposit = Math.min(remainingDeposit, billData.nominal);
+            const metode = useDeposit > 0 ? "DEPOSIT_AWAL" : "TUNAI";
+            if (useDeposit > 0) remainingDeposit -= useDeposit;
+
+            const { error: paymentError } = await supabase
+              .from("pembayaran")
+              .insert({
+                tagihan_id: newBill.id,
+                jumlah_bayar: billData.nominal,
+                metode,
+                status: "VERIFIED"
+              });
+
+            if (paymentError) throw paymentError;
+          }
         }
       }
     }
@@ -250,6 +276,8 @@ export async function updateStudent(id: string, data: {
     return { error: error.message };
   }
 }
+
+
 
 export async function importBatchStudents(data: any[]) {
   const supabase = createClient();

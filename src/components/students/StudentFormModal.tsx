@@ -35,8 +35,10 @@ const studentSchema = z.object({
   angkatan: z.string().min(1, "Angkatan wajib diisi"),
   no_hp: z.string().regex(/^[0-9]*$/, "Nomor HP hanya boleh berisi angka").optional().or(z.literal("")),
   billings: z.array(z.object({
+    id: z.string().optional(),
     jenis: z.string().min(1, "Jenis wajib diisi"),
     nominal: z.preprocess((val) => Number(val), z.number().min(0)),
+    nomor_billing: z.string().optional().or(z.literal("")),
     jatuh_tempo: z.string().min(1, "Jatuh tempo wajib diisi"),
     status: z.enum(["LUNAS", "BELUM_LUNAS"]),
   })).optional(),
@@ -53,29 +55,15 @@ interface StudentFormModalProps {
 
 export default function StudentFormModal({ isOpen, onClose, onSuccess, student }: StudentFormModalProps) {
   const isEdit = !!student;
-  const [billCount, setBillCount] = useState<number | null>(null);
-  const [customJenis, setCustomJenis] = useState<{[key: number]: boolean}>({});
-
-  const [existingBills, setExistingBills] = useState<any[]>([]);
-  const [editingBillId, setEditingBillId] = useState<string | null>(null);
-  const [newAmount, setNewAmount] = useState<number>(0);
-  const [isUpdatingBill, setIsUpdatingBill] = useState(false);
-  const [updateError, setUpdateError] = useState<string | null>(null);
   const router = useRouter();
 
-  // New States
+  // Biodata & Financial States
   const [nik, setNik] = useState("");
   const [tanggalLahir, setTanggalLahir] = useState("");
   const [namaIbu, setNamaIbu] = useState("");
   const [noWa, setNoWa] = useState("");
   const [lokasiUjian, setLokasiUjian] = useState("");
-
   const [totalDeposit, setTotalDeposit] = useState<number>(0);
-  const [nomorBillingUtama, setNomorBillingUtama] = useState("");
-  const [totalBillingUtama, setTotalBillingUtama] = useState<number>(0);
-  const [nomorBillingTambahan, setNomorBillingTambahan] = useState("");
-  const [totalBillingTambahan, setTotalBillingTambahan] = useState<number>(0);
-  const [billingTab, setBillingTab] = useState<'utama' | 'tambahan'>('utama');
 
   const defaultDueDate = new Date();
   defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
@@ -87,6 +75,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
     reset,
     control,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<StudentFormValues>({
     resolver: zodResolver(studentSchema),
@@ -94,70 +83,97 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
       billings: [{
         jenis: "Uang Semester",
         nominal: 0,
+        nomor_billing: "",
         jatuh_tempo: defaultDueDateStr,
         status: "BELUM_LUNAS"
       }]
     }
   });
 
-  const handleDepositChange = (val: number) => {
-    setTotalDeposit(val);
-    setTotalBillingUtama(val);
-    setValue("billings.0.nominal", val);
-  };
+  const watchedBillings = watch("billings");
 
   const { fields, append, remove } = useFieldArray({
     control,
     name: "billings"
   });
 
-  const fetchExistingBills = (mountedFlag?: { value: boolean }) => {
-    if (student) {
-      getStudentDetails(student.id).then(res => {
-        if (res && res.bills) {
-          if (!mountedFlag || mountedFlag.value) {
-            setExistingBills(res.bills);
-            setBillCount(res.bills.length);
-          }
-        }
-      });
-    }
+  const handleDepositChange = (val: number) => {
+    setTotalDeposit(val);
+    
+    const currentBillings = watchedBillings || [];
+    if (currentBillings.length === 0) return;
+
+    let remainingDeposit = val;
+    const updatedBillings = currentBillings.map((bill, index) => {
+      let nominal = bill.nominal || 0;
+      if (index === 0 && (nominal === 0 || isNaN(nominal))) {
+        nominal = val;
+      }
+      
+      let status: "LUNAS" | "BELUM_LUNAS" = "BELUM_LUNAS";
+      if (nominal > 0 && remainingDeposit >= nominal) {
+        status = "LUNAS";
+        remainingDeposit -= nominal;
+      }
+
+      return {
+        ...bill,
+        nominal,
+        status
+      };
+    });
+
+    setValue("billings", updatedBillings);
   };
 
   useEffect(() => {
-    let isMounted = { value: true };
-    setCustomJenis({});
-    setEditingBillId(null);
-    setExistingBills([]); // Reset state existingBills menjadi array kosong sebelum fetch data baru
-
     if (isOpen && student) {
-      setBillCount(null);
       reset({
         nim: student.nim,
         nama: student.nama,
         prodi: student.prodi,
         angkatan: student.angkatan,
         no_hp: (student as any).no_hp || "",
-        billings: [] // Initialize empty for edit mode
+        billings: []
       });
       
-      // Initialize new states from student details
+      // Initialize states from student
       setNik((student as any).nik || "");
-      setTanggalLahir((student as any).tanggalLahir || "");
-      setNamaIbu((student as any).namaIbu || "");
-      setNoWa((student as any).noWa || (student as any).no_hp || "");
-      setLokasiUjian((student as any).lokasiUjian || "");
+      setTanggalLahir((student as any).tanggal_lahir || (student as any).tanggalLahir || "");
+      setNamaIbu((student as any).nama_ibu || (student as any).namaIbu || "");
+      setNoWa((student as any).no_hp || (student as any).noWa || "");
+      setLokasiUjian((student as any).lokasi_ujian || (student as any).lokasiUjian || "");
       setTotalDeposit((student as any).deposit || (student as any).totalDeposit || 0);
-      setNomorBillingUtama((student as any).nomorBillingUtama || "");
-      setTotalBillingUtama((student as any).totalBillingUtama || 0);
-      setNomorBillingTambahan((student as any).nomorBillingTambahan || "");
-      setTotalBillingTambahan((student as any).totalBillingTambahan || 0);
-      setBillingTab('utama');
 
-      fetchExistingBills(isMounted);
+      // Fetch existing bills and set to form array
+      getStudentDetails(student.id).then(res => {
+        if (res && res.bills) {
+          const loadedBillings = res.bills.map((bill: any) => ({
+            id: bill.id,
+            jenis: bill.jenis,
+            nominal: bill.jumlah,
+            nomor_billing: bill.nomor_billing || "",
+            jatuh_tempo: bill.jatuh_tempo ? bill.jatuh_tempo.split('T')[0] : defaultDueDateStr,
+            status: (bill.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS") as "LUNAS" | "BELUM_LUNAS"
+          }));
+
+          reset({
+            nim: student.nim,
+            nama: student.nama,
+            prodi: student.prodi,
+            angkatan: student.angkatan,
+            no_hp: (student as any).no_hp || "",
+            billings: loadedBillings.length > 0 ? loadedBillings : [{
+              jenis: "Uang Semester",
+              nominal: 0,
+              nomor_billing: "",
+              jatuh_tempo: defaultDueDateStr,
+              status: "BELUM_LUNAS"
+            }]
+          });
+        }
+      });
     } else {
-      setBillCount(null);
-      setExistingBills([]);
       reset({
         nim: "",
         nama: "",
@@ -167,6 +183,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         billings: [{
           jenis: "Uang Semester",
           nominal: 0,
+          nomor_billing: "",
           jatuh_tempo: defaultDueDateStr,
           status: "BELUM_LUNAS"
         }]
@@ -178,22 +195,10 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
       setNoWa("");
       setLokasiUjian("");
       setTotalDeposit(0);
-      setNomorBillingUtama("");
-      setTotalBillingUtama(0);
-      setNomorBillingTambahan("");
-      setTotalBillingTambahan(0);
-      setBillingTab('utama');
     }
-
-    return () => {
-      isMounted.value = false;
-    };
   }, [student, reset, isOpen, defaultDueDateStr]);
 
   const handleClose = () => {
-    setExistingBills([]);
-    setEditingBillId(null);
-    setBillCount(null);
     onClose();
   };
 
@@ -221,6 +226,28 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
     try {
       const formattedNoWa = formatWhatsApp(noWa);
       setNoWa(formattedNoWa);
+      
+      // Dynamically map statuses based on deposit distribution
+      let remainingDeposit = totalDeposit;
+      const formattedBillings = values.billings?.map((bill, index) => {
+        let nominal = bill.nominal || 0;
+        if (index === 0 && (nominal === 0 || isNaN(nominal))) {
+          nominal = totalDeposit;
+        }
+        
+        let status: "LUNAS" | "BELUM_LUNAS" = "BELUM_LUNAS";
+        if (nominal > 0 && remainingDeposit >= nominal) {
+          status = "LUNAS";
+          remainingDeposit -= nominal;
+        }
+        
+        return {
+          ...bill,
+          nominal,
+          status
+        };
+      }) || [];
+
       let res;
       if (isEdit && student) {
         res = await updateStudent(student.id, {
@@ -229,17 +256,13 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           prodi: values.prodi,
           angkatan: values.angkatan,
           no_hp: formattedNoWa || values.no_hp || undefined,
-          new_billings: values.billings,
+          billings: formattedBillings,
           nik,
           tanggalLahir,
           namaIbu,
           noWa: formattedNoWa,
           lokasiUjian,
-          totalDeposit,
-          nomorBillingUtama,
-          totalBillingUtama,
-          nomorBillingTambahan,
-          totalBillingTambahan
+          totalDeposit
         });
       } else {
         res = await createStudent({
@@ -248,17 +271,13 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           prodi: values.prodi,
           angkatan: values.angkatan,
           no_hp: formattedNoWa || values.no_hp || undefined,
-          billings: values.billings,
+          billings: formattedBillings,
           nik,
           tanggalLahir,
           namaIbu,
           noWa: formattedNoWa,
           lokasiUjian,
-          totalDeposit,
-          nomorBillingUtama,
-          totalBillingUtama,
-          nomorBillingTambahan,
-          totalBillingTambahan
+          totalDeposit
         });
       }
       
@@ -294,151 +313,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-8 overflow-y-auto">
-          {/* Active Bills Summary (Edit mode only) */}
-          {isEdit && billCount !== null && (
-            <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 flex items-center gap-3">
-              <div className="p-2 bg-indigo-100 text-indigo-600 rounded-xl">
-                <Info className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold text-indigo-700">
-                Mahasiswa ini memiliki <span className="text-indigo-900 font-bold">{billCount}</span> tagihan terdaftar.
-              </p>
-            </div>
-          )}
 
-          {/* Existing Bills List (Edit mode only) */}
-          {isEdit && billCount !== null && (
-            <div className="space-y-4 bg-indigo-50/50 border border-indigo-100 rounded-3xl p-6 animate-in fade-in">
-              <div className="flex items-center gap-3 pb-4 border-b border-indigo-100/80">
-                <div className="p-2.5 bg-indigo-100 text-indigo-600 rounded-2xl shadow-sm">
-                  <Receipt className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-serif text-base text-indigo-950 font-bold">Daftar Tagihan Mahasiswa</h4>
-                  <p className="text-xs font-medium text-indigo-700">
-                    Total terdaftar: <span className="text-indigo-900 font-bold">{billCount}</span> tagihan. Berikut adalah tagihan yang belum lunas.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                {existingBills
-                  .filter((bill: any) => bill.status !== "LUNAS" && (bill.sisa_tagihan ?? bill.jumlah) > 0)
-                  .map((bill: any) => {
-                    const totalTerbayar = bill.jumlah - (bill.sisa_tagihan ?? bill.jumlah);
-                    const isEditing = editingBillId === bill.id;
-
-                    return (
-                      <div key={bill.id} className="p-4 bg-white border border-indigo-100/80 rounded-2xl flex flex-col gap-3 shadow-sm hover:shadow transition-all">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "p-2 rounded-xl",
-                              bill.status === "MENCICIL" ? "bg-amber-100 text-status-amber" : "bg-rose-100 text-rose-600"
-                            )}>
-                              <Clock className="h-4 w-4" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-bold text-slate-800">{bill.jenis}</p>
-                              <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{bill.kode}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="flex items-center gap-1.5 justify-end mb-1">
-                              <span className="text-[10px] text-slate-400 font-medium">Terbayar: {formatRupiah(totalTerbayar)}</span>
-                              <span className="text-[10px] text-slate-300">/</span>
-                              <span className="text-[10px] text-slate-400 font-medium">Total: {formatRupiah(bill.jumlah)}</span>
-                            </div>
-                            <p className="font-serif text-lg text-slate-900 font-bold leading-tight">
-                              {formatRupiah(bill.sisa_tagihan ?? bill.jumlah)}
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Sisa Tagihan</p>
-                            <div className={cn(
-                              "inline-flex items-center gap-1 px-2 py-0.5 rounded-md mt-2",
-                              (bill.sisa_tagihan ?? bill.jumlah) < bill.jumlah ? "bg-amber-50 text-status-amber" : "bg-rose-50 text-rose-600"
-                            )}>
-                              <span className="text-[9px] font-bold uppercase tracking-widest">
-                                {(bill.sisa_tagihan ?? bill.jumlah) < bill.jumlah ? "DICICIL" : "BELUM LUNAS"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Edit Button & Form */}
-                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                          {!isEditing ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingBillId(bill.id);
-                                setNewAmount(bill.jumlah);
-                                setUpdateError(null);
-                              }}
-                              className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg shadow-sm"
-                            >
-                              <Edit2 className="h-3.5 w-3.5" />
-                              Edit Nominal
-                            </button>
-                          ) : (
-                            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 w-full justify-end bg-slate-50 p-3 rounded-xl border border-indigo-100 shadow-sm animate-in fade-in">
-                              <div className="w-full sm:w-auto flex-1 space-y-1">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase">Total Tagihan Baru (Rp)</label>
-                                <input
-                                  type="number"
-                                  value={newAmount}
-                                  min={totalTerbayar}
-                                  onChange={(e) => setNewAmount(parseInt(e.target.value) || 0)}
-                                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                                />
-                                {newAmount < totalTerbayar && (
-                                  <p className="text-[10px] text-rose-500 font-medium">Nominal tidak boleh di bawah total yang sudah dibayar ({formatRupiah(totalTerbayar)}).</p>
-                                )}
-                              </div>
-                              <div className="flex gap-2 w-full sm:w-auto justify-end">
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingBillId(null)}
-                                  disabled={isUpdatingBill}
-                                  className="px-3 py-1.5 bg-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-300 transition-all disabled:opacity-50"
-                                >
-                                  Batal
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={isUpdatingBill || newAmount < totalTerbayar}
-                                  onClick={async () => {
-                                    setIsUpdatingBill(true);
-                                    setUpdateError(null);
-                                    const res = await updateBillAmount(bill.id, newAmount);
-                                    if (res.success) {
-                                      setEditingBillId(null);
-                                      fetchExistingBills();
-                                      router.refresh();
-                                    } else {
-                                      setUpdateError(res.error || "Gagal mengubah tagihan.");
-                                    }
-                                    setIsUpdatingBill(false);
-                                  }}
-                                  className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm shadow-indigo-500/20"
-                                >
-                                  {isUpdatingBill ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Simpan"}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        {isEditing && updateError && (
-                          <p className="text-xs text-rose-500 font-medium text-right">{updateError}</p>
-                        )}
-                      </div>
-                    );
-                  })}
-                {existingBills.filter((bill: any) => bill.status !== "LUNAS" && (bill.sisa_tagihan ?? bill.jumlah) > 0).length === 0 && (
-                  <p className="text-xs text-slate-400 italic text-center py-4 bg-white rounded-2xl border border-indigo-100/60">Tidak ada tagihan tertunda / belum lunas untuk mahasiswa ini.</p>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Section 1: Biodata */}
           <div className="space-y-6">
@@ -607,92 +482,118 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                   className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold"
                   placeholder="0"
                   value={
-                    billingTab === 'utama' ? totalBillingUtama : totalBillingTambahan
+                    watchedBillings?.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0) || 0
                   }
                   readOnly
                 />
               </div>
             </div>
 
-            {/* Billing Tab Bar */}
-            <div className="border-b border-slate-200">
-              <nav className="flex space-x-6" aria-label="Tabs">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-slate-700 ml-1">Daftar Tagihan</label>
                 <button
                   type="button"
-                  onClick={() => setBillingTab('utama')}
-                  className={cn(
-                    "pb-4 px-1 border-b-2 font-bold text-sm transition-all flex items-center gap-2",
-                    billingTab === 'utama'
-                      ? "border-primary text-primary"
-                      : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
-                  )}
+                  onClick={() => append({
+                    jenis: "Uang Semester",
+                    nominal: 0,
+                    nomor_billing: "",
+                    jatuh_tempo: defaultDueDateStr,
+                    status: "BELUM_LUNAS"
+                  })}
+                  className="text-xs font-bold text-primary hover:text-primary-dark transition-colors flex items-center gap-1 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl"
                 >
-                  <span>🧾</span> Billing Utama
+                  <Plus className="h-3.5 w-3.5" />
+                  Tambah Tagihan
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setBillingTab('tambahan')}
-                  className={cn(
-                    "pb-4 px-1 border-b-2 font-bold text-sm transition-all flex items-center gap-2",
-                    billingTab === 'tambahan'
-                      ? "border-primary text-primary"
-                      : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
-                  )}
-                >
-                  <span>➕</span> Billing Tambahan
-                </button>
-              </nav>
-            </div>
+              </div>
 
-            {/* Tab Content */}
-            <div className="bg-slate-50/50 border border-slate-100 rounded-[2rem] p-6 space-y-4">
-              {billingTab === 'utama' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 ml-1">Nomor Billing Utama</label>
-                    <input
-                      type="text"
-                      value={nomorBillingUtama}
-                      onChange={(e) => setNomorBillingUtama(e.target.value)}
-                      className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                      placeholder="Contoh: 8234567890"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 ml-1">Total Billing Utama (Rp)</label>
-                    <input
-                      type="number"
-                      value={totalBillingUtama}
-                      onChange={(e) => setTotalBillingUtama(Number(e.target.value) || 0)}
-                      className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 ml-1">Nomor Billing Tambahan</label>
-                    <input
-                      type="text"
-                      value={nomorBillingTambahan}
-                      onChange={(e) => setNomorBillingTambahan(e.target.value)}
-                      className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                      placeholder="Contoh: 8234567891"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 ml-1">Total Billing Tambahan (Rp)</label>
-                    <input
-                      type="number"
-                      value={totalBillingTambahan}
-                      onChange={(e) => setTotalBillingTambahan(Number(e.target.value) || 0)}
-                      className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              )}
+              <div className="space-y-4">
+                {fields.map((field, index) => {
+                  let remainingDeposit = totalDeposit;
+                  for (let i = 0; i < index; i++) {
+                    remainingDeposit -= watchedBillings?.[i]?.nominal || 0;
+                  }
+                  const nominal = watchedBillings?.[index]?.nominal || 0;
+                  const isBillLunas = nominal > 0 && remainingDeposit >= nominal;
+
+                  return (
+                    <div key={field.id} className="p-5 bg-slate-50 border border-slate-100 rounded-[2rem] space-y-4 relative">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400">Tagihan #{index + 1}</span>
+                        {fields.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => remove(index)}
+                            className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Kategori Tagihan */}
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-500">Kategori</label>
+                          <select
+                            {...register(`billings.${index}.jenis` as const)}
+                            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs font-bold"
+                          >
+                            {JENIS_TAGIHAN_DEFAULT.map((item) => (
+                              <option key={item} value={item}>{item}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Nomor Billing */}
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-500">Nomor Billing</label>
+                          <input
+                            {...register(`billings.${index}.nomor_billing` as const)}
+                            type="text"
+                            placeholder="Contoh: 8234567890"
+                            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs"
+                          />
+                        </div>
+
+                        {/* Nominal Tagihan */}
+                        <div className="space-y-1">
+                          <label className="text-xs font-semibold text-slate-500">Nominal (Rp)</label>
+                          <input
+                            {...register(`billings.${index}.nominal` as const)}
+                            type="number"
+                            placeholder="0"
+                            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] pt-1">
+                        <div className="flex items-center gap-1 text-slate-400 font-medium">
+                          <span>Jatuh Tempo:</span>
+                          <input
+                            {...register(`billings.${index}.jatuh_tempo` as const)}
+                            type="date"
+                            className="bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-bold"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-400 font-medium">Status:</span>
+                          <span className={cn(
+                            "px-2 py-0.5 rounded font-bold uppercase tracking-wider text-[9px]",
+                            isBillLunas 
+                              ? "bg-emerald-50 text-emerald-600" 
+                              : "bg-slate-200 text-slate-600"
+                          )}>
+                            {isBillLunas ? "LUNAS (DEPOSIT)" : "BELUM LUNAS"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
