@@ -63,6 +63,20 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
   const [updateError, setUpdateError] = useState<string | null>(null);
   const router = useRouter();
 
+  // New States
+  const [nik, setNik] = useState("");
+  const [tanggalLahir, setTanggalLahir] = useState("");
+  const [namaIbu, setNamaIbu] = useState("");
+  const [noWa, setNoWa] = useState("");
+  const [lokasiUjian, setLokasiUjian] = useState("");
+
+  const [totalDeposit, setTotalDeposit] = useState<number>(0);
+  const [nomorBillingUtama, setNomorBillingUtama] = useState("");
+  const [totalBillingUtama, setTotalBillingUtama] = useState<number>(0);
+  const [nomorBillingTambahan, setNomorBillingTambahan] = useState("");
+  const [totalBillingTambahan, setTotalBillingTambahan] = useState<number>(0);
+  const [billingTab, setBillingTab] = useState<'utama' | 'tambahan'>('utama');
+
   const defaultDueDate = new Date();
   defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
   const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
@@ -120,6 +134,19 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         billings: [] // Initialize empty for edit mode
       });
       
+      // Initialize new states from student details
+      setNik((student as any).nik || "");
+      setTanggalLahir((student as any).tanggalLahir || "");
+      setNamaIbu((student as any).namaIbu || "");
+      setNoWa((student as any).noWa || (student as any).no_hp || "");
+      setLokasiUjian((student as any).lokasiUjian || "");
+      setTotalDeposit((student as any).deposit || (student as any).totalDeposit || 0);
+      setNomorBillingUtama((student as any).nomorBillingUtama || "");
+      setTotalBillingUtama((student as any).totalBillingUtama || 0);
+      setNomorBillingTambahan((student as any).nomorBillingTambahan || "");
+      setTotalBillingTambahan((student as any).totalBillingTambahan || 0);
+      setBillingTab('utama');
+
       fetchExistingBills(isMounted);
     } else {
       setBillCount(null);
@@ -137,6 +164,18 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           status: "BELUM_LUNAS"
         }]
       });
+
+      setNik("");
+      setTanggalLahir("");
+      setNamaIbu("");
+      setNoWa("");
+      setLokasiUjian("");
+      setTotalDeposit(0);
+      setNomorBillingUtama("");
+      setTotalBillingUtama(0);
+      setNomorBillingTambahan("");
+      setTotalBillingTambahan(0);
+      setBillingTab('utama');
     }
 
     return () => {
@@ -170,8 +209,18 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           nama: values.nama,
           prodi: values.prodi,
           angkatan: values.angkatan,
-          no_hp: values.no_hp || undefined,
-          new_billings: values.billings
+          no_hp: noWa || values.no_hp || undefined,
+          new_billings: values.billings,
+          nik,
+          tanggalLahir,
+          namaIbu,
+          noWa,
+          lokasiUjian,
+          totalDeposit,
+          nomorBillingUtama,
+          totalBillingUtama,
+          nomorBillingTambahan,
+          totalBillingTambahan
         });
       } else {
         res = await createStudent({
@@ -179,8 +228,18 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           nama: values.nama,
           prodi: values.prodi,
           angkatan: values.angkatan,
-          no_hp: values.no_hp || undefined,
-          billings: values.billings
+          no_hp: noWa || values.no_hp || undefined,
+          billings: values.billings,
+          nik,
+          tanggalLahir,
+          namaIbu,
+          noWa,
+          lokasiUjian,
+          totalDeposit,
+          nomorBillingUtama,
+          totalBillingUtama,
+          nomorBillingTambahan,
+          totalBillingTambahan
         });
       }
       
@@ -366,10 +425,11 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           <div className="space-y-6">
             <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
               <UserPlus className="h-3.5 w-3.5" />
-              Biodata Mahasiswa
+              Biodata Mahasiswa (Section 1)
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* NIM */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 ml-1">NIM</label>
                 <input
@@ -380,31 +440,78 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                 {errors.nim && <p className="text-xs text-status-rose ml-1 font-medium">{errors.nim.message}</p>}
               </div>
 
+              {/* NIK */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 ml-1">NIK</label>
+                <input
+                  type="text"
+                  value={nik}
+                  onChange={(e) => setNik(e.target.value)}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  placeholder="Nomor Induk Kependudukan (16 digit)"
+                />
+              </div>
+
+              {/* Nama Lengkap */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 ml-1">Nama Lengkap</label>
+                <input
+                  {...register("nama")}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  placeholder="Nama Lengkap Sesuai Ijazah"
+                />
+                {errors.nama && <p className="text-xs text-status-rose ml-1 font-medium">{errors.nama.message}</p>}
+              </div>
+
+              {/* Tanggal Lahir */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 ml-1">Tanggal Lahir</label>
+                <input
+                  type="date"
+                  value={tanggalLahir}
+                  onChange={(e) => setTanggalLahir(e.target.value)}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                />
+              </div>
+
+              {/* Nama Ibu Kandung */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 ml-1">Nama Ibu Kandung</label>
+                <input
+                  type="text"
+                  value={namaIbu}
+                  onChange={(e) => setNamaIbu(e.target.value)}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  placeholder="Nama Ibu Kandung"
+                />
+              </div>
+
+              {/* Nomor WhatsApp */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 ml-1">Nomor WhatsApp</label>
                 <div className="relative">
                   <Phone className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
-                    {...register("no_hp")}
+                    type="text"
+                    value={noWa}
+                    onChange={(e) => setNoWa(e.target.value)}
                     className="w-full pl-12 pr-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                     placeholder="081234567xxx"
                   />
                 </div>
-                {errors.no_hp && <p className="text-xs text-status-rose ml-1 font-medium">{errors.no_hp.message}</p>}
               </div>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700 ml-1">Nama Lengkap</label>
-              <input
-                {...register("nama")}
-                className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                placeholder="Nama Lengkap Sesuai Ijazah"
-              />
-              {errors.nama && <p className="text-xs text-status-rose ml-1 font-medium">{errors.nama.message}</p>}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Section 2: Akademik & Zonasi */}
+          <div className="space-y-6 pt-8 border-t border-slate-100">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Calendar className="h-3.5 w-3.5" />
+              Akademik & Zonasi (Section 2)
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Program Studi */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 ml-1">Program Studi</label>
                 <select
@@ -418,146 +525,147 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                 </select>
                 {errors.prodi && <p className="text-xs text-status-rose ml-1 font-medium">{errors.prodi.message}</p>}
               </div>
+
+              {/* Angkatan */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-700 ml-1">Angkatan</label>
                 <input
                   {...register("angkatan")}
                   className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                  placeholder="2023.1"
+                  placeholder="Contoh: 2023.1"
                 />
                 {errors.angkatan && <p className="text-xs text-status-rose ml-1 font-medium">{errors.angkatan.message}</p>}
+              </div>
+
+              {/* Lokasi Ujian */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 ml-1">Lokasi Ujian</label>
+                <input
+                  type="text"
+                  value={lokasiUjian}
+                  onChange={(e) => setLokasiUjian(e.target.value)}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  placeholder="Contoh: UPBJJ UT Salatiga"
+                />
               </div>
             </div>
           </div>
 
-          {/* Section 2: Keuangan / Tambah Tagihan Baru */}
+          {/* Section 3: Integrasi Keuangan & Billing */}
           <div className="space-y-6 pt-8 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                <Wallet className="h-3.5 w-3.5" />
-                {isEdit ? "Tambah Tagihan Baru" : "Daftar Tagihan Awal"}
-              </h4>
-              <button
-                type="button"
-                onClick={() => append({ jenis: isEdit ? "" : "Uang Semester", nominal: 0, jatuh_tempo: defaultDueDateStr, status: "BELUM_LUNAS" })}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-100 transition-all border border-emerald-100"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Tambah Tagihan
-              </button>
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Wallet className="h-3.5 w-3.5" />
+              Integrasi Keuangan & Billing (Section 3)
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Total Deposit */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 ml-1">Total Deposit (Rp)</label>
+                <input
+                  type="number"
+                  value={totalDeposit}
+                  onChange={(e) => setTotalDeposit(Number(e.target.value) || 0)}
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold"
+                  placeholder="0"
+                />
+              </div>
+
+              {/* Jumlah Tagihan */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-700 ml-1">Jumlah Tagihan (Rp)</label>
+                <input
+                  type="number"
+                  className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold"
+                  placeholder="0"
+                  value={
+                    billingTab === 'utama' ? totalBillingUtama : totalBillingTambahan
+                  }
+                  readOnly
+                />
+              </div>
             </div>
 
-            {fields.length > 0 ? (
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="relative p-5 bg-slate-50/50 border border-slate-100 rounded-[2rem] space-y-4 animate-in slide-in-from-top-2 duration-200">
-                    <div className="flex items-center justify-between sm:hidden">
-                       <span className="text-[10px] font-bold text-slate-400 uppercase">Tagihan #{index + 1}</span>
-                       <button 
-                          type="button" 
-                          onClick={() => remove(index)}
-                          className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                    </div>
+            {/* Billing Tab Bar */}
+            <div className="border-b border-slate-200">
+              <nav className="flex space-x-6" aria-label="Tabs">
+                <button
+                  type="button"
+                  onClick={() => setBillingTab('utama')}
+                  className={cn(
+                    "pb-4 px-1 border-b-2 font-bold text-sm transition-all flex items-center gap-2",
+                    billingTab === 'utama'
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
+                  )}
+                >
+                  <span>🧾</span> Billing Utama
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingTab('tambahan')}
+                  className={cn(
+                    "pb-4 px-1 border-b-2 font-bold text-sm transition-all flex items-center gap-2",
+                    billingTab === 'tambahan'
+                      ? "border-primary text-primary"
+                      : "border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300"
+                  )}
+                >
+                  <span>➕</span> Billing Tambahan
+                </button>
+              </nav>
+            </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
-                      <div className="sm:col-span-5 space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Jenis Tagihan</label>
-                        <div className="relative">
-                          <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 z-10" />
-                          {customJenis[index] ? (
-                            <div className="flex items-center gap-1">
-                              <input
-                                {...register(`billings.${index}.jenis` as const)}
-                                autoFocus
-                                className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
-                                placeholder="Ketik jenis tagihan custom..."
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCustomJenis(prev => ({...prev, [index]: false}));
-                                }}
-                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                                title="Batal Custom"
-                              >
-                                <X className="h-5 w-5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <select
-                              {...register(`billings.${index}.jenis` as const)}
-                              onChange={(e) => {
-                                register(`billings.${index}.jenis`).onChange(e);
-                                if (e.target.value === "Pembayaran Lain") {
-                                  setCustomJenis(prev => ({...prev, [index]: true}));
-                                }
-                              }}
-                              className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none cursor-pointer font-medium"
-                            >
-                              <option value="">Pilih Jenis Tagihan</option>
-                              {JENIS_TAGIHAN_DEFAULT.map((j) => (
-                                <option key={j} value={j}>{j}</option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="sm:col-span-3 space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Nominal (Rp)</label>
-                        <input
-                          type="number"
-                          {...register(`billings.${index}.nominal` as const)}
-                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm font-bold"
-                          placeholder="0"
-                        />
-                      </div>
-
-                      <div className="sm:col-span-3 space-y-2">
-                        <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Status</label>
-                        <select
-                          {...register(`billings.${index}.status` as const)}
-                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none cursor-pointer font-semibold"
-                        >
-                          <option value="BELUM_LUNAS">Belum Lunas</option>
-                          <option value="LUNAS">Lunas</option>
-                        </select>
-                      </div>
-
-                      <div className="hidden sm:flex sm:col-span-1 justify-center mb-1">
-                        <button 
-                          type="button" 
-                          onClick={() => remove(index)}
-                          className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                          title="Hapus Tagihan"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Jatuh Tempo</label>
-                      <div className="relative">
-                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <input
-                          type="date"
-                          {...register(`billings.${index}.jatuh_tempo` as const)}
-                          className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm"
-                        />
-                      </div>
-                    </div>
+            {/* Tab Content */}
+            <div className="bg-slate-50/50 border border-slate-100 rounded-[2rem] p-6 space-y-4">
+              {billingTab === 'utama' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 ml-1">Nomor Billing Utama</label>
+                    <input
+                      type="text"
+                      value={nomorBillingUtama}
+                      onChange={(e) => setNomorBillingUtama(e.target.value)}
+                      className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      placeholder="Contoh: 8234567890"
+                    />
                   </div>
-                ))}
-              </div>
-            ) : isEdit ? (
-              <div className="text-center py-8 border-2 border-dashed border-slate-100 rounded-[2rem]">
-                <p className="text-sm text-slate-400 font-medium italic">Klik "+ Tambah Tagihan" untuk menambahkan tagihan baru untuk mahasiswa ini.</p>
-              </div>
-            ) : null}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 ml-1">Total Billing Utama (Rp)</label>
+                    <input
+                      type="number"
+                      value={totalBillingUtama}
+                      onChange={(e) => setTotalBillingUtama(Number(e.target.value) || 0)}
+                      className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 ml-1">Nomor Billing Tambahan</label>
+                    <input
+                      type="text"
+                      value={nomorBillingTambahan}
+                      onChange={(e) => setNomorBillingTambahan(e.target.value)}
+                      className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                      placeholder="Contoh: 8234567891"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-700 ml-1">Total Billing Tambahan (Rp)</label>
+                    <input
+                      type="number"
+                      value={totalBillingTambahan}
+                      onChange={(e) => setTotalBillingTambahan(Number(e.target.value) || 0)}
+                      className="w-full px-5 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all font-bold"
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="pt-6 flex flex-col sm:flex-row gap-4">

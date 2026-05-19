@@ -15,7 +15,17 @@ export async function createStudent(data: {
     nominal: number;
     jatuh_tempo: string;
     status: "LUNAS" | "BELUM_LUNAS";
-  }[]
+  }[];
+  nik?: string;
+  tanggalLahir?: string;
+  namaIbu?: string;
+  noWa?: string;
+  lokasiUjian?: string;
+  totalDeposit?: number;
+  nomorBillingUtama?: string;
+  totalBillingUtama?: number;
+  nomorBillingTambahan?: string;
+  totalBillingTambahan?: number;
 }) {
   const supabase = createClient();
 
@@ -28,7 +38,8 @@ export async function createStudent(data: {
         nama: data.nama,
         prodi: data.prodi,
         angkatan: data.angkatan,
-        no_hp: data.no_hp
+        no_hp: data.noWa || data.no_hp,
+        deposit: data.totalDeposit || 0
       })
       .select()
       .single();
@@ -94,7 +105,17 @@ export async function updateStudent(id: string, data: {
     nominal: number;
     jatuh_tempo: string;
     status: "LUNAS" | "BELUM_LUNAS";
-  }[]
+  }[];
+  nik?: string;
+  tanggalLahir?: string;
+  namaIbu?: string;
+  noWa?: string;
+  lokasiUjian?: string;
+  totalDeposit?: number;
+  nomorBillingUtama?: string;
+  totalBillingUtama?: number;
+  nomorBillingTambahan?: string;
+  totalBillingTambahan?: number;
 }) {
   const supabase = createClient();
 
@@ -107,7 +128,8 @@ export async function updateStudent(id: string, data: {
         nama: data.nama,
         prodi: data.prodi,
         angkatan: data.angkatan,
-        no_hp: data.no_hp
+        no_hp: data.noWa || data.no_hp,
+        deposit: data.totalDeposit || 0
       })
       .eq("id", id);
 
