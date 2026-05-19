@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { Student } from "@/hooks/useStudents";
 import { 
   Edit2, 
@@ -53,6 +53,7 @@ export default function StudentTable({
   const [jumpPage, setJumpPage] = useState("");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [expandedStudentId, setExpandedStudentId] = useState<string | null>(null);
 
   useEffect(() => {
     getCurrentUserProfile().then(profile => setUserRole(profile?.role || "admin"));
@@ -163,12 +164,12 @@ export default function StudentTable({
               </tr>
             ) : (
               students.map((student) => (
-                <tr 
-                  key={student.id} 
-                  onClick={() => onView(student)}
-                  onMouseEnter={() => prefetchStudent(student.id)}
-                  className="hover:bg-slate-50/80 transition-all group cursor-pointer"
-                >
+                <Fragment key={student.id}>
+                  <tr 
+                    onClick={() => setExpandedStudentId(expandedStudentId === student.id ? null : student.id)}
+                    onMouseEnter={() => prefetchStudent(student.id)}
+                    className={cn("hover:bg-slate-50/80 transition-all group cursor-pointer", expandedStudentId === student.id && "bg-slate-50/80")}
+                  >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
@@ -230,6 +231,62 @@ export default function StudentTable({
                     </div>
                   </td>
                 </tr>
+                {expandedStudentId === student.id && (
+                  <tr className="bg-slate-50/30">
+                    <td colSpan={6} className="p-0">
+                      <div className="animate-in fade-in slide-in-from-top-2 duration-300 p-6 border-b border-slate-100">
+                        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                            Biodata Lengkap
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Grup A: Kependudukan */}
+                            <div className="space-y-4">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">NIK (Nomor Induk Kependudukan)</p>
+                                <p className="text-sm font-semibold text-slate-700">{student.nik || "-"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tanggal Lahir</p>
+                                <p className="text-sm font-semibold text-slate-700">{student.tanggal_lahir || "-"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nama Ibu Kandung</p>
+                                <p className="text-sm font-semibold text-slate-700">{student.nama_ibu || "-"}</p>
+                              </div>
+                            </div>
+                            {/* Grup B: Akademik & Kontak */}
+                            <div className="space-y-4">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">No. WhatsApp</p>
+                                <p className="text-sm font-semibold text-slate-700">{student.no_wa || "-"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Lokasi Ujian</p>
+                                <p className="text-sm font-semibold text-slate-700">{student.lokasi_ujian || "-"}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Angkatan Masuk</p>
+                                <p className="text-sm font-semibold text-slate-700">{student.angkatan || "-"}</p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-6 flex justify-end gap-3 pt-6 border-t border-slate-100">
+                             <button 
+                               onClick={(e) => { e.stopPropagation(); onView(student); }} 
+                               className="px-6 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-slate-900 transition-colors shadow-lg shadow-slate-900/10"
+                             >
+                               Lihat Detail Tagihan
+                             </button>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
               ))
             )}
           </tbody>

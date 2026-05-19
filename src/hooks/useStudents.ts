@@ -9,6 +9,11 @@ export interface Student {
   nama: string;
   prodi: string;
   angkatan: string;
+  nik?: string;
+  tanggal_lahir?: string;
+  nama_ibu?: string;
+  no_wa?: string;
+  lokasi_ujian?: string;
   created_at: string;
   total_tagihan?: number;
   deposit?: number;
@@ -23,7 +28,7 @@ export function useStudents(searchQuery: string = "", page: number = 1, pageSize
     queryFn: async () => {
       let query = supabase
         .from("mahasiswa")
-        .select("id, nim, nama, prodi, angkatan, deposit, created_at, tagihan(jumlah, sisa_tagihan, status)", { count: "exact" });
+        .select("id, nim, nama, prodi, angkatan, deposit, nik, tanggal_lahir, nama_ibu, no_wa, lokasi_ujian, created_at, tagihan(jumlah, sisa_tagihan, status)", { count: "exact" });
 
       if (searchQuery) {
         query = query.or(`nama.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%`);
