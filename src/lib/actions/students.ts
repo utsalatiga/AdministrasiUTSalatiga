@@ -4,6 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { isSuperAdmin } from "@/lib/roles";
 
+const defaultDueDate = new Date();
+defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
+
 export async function createStudent(data: {
   nim: string;
   nama: string;
@@ -15,7 +19,6 @@ export async function createStudent(data: {
     jenis: string;
     nominal: number;
     nomor_billing?: string;
-    jatuh_tempo: string;
     status: "LUNAS" | "BELUM_LUNAS";
   }[];
   nik?: string;
@@ -69,7 +72,7 @@ export async function createStudent(data: {
             jumlah: billData.nominal,
             sisa_tagihan: sisa,
             status: billData.status,
-            jatuh_tempo: billData.jatuh_tempo,
+            jatuh_tempo: defaultDueDateStr,
             tipe_billing: isUtama ? "utama" : "tambahan",
             nomor_billing: billData.nomor_billing || null
           })
@@ -117,7 +120,6 @@ export async function updateStudent(id: string, data: {
     jenis: string;
     nominal: number;
     nomor_billing?: string;
-    jatuh_tempo: string;
     status: "LUNAS" | "BELUM_LUNAS";
   }[];
   nik?: string;
@@ -192,7 +194,6 @@ export async function updateStudent(id: string, data: {
               jumlah: billData.nominal,
               sisa_tagihan: sisa,
               status: billData.status,
-              jatuh_tempo: billData.jatuh_tempo,
               nomor_billing: billData.nomor_billing || null,
               tipe_billing: isUtama ? "utama" : "tambahan"
             })
@@ -239,7 +240,7 @@ export async function updateStudent(id: string, data: {
               jumlah: billData.nominal,
               sisa_tagihan: sisa,
               status: billData.status,
-              jatuh_tempo: billData.jatuh_tempo,
+              jatuh_tempo: defaultDueDateStr,
               tipe_billing: isUtama ? "utama" : "tambahan",
               nomor_billing: billData.nomor_billing || null
             })

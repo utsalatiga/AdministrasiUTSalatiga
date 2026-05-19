@@ -38,8 +38,7 @@ const studentSchema = z.object({
     id: z.string().optional(),
     jenis: z.string().min(1, "Jenis wajib diisi"),
     nominal: z.preprocess((val) => Number(val), z.number().min(0)),
-    nomor_billing: z.string().optional().or(z.literal("")),
-    jatuh_tempo: z.string().min(1, "Jatuh tempo wajib diisi"),
+    nomor_billing: z.string().min(1, "Nomor billing wajib diisi"),
     status: z.enum(["LUNAS", "BELUM_LUNAS"]),
   })).optional(),
 });
@@ -65,10 +64,6 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
   const [lokasiUjian, setLokasiUjian] = useState("");
   const [totalDeposit, setTotalDeposit] = useState<number>(0);
 
-  const defaultDueDate = new Date();
-  defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
-  const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
-
   const {
     register,
     handleSubmit,
@@ -84,7 +79,6 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         jenis: "Uang Semester",
         nominal: 0,
         nomor_billing: "",
-        jatuh_tempo: defaultDueDateStr,
         status: "BELUM_LUNAS"
       }]
     }
@@ -153,7 +147,6 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
             jenis: bill.jenis,
             nominal: bill.jumlah,
             nomor_billing: bill.nomor_billing || "",
-            jatuh_tempo: bill.jatuh_tempo ? bill.jatuh_tempo.split('T')[0] : defaultDueDateStr,
             status: (bill.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS") as "LUNAS" | "BELUM_LUNAS"
           }));
 
@@ -167,7 +160,6 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
               jenis: "Uang Semester",
               nominal: 0,
               nomor_billing: "",
-              jatuh_tempo: defaultDueDateStr,
               status: "BELUM_LUNAS"
             }]
           });
@@ -184,7 +176,6 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
           jenis: "Uang Semester",
           nominal: 0,
           nomor_billing: "",
-          jatuh_tempo: defaultDueDateStr,
           status: "BELUM_LUNAS"
         }]
       });
@@ -196,7 +187,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
       setLokasiUjian("");
       setTotalDeposit(0);
     }
-  }, [student, reset, isOpen, defaultDueDateStr]);
+  }, [student, reset, isOpen]);
 
   const handleClose = () => {
     onClose();
@@ -498,7 +489,6 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                     jenis: "Uang Semester",
                     nominal: 0,
                     nomor_billing: "",
-                    jatuh_tempo: defaultDueDateStr,
                     status: "BELUM_LUNAS"
                   })}
                   className="text-xs font-bold text-primary hover:text-primary-dark transition-colors flex items-center gap-1 bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-xl"
@@ -555,6 +545,11 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                             placeholder="Contoh: 8234567890"
                             className="w-full px-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs"
                           />
+                          {errors.billings?.[index]?.nomor_billing && (
+                            <p className="text-[10px] text-status-rose ml-1 font-medium">
+                              {errors.billings[index]?.nomor_billing?.message}
+                            </p>
+                          )}
                         </div>
 
                         {/* Nominal Tagihan */}
@@ -569,15 +564,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between text-[11px] pt-1">
-                        <div className="flex items-center gap-1 text-slate-400 font-medium">
-                          <span>Jatuh Tempo:</span>
-                          <input
-                            {...register(`billings.${index}.jatuh_tempo` as const)}
-                            type="date"
-                            className="bg-transparent border-none p-0 focus:ring-0 text-slate-600 font-bold"
-                          />
-                        </div>
+                      <div className="flex items-center justify-end text-[11px] pt-1">
                         <div className="flex items-center gap-1.5">
                           <span className="text-slate-400 font-medium">Status:</span>
                           <span className={cn(
