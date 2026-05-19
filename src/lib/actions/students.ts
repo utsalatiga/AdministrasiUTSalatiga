@@ -385,7 +385,15 @@ export async function importBatchStudents(data: any[]) {
     revalidatePath("/tagihan");
     revalidatePath("/");
     
-    return { success: true };
+    return { 
+      success: true,
+      metrics: {
+        studentsCreated: studentData.length,
+        billsMain: billsToInsert.filter(b => b.tipe_billing === "utama").length,
+        billsAdditional: billsToInsert.filter(b => b.tipe_billing === "tambahan").length,
+        paymentsVerified: lunasBills.length
+      }
+    };
   } catch (error: any) {
     console.error("Import Error:", error);
     return { error: error.message };

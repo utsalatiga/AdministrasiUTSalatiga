@@ -31,6 +31,13 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
   const [totalToProcess, setTotalToProcess] = useState(0);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    totalRows: number;
+    studentsCreated: number;
+    billsMain: number;
+    billsAdditional: number;
+    paymentsVerified: number;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -156,6 +163,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
 
     const BATCH_SIZE = 500;
     const total = previewData.length;
+    let aggMetrics = { totalRows: total, studentsCreated: 0, billsMain: 0, billsAdditional: 0, paymentsVerified: 0 };
 
     try {
       for (let i = 0; i < total; i += BATCH_SIZE) {
@@ -164,6 +172,13 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
 
         if (!result.success) {
           throw new Error(result.error || "Gagal memproses batch data.");
+        }
+
+        if (result.metrics) {
+           aggMetrics.studentsCreated += result.metrics.studentsCreated;
+           aggMetrics.billsMain += result.metrics.billsMain;
+           aggMetrics.billsAdditional += result.metrics.billsAdditional;
+           aggMetrics.paymentsVerified += result.metrics.paymentsVerified;
         }
 
         const newProcessedCount = Math.min(i + BATCH_SIZE, total);
@@ -175,15 +190,8 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
         type: "success", 
         message: `Berhasil mengimpor ${total} data mahasiswa & finansial.` 
       });
+      setImportResult(aggMetrics);
       onSuccess();
-      setTimeout(() => {
-        onClose();
-        setFile(null);
-        setStatus(null);
-        setProgress(0);
-        setPreviewData([]);
-        setIsConfirmed(false);
-      }, 3000);
     } catch (err: any) {
       setStatus({ type: "error", message: err.message || "Gagal memproses import data" });
     } finally {
@@ -210,7 +218,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
         </div>
 
         <div className="p-4 sm:p-8">
-          {!status?.type && !isImporting && previewData.length === 0 && (
+          {!status?.type && !isImporting && !importResult && previewData.length === 0 && (
             <>
               <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
@@ -263,7 +271,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             </>
           )}
 
-          {!status?.type && !isImporting && previewData.length > 0 && (
+          {!status?.type && !isImporting && !importResult && previewData.length > 0 && (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-bold text-slate-700 text-sm">Pratinjau Data (10 Baris Pertama)</h4>
@@ -359,7 +367,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             </div>
           )}
 
-          {status && (
+          {status && !importResult && (
             <div className={cn(
               "py-6 sm:py-10 flex flex-col items-center text-center",
               status.type === "success" ? "text-emerald-600" : "text-rose-600"
@@ -376,33 +384,83 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             </div>
           )}
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            <button 
-              onClick={onClose}
-              disabled={isImporting}
-              className="flex-1 h-12 sm:h-auto px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 order-2 sm:order-1"
-            >
-              Tutup
-            </button>
-            {!status?.type && !isImporting && previewData.length === 0 && (
+          {importResult && status?.type === "success" && (
+            <div className="py-4 animate-in zoom-in duration-300">
+              <div className="flex flex-col items-center text-center mb-6">
+                <CheckCircle2 className="h-14 w-14 sm:h-16 sm:w-16 text-emerald-500 mb-4" />
+                <h4 className="font-bold text-xl sm:text-2xl text-slate-800 mb-2">Import Berhasil!</h4>
+                <p className="text-slate-500 text-xs sm:text-sm max-w-sm">
+                  {importResult.totalRows} baris data Excel telah diproses dan masuk ke database.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col items-center text-center">
+                  <span className="text-2xl font-bold text-slate-700 mb-1">{importResult.studentsCreated}</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider">Mahasiswa</span>
+                </div>
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col items-center text-center">
+                  <span className="text-2xl font-bold text-blue-700 mb-1">{importResult.paymentsVerified}</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-blue-400 uppercase tracking-wider">Lunas Otomatis</span>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex flex-col items-center text-center">
+                  <span className="text-2xl font-bold text-emerald-700 mb-1">{importResult.billsMain}</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-emerald-500 uppercase tracking-wider">Tagihan Utama</span>
+                </div>
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex flex-col items-center text-center">
+                  <span className="text-2xl font-bold text-amber-700 mb-1">{importResult.billsAdditional}</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-amber-500 uppercase tracking-wider">Tagihan Tambahan</span>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <button 
+                  onClick={() => {
+                    onClose();
+                    setFile(null);
+                    setStatus(null);
+                    setProgress(0);
+                    setPreviewData([]);
+                    setIsConfirmed(false);
+                    setImportResult(null);
+                  }}
+                  className="w-full sm:w-auto px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors shadow-lg shadow-slate-900/10"
+                >
+                  Tutup Laporan & Selesai
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!importResult && (
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <button 
-                onClick={handleProcessPreview}
-                disabled={!file}
-                className="flex-2 h-12 sm:h-auto px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-900/10 order-1 sm:order-2"
+                onClick={onClose}
+                disabled={isImporting}
+                className="flex-1 h-12 sm:h-auto px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 order-2 sm:order-1"
               >
-                Proses Pratinjau Data
+                Tutup
               </button>
-            )}
-            {!status?.type && !isImporting && previewData.length > 0 && (
-              <button 
-                onClick={handleImport}
-                disabled={!isConfirmed}
-                className="flex-2 h-12 sm:h-auto px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/10 order-1 sm:order-2"
-              >
-                Konfirmasi & Proses Import Data
-              </button>
-            )}
-          </div>
+              {!status?.type && !isImporting && previewData.length === 0 && (
+                <button 
+                  onClick={handleProcessPreview}
+                  disabled={!file}
+                  className="flex-2 h-12 sm:h-auto px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-900/10 order-1 sm:order-2"
+                >
+                  Proses Pratinjau Data
+                </button>
+              )}
+              {!status?.type && !isImporting && previewData.length > 0 && (
+                <button 
+                  onClick={handleImport}
+                  disabled={!isConfirmed}
+                  className="flex-2 h-12 sm:h-auto px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/10 order-1 sm:order-2"
+                >
+                  Konfirmasi & Proses Import Data
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
