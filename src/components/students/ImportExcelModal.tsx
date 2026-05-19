@@ -69,11 +69,15 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             throw new Error("File Excel kosong atau tidak valid");
           }
 
-          // Initial mapping
-          const allMappedData = jsonData.map((row: any) => {
+          // Grouping Logic (Accumulator Map)
+          const groupedDataMap = new Map();
+          const timestampStr = Date.now().toString();
+
+          for (let rowIdx = 0; rowIdx < jsonData.length; rowIdx++) {
+            const row = jsonData[rowIdx] as any;
             const getVal = (keys: string[]) => {
               const key = Object.keys(row).find(k => keys.includes(k.toUpperCase()));
-              return key ? String(row[key]) : "";
+              return key ? String(row[key]).trim() : "";
             };
 
             const getNum = (keys: string[]) => {
@@ -81,18 +85,52 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
               return key ? Number(row[key]) : 0;
             };
 
-            return {
-              nim: getVal(["NIM"]),
-              nama: getVal(["NAMA", "NAMA MAHASISWA"]),
-              prodi: getVal(["PRODI", "PROGRAM STUDI"]).trim() || defaultProdi,
-              angkatan: getVal(["ANGKATAN"]),
-              jenis_tagihan: getVal(["JENIS TAGIHAN", "JENIS", "KETERANGAN"]),
+            const nim = getVal(["NIM"]);
+            const nama = getVal(["NAMA", "NAMA MAHASISWA"]);
+            
+            // Wajib ada NIM dan Nama
+            if (!nim || !nama) continue;
+
+            const prodi = getVal(["PRODI", "PROGRAM STUDI"]) || defaultProdi;
+            const angkatan = getVal(["ANGKATAN"]);
+            const nik = getVal(["NIK", "NO KTP"]);
+            const tanggalLahir = getVal(["TANGGAL LAHIR", "TGL LAHIR"]);
+            const namaIbu = getVal(["NAMA IBU", "IBU KANDUNG"]);
+            const noWa = getVal(["NO WA", "WHATSAPP", "NO HP"]);
+            const lokasiUjian = getVal(["LOKASI UJIAN", "TEMPAT UJIAN"]);
+
+            let statusStr = getVal(["STATUS", "KETERANGAN BAYAR"]).toUpperCase().replace(" ", "_");
+            if (!["LUNAS", "DICICIL", "BELUM_LUNAS"].includes(statusStr)) {
+              statusStr = "BELUM_LUNAS";
+            }
+
+            const tagihan = {
+              jenis: getVal(["JENIS TAGIHAN", "JENIS", "KETERANGAN"]) || "Uang Semester",
               nominal: getNum(["NOMINAL", "JUMLAH", "TOTAL"]),
-              status: getVal(["STATUS", "KETERANGAN BAYAR"]).toUpperCase().replace(" ", "_"),
+              status: statusStr as "LUNAS" | "BELUM_LUNAS" | "DICICIL",
+              nomor_billing: getVal(["NOMOR BILLING", "NO BILLING", "BILLING"]) || `AUTO-IMP-${nim}-${timestampStr}-${rowIdx}`,
               jatuh_tempo: getVal(["JATUH TEMPO", "DUE DATE", "TANGGAL JATUH TEMPO"])
             };
 
-          }).filter(s => s.nim && s.nama);
+            if (groupedDataMap.has(nim)) {
+              groupedDataMap.get(nim).billings.push(tagihan);
+            } else {
+              groupedDataMap.set(nim, {
+                nim,
+                nama,
+                prodi,
+                angkatan,
+                nik: nik || null,
+                tanggal_lahir: tanggalLahir || null,
+                nama_ibu: namaIbu || null,
+                no_hp: noWa || null,
+                lokasi_ujian: lokasiUjian || null,
+                billings: [tagihan]
+              });
+            }
+          }
+
+          const allMappedData = Array.from(groupedDataMap.values());
 
           const total = allMappedData.length;
           setTotalToProcess(total);

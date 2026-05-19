@@ -292,13 +292,17 @@ export async function importBatchStudents(data: any[]) {
   const supabase = createClient();
   
   try {
-    // ... existing implementation of importBatchStudents ...
-    // (I'll keep it as it was in previous turns)
     const studentData = data.map(row => ({
       nim: row.nim,
       nama: row.nama,
       prodi: row.prodi,
-      angkatan: row.angkatan
+      angkatan: row.angkatan,
+      nik: row.nik || null,
+      tanggal_lahir: row.tanggal_lahir || null,
+      nama_ibu: row.nama_ibu || null,
+      no_hp: row.no_hp || null,
+      lokasi_ujian: row.lokasi_ujian || null,
+      deposit: 0
     }));
 
     const { error: studentError } = await supabase
@@ -321,25 +325,35 @@ export async function importBatchStudents(data: any[]) {
     defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
     const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
 
-    const billsToInsert = data.map((row, idx) => {
-      const studentId = studentMap.get(row.nim);
-      return {
-        mahasiswa_id: studentId,
-        jenis: row.jenis_tagihan || "SPP",
-        jumlah: Number(row.nominal) || 0,
-        status: row.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS",
-        kode: `INV-${row.nim}-${timestamp}-${idx}`,
-        jatuh_tempo: row.jatuh_tempo || defaultDueDateStr,
-        sisa_tagihan: row.status === "LUNAS" ? 0 : (Number(row.nominal) || 0),
-        created_at: new Date().toISOString()
-      };
-    }).filter(b => b.mahasiswa_id);
-
-    const { error: billError } = await supabase
-      .from("tagihan")
-      .insert(billsToInsert);
+    const billsToInsert: any[] = [];
+    
+    data.forEach(studentObj => {
+      const studentId = studentMap.get(studentObj.nim);
+      if (!studentId || !studentObj.billings) return;
       
-    if (billError) throw billError;
+      studentObj.billings.forEach((bill: any, idx: number) => {
+        billsToInsert.push({
+          mahasiswa_id: studentId,
+          jenis: bill.jenis || "Uang Semester",
+          jumlah: Number(bill.nominal) || 0,
+          status: bill.status || "BELUM_LUNAS",
+          nomor_billing: bill.nomor_billing || null,
+          jatuh_tempo: bill.jatuh_tempo || defaultDueDateStr,
+          sisa_tagihan: bill.status === "LUNAS" ? 0 : (Number(bill.nominal) || 0),
+          tipe_billing: idx === 0 || bill.jenis === "Uang Semester" ? "utama" : "tambahan",
+          kode: `INV-${studentObj.nim}-${timestamp}-${idx}-${Math.floor(Math.random() * 1000)}`,
+          created_at: new Date().toISOString()
+        });
+      });
+    });
+
+    if (billsToInsert.length > 0) {
+      const { error: billError } = await supabase
+        .from("tagihan")
+        .insert(billsToInsert);
+        
+      if (billError) throw billError;
+    }
 
     const lunasBills = billsToInsert.filter(b => b.status === "LUNAS");
     if (lunasBills.length > 0) {
@@ -354,8 +368,8 @@ export async function importBatchStudents(data: any[]) {
       const paymentsToInsert = lunasBills.map(b => ({
         tagihan_id: billMap.get(b.kode),
         jumlah_bayar: b.jumlah,
-        metode: "TUNAI",
-        status: "LUNAS",
+        metode: "IMPORT_EXCEL",
+        status: "VERIFIED",
         created_at: new Date().toISOString()
       })).filter(p => p.tagihan_id);
 
