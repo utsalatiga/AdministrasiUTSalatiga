@@ -18,7 +18,7 @@ export async function createStudent(data: {
     id?: string;
     jenis: string;
     nominal: number;
-    status: "LUNAS" | "BELUM_LUNAS";
+    status: "LUNAS" | "BELUM_LUNAS" | "DICICIL";
   }[];
   nik?: string;
   tanggalLahir?: string;
@@ -123,7 +123,7 @@ export async function updateStudent(id: string, data: {
     id?: string;
     jenis: string;
     nominal: number;
-    status: "LUNAS" | "BELUM_LUNAS";
+    status: "LUNAS" | "BELUM_LUNAS" | "DICICIL";
   }[];
   nik?: string;
   tanggalLahir?: string;

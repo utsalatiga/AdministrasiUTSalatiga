@@ -38,7 +38,7 @@ const studentSchema = z.object({
     id: z.string().optional(),
     jenis: z.string().min(1, "Jenis wajib diisi"),
     nominal: z.preprocess((val) => Number(val), z.number().min(0)),
-    status: z.enum(["LUNAS", "BELUM_LUNAS"]),
+    status: z.enum(["LUNAS", "BELUM_LUNAS", "DICICIL"]),
   })).optional(),
   nomorBillingUtama: z.string().optional().or(z.literal("")),
   totalBillingUtama: z.preprocess((val) => Number(val) || 0, z.number().min(0)).optional(),
@@ -110,7 +110,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
         nominal = val;
       }
       
-      let status: "LUNAS" | "BELUM_LUNAS" = "BELUM_LUNAS";
+      let status: "LUNAS" | "BELUM_LUNAS" | "DICICIL" = "BELUM_LUNAS";
       if (nominal > 0 && remainingDeposit >= nominal) {
         status = "LUNAS";
         remainingDeposit -= nominal;
@@ -152,7 +152,9 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
             id: bill.id,
             jenis: bill.jenis,
             nominal: bill.jumlah,
-            status: (bill.status === "LUNAS" ? "LUNAS" : "BELUM_LUNAS") as "LUNAS" | "BELUM_LUNAS"
+            status: (bill.status === "LUNAS" 
+              ? "LUNAS" 
+              : (bill.status === "DICICIL" || bill.status === "MENCICIL" ? "DICICIL" : "BELUM_LUNAS")) as "LUNAS" | "BELUM_LUNAS" | "DICICIL"
           }));
 
           const utamaBills = (res.bills as any[]).filter((bill: any) => bill.tipe_billing === "utama");
@@ -347,7 +349,7 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                 <input
                   {...register("nim")}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                    const val = e.target.value.slice(0, 9);
                     setValue("nim", val, { shouldValidate: true });
                   }}
                   maxLength={9}
@@ -574,18 +576,21 @@ export default function StudentFormModal({ isOpen, onClose, onSuccess, student }
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-end text-[11px] pt-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-400 font-medium">Status:</span>
-                          <span className={cn(
-                            "px-2 py-0.5 rounded font-bold uppercase tracking-wider text-[9px]",
-                            isBillLunas 
-                              ? "bg-emerald-50 text-emerald-600" 
-                              : "bg-slate-200 text-slate-600"
-                          )}>
-                            {isBillLunas ? "LUNAS (DEPOSIT)" : "BELUM LUNAS"}
-                          </span>
-                        </div>
+                      <div className="flex items-center justify-end text-[11px] pt-1 gap-2">
+                        <span className="text-slate-400 font-semibold">Status Tagihan:</span>
+                        <select
+                          {...register(`billings.${index}.status` as const)}
+                          className={cn(
+                            "px-3 py-1 bg-white border rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-xs font-bold uppercase tracking-wider transition-all",
+                            watchedBillings?.[index]?.status === "LUNAS" && "text-emerald-600 border-emerald-200 bg-emerald-50/50",
+                            watchedBillings?.[index]?.status === "DICICIL" && "text-amber-600 border-amber-200 bg-amber-50/50",
+                            watchedBillings?.[index]?.status === "BELUM_LUNAS" && "text-slate-600 border-slate-200 bg-slate-50/50"
+                          )}
+                        >
+                          <option value="BELUM_LUNAS">Belum Lunas</option>
+                          <option value="DICICIL">Dicicil</option>
+                          <option value="LUNAS">Lunas</option>
+                        </select>
                       </div>
                     </div>
                   );
