@@ -199,6 +199,20 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
     }
   };
 
+  const handleResetFile = () => {
+    setFile(null);
+    setPreviewData([]);
+    setStatus(null);
+    setProgress(0);
+    setProcessedCount(0);
+    setTotalToProcess(0);
+    setIsConfirmed(false);
+    setImportResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-3xl rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -275,9 +289,17 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-bold text-slate-700 text-sm">Pratinjau Data (10 Baris Pertama)</h4>
-                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
-                  Total: {totalToProcess} Mahasiswa
-                </span>
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handleResetFile}
+                    className="px-3 py-1.5 border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 rounded-lg text-[10px] font-bold transition-colors"
+                  >
+                    Ganti File
+                  </button>
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                    Total: {totalToProcess} Mahasiswa
+                  </span>
+                </div>
               </div>
               <div className="border border-slate-200 rounded-xl overflow-x-auto">
                 <table className="w-full text-left text-xs whitespace-nowrap">
@@ -435,11 +457,11 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
           {!importResult && (
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <button 
-                onClick={onClose}
+                onClick={previewData.length > 0 && !status?.type ? handleResetFile : onClose}
                 disabled={isImporting}
                 className="flex-1 h-12 sm:h-auto px-4 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 order-2 sm:order-1"
               >
-                Tutup
+                {previewData.length > 0 && !status?.type ? "Batal" : "Tutup"}
               </button>
               {!status?.type && !isImporting && previewData.length === 0 && (
                 <button 
