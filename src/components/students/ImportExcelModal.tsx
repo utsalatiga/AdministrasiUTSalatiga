@@ -29,6 +29,8 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
   const [progress, setProgress] = useState(0);
   const [processedCount, setProcessedCount] = useState(0);
   const [totalToProcess, setTotalToProcess] = useState(0);
+  const [previewData, setPreviewData] = useState<any[]>([]);
+  const [isConfirmed, setIsConfirmed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -45,16 +47,10 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
     }
   };
 
-  const handleImport = async () => {
+  const handleProcessPreview = async () => {
     if (!file) return;
 
-    setIsImporting(true);
     setStatus(null);
-    setProgress(0);
-    setProcessedCount(0);
-
-    const BATCH_SIZE = 500;
-
     try {
       const reader = new FileReader();
       reader.onload = async (e) => {
@@ -139,47 +135,65 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             throw new Error("Tidak ada data valid ditemukan. Pastikan kolom NIM dan Nama tersedia.");
           }
 
-          // Process in chunks of BATCH_SIZE
-          for (let i = 0; i < total; i += BATCH_SIZE) {
-            const chunk = allMappedData.slice(i, i + BATCH_SIZE);
-            const result = await importBatchStudents(chunk);
-
-            if (!result.success) {
-              throw new Error(result.error || "Gagal memproses batch data.");
-            }
-
-            const newProcessedCount = Math.min(i + BATCH_SIZE, total);
-            setProcessedCount(newProcessedCount);
-            setProgress(Math.round((newProcessedCount / total) * 100));
-          }
-
-          setStatus({ 
-            type: "success", 
-            message: `Berhasil mengimpor ${total} data mahasiswa & finansial.` 
-          });
-          onSuccess();
-          setTimeout(() => {
-            onClose();
-            setFile(null);
-            setStatus(null);
-            setProgress(0);
-          }, 3000);
+          setPreviewData(allMappedData);
         } catch (err: any) {
           setStatus({ type: "error", message: err.message || "Gagal memproses file Excel" });
-        } finally {
-          setIsImporting(false);
         }
       };
       reader.readAsBinaryString(file);
     } catch (err: any) {
       setStatus({ type: "error", message: "Gagal membaca file" });
+    }
+  };
+
+  const handleImport = async () => {
+    if (!previewData.length) return;
+
+    setIsImporting(true);
+    setStatus(null);
+    setProgress(0);
+    setProcessedCount(0);
+
+    const BATCH_SIZE = 500;
+    const total = previewData.length;
+
+    try {
+      for (let i = 0; i < total; i += BATCH_SIZE) {
+        const chunk = previewData.slice(i, i + BATCH_SIZE);
+        const result = await importBatchStudents(chunk);
+
+        if (!result.success) {
+          throw new Error(result.error || "Gagal memproses batch data.");
+        }
+
+        const newProcessedCount = Math.min(i + BATCH_SIZE, total);
+        setProcessedCount(newProcessedCount);
+        setProgress(Math.round((newProcessedCount / total) * 100));
+      }
+
+      setStatus({ 
+        type: "success", 
+        message: `Berhasil mengimpor ${total} data mahasiswa & finansial.` 
+      });
+      onSuccess();
+      setTimeout(() => {
+        onClose();
+        setFile(null);
+        setStatus(null);
+        setProgress(0);
+        setPreviewData([]);
+        setIsConfirmed(false);
+      }, 3000);
+    } catch (err: any) {
+      setStatus({ type: "error", message: err.message || "Gagal memproses import data" });
+    } finally {
       setIsImporting(false);
     }
   };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-lg rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white w-full max-w-3xl rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
@@ -196,7 +210,7 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
         </div>
 
         <div className="p-4 sm:p-8">
-          {!status?.type && !isImporting && (
+          {!status?.type && !isImporting && previewData.length === 0 && (
             <>
               <div className="mb-6 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
@@ -249,6 +263,77 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             </>
           )}
 
+          {!status?.type && !isImporting && previewData.length > 0 && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-bold text-slate-700 text-sm">Pratinjau Data (10 Baris Pertama)</h4>
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                  Total: {totalToProcess} Mahasiswa
+                </span>
+              </div>
+              <div className="border border-slate-200 rounded-xl overflow-x-auto">
+                <table className="w-full text-left text-xs whitespace-nowrap">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">NIM & Nama</th>
+                      <th className="px-4 py-3 font-semibold">Prodi</th>
+                      <th className="px-4 py-3 font-semibold">Biodata</th>
+                      <th className="px-4 py-3 font-semibold">No. Billing</th>
+                      <th className="px-4 py-3 font-semibold">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {previewData.slice(0, 10).map((mhs, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/50">
+                        <td className="px-4 py-3">
+                          <div className="font-bold text-slate-700">{mhs.nim}</div>
+                          <div className="text-slate-500">{mhs.nama}</div>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{mhs.prodi}</td>
+                        <td className="px-4 py-3">
+                          {(!mhs.nik || !mhs.nama_ibu) ? (
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-medium border border-slate-200">Kosong</span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-medium border border-blue-100">Lengkap</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {mhs.billings[0]?.nomor_billing?.startsWith("AUTO-IMP") ? (
+                            <span className="px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-medium border border-amber-200">Otomatis</span>
+                          ) : (
+                            <span className="text-slate-600 font-mono text-[10px]">{mhs.billings[0]?.nomor_billing}</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                           {(() => {
+                             const st = mhs.billings[0]?.status;
+                             if (st === "LUNAS") return <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] font-bold border border-emerald-200">LUNAS</span>;
+                             if (st === "DICICIL") return <span className="px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-bold border border-amber-200">DICICIL</span>;
+                             return <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold border border-slate-200">BELUM LUNAS</span>;
+                           })()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <label className="flex items-start gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                <div className="pt-0.5">
+                  <input 
+                    type="checkbox" 
+                    checked={isConfirmed}
+                    onChange={(e) => setIsConfirmed(e.target.checked)}
+                    className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="text-xs text-slate-600 leading-relaxed">
+                  <span className="font-bold text-slate-700 block mb-0.5">Saya telah memeriksa pratinjau data</span>
+                  Data yang diunggah sudah benar. Lanjutkan proses import batch sebanyak {totalToProcess} mahasiswa ke database.
+                </div>
+              </label>
+            </div>
+          )}
+
           {isImporting && (
             <div className="py-6 sm:py-10 flex flex-col items-center">
               <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 text-emerald-500 animate-spin mb-4" />
@@ -299,13 +384,22 @@ export default function ImportExcelModal({ isOpen, onClose, onSuccess }: ImportE
             >
               Tutup
             </button>
-            {!status?.type && !isImporting && (
+            {!status?.type && !isImporting && previewData.length === 0 && (
+              <button 
+                onClick={handleProcessPreview}
+                disabled={!file}
+                className="flex-2 h-12 sm:h-auto px-8 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-900/10 order-1 sm:order-2"
+              >
+                Proses Pratinjau Data
+              </button>
+            )}
+            {!status?.type && !isImporting && previewData.length > 0 && (
               <button 
                 onClick={handleImport}
-                disabled={!file}
+                disabled={!isConfirmed}
                 className="flex-2 h-12 sm:h-auto px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/10 order-1 sm:order-2"
               >
-                Mulai Proses Bulk
+                Konfirmasi & Proses Import Data
               </button>
             )}
           </div>
