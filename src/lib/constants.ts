@@ -12,7 +12,7 @@ export const PRODI_UT = [
   "S1 Sains Data",
   "S1 Sistem Informasi",
 
-  // FAKULTAS EKONOMI (FE)
+  // FAKULTAS EKONOMI DAN BISNIS (FEB)
   "S1 Ekonomi Pembangunan",
   "S1 Ekonomi Syariah",
   "S1 Manajemen",
@@ -22,6 +22,7 @@ export const PRODI_UT = [
   "S1 Pariwisata",
   "S1 Kewirausahaan",
   "S1 Bisnis Digital",
+  "Bisnis Digital (S1)",
 
   // FAKULTAS HUKUM, ILMU SOSIAL DAN ILMU POLITIK (FHISIP)
   "D-III Perpajakan",
