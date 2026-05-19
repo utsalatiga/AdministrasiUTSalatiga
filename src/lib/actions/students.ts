@@ -39,20 +39,80 @@ export async function createStudent(data: {
         prodi: data.prodi,
         angkatan: data.angkatan,
         no_hp: data.noWa || data.no_hp,
-        deposit: data.totalDeposit || 0
+        deposit: data.totalDeposit || 0,
+        nik: data.nik || null,
+        tanggal_lahir: data.tanggalLahir || null,
+        nama_ibu: data.namaIbu || null,
+        lokasi_ujian: data.lokasiUjian || null
       })
       .select()
       .single();
 
     if (studentError) throw studentError;
 
-    // 2. Handle Initial Billings if provided
+    // 2. Handle Billing Utama & Pembayaran Otomatis
+    if (data.totalDeposit && data.totalDeposit > 0) {
+      const timestamp = Date.now();
+      const { data: bill, error: billError } = await supabase
+        .from("tagihan")
+        .insert({
+          mahasiswa_id: student.id,
+          kode: `INV-${data.nim}-${timestamp}-utama`,
+          jenis: "Uang Semester",
+          jumlah: data.totalDeposit,
+          sisa_tagihan: 0,
+          status: "LUNAS",
+          jatuh_tempo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          tipe_billing: "utama",
+          nomor_billing: data.nomorBillingUtama || null
+        })
+        .select()
+        .single();
+
+      if (billError) throw billError;
+
+      const { error: paymentError } = await supabase
+        .from("pembayaran")
+        .insert({
+          tagihan_id: bill.id,
+          jumlah_bayar: data.totalDeposit,
+          metode: "DEPOSIT_AWAL",
+          status: "VERIFIED"
+        });
+
+      if (paymentError) throw paymentError;
+    }
+
+    // 3. Handle Billing Tambahan
+    if (data.nomorBillingTambahan && data.totalBillingTambahan && data.totalBillingTambahan > 0) {
+      const timestamp = Date.now();
+      const { error: additionalBillError } = await supabase
+        .from("tagihan")
+        .insert({
+          mahasiswa_id: student.id,
+          kode: `INV-${data.nim}-${timestamp}-tambahan`,
+          jenis: "Uang Semester (Tambahan)",
+          jumlah: data.totalBillingTambahan,
+          sisa_tagihan: data.totalBillingTambahan,
+          status: "BELUM_LUNAS",
+          jatuh_tempo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          tipe_billing: "tambahan",
+          nomor_billing: data.nomorBillingTambahan
+        });
+
+      if (additionalBillError) throw additionalBillError;
+    }
+
+    // 4. Handle standard billings if passed and not duplication
     if (data.billings && data.billings.length > 0) {
       const timestamp = Date.now();
       
       for (let i = 0; i < data.billings.length; i++) {
         const billData = data.billings[i];
         if (billData.nominal <= 0) continue;
+
+        // Skip the first one if it matches the billing utama to avoid duplication
+        if (data.totalDeposit && data.totalDeposit > 0 && i === 0) continue;
 
         const { data: bill, error: billError } = await supabase
           .from("tagihan")
@@ -63,14 +123,15 @@ export async function createStudent(data: {
             jumlah: billData.nominal,
             sisa_tagihan: billData.status === "LUNAS" ? 0 : billData.nominal,
             status: billData.status,
-            jatuh_tempo: billData.jatuh_tempo
+            jatuh_tempo: billData.jatuh_tempo,
+            tipe_billing: "utama",
+            nomor_billing: data.nomorBillingUtama || null
           })
           .select()
           .single();
 
         if (billError) throw billError;
 
-        // 3. Handle Auto-Payment if LUNAS
         if (billData.status === "LUNAS") {
           const { error: paymentError } = await supabase
             .from("pembayaran")
@@ -78,7 +139,7 @@ export async function createStudent(data: {
               tagihan_id: bill.id,
               jumlah_bayar: billData.nominal,
               metode: "TUNAI",
-              status: "VERIFIED" // Using VERIFIED as per latest system
+              status: "VERIFIED"
             });
           
           if (paymentError) throw paymentError;
@@ -129,7 +190,11 @@ export async function updateStudent(id: string, data: {
         prodi: data.prodi,
         angkatan: data.angkatan,
         no_hp: data.noWa || data.no_hp,
-        deposit: data.totalDeposit || 0
+        deposit: data.totalDeposit || 0,
+        nik: data.nik || null,
+        tanggal_lahir: data.tanggalLahir || null,
+        nama_ibu: data.namaIbu || null,
+        lokasi_ujian: data.lokasiUjian || null
       })
       .eq("id", id);
 
@@ -152,7 +217,9 @@ export async function updateStudent(id: string, data: {
             jumlah: billData.nominal,
             sisa_tagihan: billData.status === "LUNAS" ? 0 : billData.nominal,
             status: billData.status,
-            jatuh_tempo: billData.jatuh_tempo
+            jatuh_tempo: billData.jatuh_tempo,
+            tipe_billing: "utama",
+            nomor_billing: data.nomorBillingUtama || null
           })
           .select()
           .single();
