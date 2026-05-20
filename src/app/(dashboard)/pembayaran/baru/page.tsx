@@ -15,7 +15,7 @@ import {
   Upload,
   Info
 } from "lucide-react";
-import { searchStudents, getStudentBills, createCashPayment, getStudentFinancialSummary, getRekeningKampus } from "@/lib/actions/payments";
+import { searchStudents, getStudentBills, createCashPayment, getStudentFinancialSummary } from "@/lib/actions/payments";
 import { cn } from "@/lib/utils";
 import ReceiptTemplate from "@/components/payments/ReceiptTemplate";
 
@@ -44,14 +44,9 @@ export default function NewPaymentPage() {
   const totalKontribusi = uangMasukUtama + depositYangDigunakan;
   const sisaAkhirTagihanReal = Math.max(0, totalTagihan - totalKontribusi);
 
-  const [rekenings, setRekenings] = useState<any[]>([]);
   const [bankTujuan, setBankTujuan] = useState("");
   const [bankPengirim, setBankPengirim] = useState("");
   const [atasNamaPengirim, setAtasNamaPengirim] = useState("");
-
-  useEffect(() => {
-    getRekeningKampus().then(data => setRekenings(data));
-  }, []);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
@@ -399,17 +394,11 @@ export default function NewPaymentPage() {
                               onChange={(e) => setBankTujuan(e.target.value)}
                             >
                               <option value="">Pilih Rekening Bank Tujuan</option>
-                              {rekenings.map(rek => {
-                                const bankName = rek.bank_name || rek.name;
-                                const accNumber = rek.account_number || rek.account;
-                                const accName = rek.account_name || rek.holder || "UT Salatiga";
-                                const displayStr = `${bankName} - ${accNumber} (a.n. ${accName})`;
-                                return (
-                                  <option key={rek.id} value={displayStr}>
-                                    {displayStr}
-                                  </option>
-                                );
-                              })}
+                              <option value="BNI - 0217162820 (a.n Arienta Dwi Putra)">BNI - 0217162820 (a.n Arienta Dwi Putra)</option>
+                              <option value="BCA - 0130789935 (a.n Arienta Dwi Putra)">BCA - 0130789935 (a.n Arienta Dwi Putra)</option>
+                              <option value="BRI - 603901010339531 (a.n Arienta Dwi Putra)">BRI - 603901010339531 (a.n Arienta Dwi Putra)</option>
+                              <option value="CIMB - 8010106636164 (a.n Arienta Dwi Putra)">CIMB - 8010106636164 (a.n Arienta Dwi Putra)</option>
+                              <option value="MANDIRI - 1350012958797 (a.n Arienta Dwi Putra)">MANDIRI - 1350012958797 (a.n Arienta Dwi Putra)</option>
                             </select>
                           </div>
                         </div>

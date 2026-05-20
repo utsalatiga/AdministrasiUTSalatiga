@@ -224,9 +224,11 @@ export async function getStudentDetails(studentId: string) {
 export async function getRekeningKampus() {
   const supabase = createClient();
   const defaultRekenings = [
-    { id: "1", bank_name: "Bank Mandiri - UT Salatiga", account_number: "123-00-0123456-7", account_name: "UT Salatiga Operasional" },
-    { id: "2", bank_name: "Bank BRI - UT Salatiga", account_number: "0123-01-000456-50-1", account_name: "UT Salatiga Penerimaan" },
-    { id: "3", bank_name: "Bank BNI - UT Salatiga", account_number: "0987654321", account_name: "UT Salatiga BPP" },
+    { id: "1", bank_name: "BNI", account_number: "0217162820", account_name: "Arienta Dwi Putra" },
+    { id: "2", bank_name: "BCA", account_number: "0130789935", account_name: "Arienta Dwi Putra" },
+    { id: "3", bank_name: "BRI", account_number: "603901010339531", account_name: "Arienta Dwi Putra" },
+    { id: "4", bank_name: "CIMB", account_number: "8010106636164", account_name: "Arienta Dwi Putra" },
+    { id: "5", bank_name: "MANDIRI", account_number: "1350012958797", account_name: "Arienta Dwi Putra" },
   ];
 
   try {

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import OfficialReceipt from "./OfficialReceipt";
-import { getRekeningKampus, generateNoKwitansi } from "@/lib/actions/payments";
+import { generateNoKwitansi } from "@/lib/actions/payments";
 import { getAppSetting } from "@/lib/actions/system";
 
 interface PaymentModalProps {
@@ -46,11 +46,9 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
   const [useDeposit, setUseDeposit] = useState((bill.mahasiswa?.deposit || 0) > 0);
   const [nominalDeposit, setNominalDeposit] = useState<number>(0);
 
-  const [rekenings, setRekenings] = useState<any[]>([]);
   const [kwPrefix, setKwPrefix] = useState("KW");
 
   useEffect(() => {
-    getRekeningKampus().then(data => setRekenings(data));
     getAppSetting("kwitansi_prefix", "KW").then(val => setKwPrefix(val));
   }, []);
 
@@ -381,17 +379,11 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
                   onChange={(e) => setBankTujuan(e.target.value)}
                 >
                   <option value="">Pilih Rekening Bank Tujuan</option>
-                  {rekenings.map(rek => {
-                    const bankName = rek.bank_name || rek.name;
-                    const accNumber = rek.account_number || rek.account;
-                    const accName = rek.account_name || rek.holder || "UT Salatiga";
-                    const displayStr = `${bankName} - ${accNumber} (a.n. ${accName})`;
-                    return (
-                      <option key={rek.id} value={displayStr}>
-                        {displayStr}
-                      </option>
-                    );
-                  })}
+                  <option value="BNI - 0217162820 (a.n Arienta Dwi Putra)">BNI - 0217162820 (a.n Arienta Dwi Putra)</option>
+                  <option value="BCA - 0130789935 (a.n Arienta Dwi Putra)">BCA - 0130789935 (a.n Arienta Dwi Putra)</option>
+                  <option value="BRI - 603901010339531 (a.n Arienta Dwi Putra)">BRI - 603901010339531 (a.n Arienta Dwi Putra)</option>
+                  <option value="CIMB - 8010106636164 (a.n Arienta Dwi Putra)">CIMB - 8010106636164 (a.n Arienta Dwi Putra)</option>
+                  <option value="MANDIRI - 1350012958797 (a.n Arienta Dwi Putra)">MANDIRI - 1350012958797 (a.n Arienta Dwi Putra)</option>
                 </select>
               </div>
 
