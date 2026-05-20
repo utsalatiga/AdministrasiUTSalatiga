@@ -53,7 +53,7 @@ export default function PaymentsHistoryPage() {
           admin_name,
           tagihan:tagihan_id (
             jenis,
-            semester,
+            kode,
             mahasiswa:mahasiswa_id (
               nama,
               nim

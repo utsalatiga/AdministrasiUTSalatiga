@@ -24,7 +24,7 @@ export default function AnalyticsChart({ data }: AnalyticsChartProps) {
   };
 
   return (
-    <div className="h-[350px] w-full mt-4">
+    <div className="w-full h-[350px] min-h-[350px] mt-4">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={data}
