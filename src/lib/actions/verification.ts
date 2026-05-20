@@ -17,6 +17,7 @@ export async function getPendingPayments() {
       metode,
       bank_pengirim,
       bank_tujuan,
+      admin_name,
       tagihan:tagihan_id (
         id,
         jenis,
@@ -51,7 +52,21 @@ export async function verifyPayment(paymentId: string, billId: string, formData?
   let proofUrl = null;
 
   try {
-    // 1. Handle File Upload if provided during verification
+    // 1. Get logged-in admin name
+    const { data: { user } } = await supabase.auth.getUser();
+    let adminName = "Admin Keuangan";
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nama")
+        .eq("id", user.id)
+        .single();
+      if (profile?.nama) {
+        adminName = profile.nama;
+      }
+    }
+
+    // 2. Handle File Upload if provided during verification
     if (formData) {
       const file = formData.get("file") as File;
       if (file && file.size > 0) {
@@ -70,7 +85,7 @@ export async function verifyPayment(paymentId: string, billId: string, formData?
       }
     }
 
-    // 2. If we have a new proofUrl, update it first
+    // 3. If we have a new proofUrl, update it first
     if (proofUrl) {
       await supabase
         .from("pembayaran")
@@ -78,7 +93,7 @@ export async function verifyPayment(paymentId: string, billId: string, formData?
         .eq("id", paymentId);
     }
 
-    // 3. Call the robust RPC to verify and update bill balance atomically
+    // 4. Call the robust RPC to verify and update bill balance atomically
     const { error: rpcError } = await supabase.rpc("verify_pembayaran", {
       p_pembayaran_id: paymentId,
       p_tagihan_id: billId
@@ -86,12 +101,18 @@ export async function verifyPayment(paymentId: string, billId: string, formData?
 
     if (rpcError) throw new Error(rpcError.message);
 
+    // 5. Update admin_name in pembayaran table
+    await supabase
+      .from("pembayaran")
+      .update({ admin_name: adminName })
+      .eq("id", paymentId);
+
     revalidatePath("/verifikasi");
     revalidatePath("/dashboard");
     revalidatePath("/pembayaran");
     revalidatePath("/tagihan");
     
-    return { success: true };
+    return { success: true, adminName };
   } catch (err: any) {
     return { error: err.message };
   }

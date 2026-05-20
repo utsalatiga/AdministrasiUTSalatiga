@@ -141,7 +141,7 @@ export default function NewPaymentPage() {
           jumlah: uangMasukUtama,
           nominal_deposit: depositYangDigunakan,
           total_gabungan: totalKontribusi,
-          admin: "Admin Keuangan",
+          admin: result.adminName || "Admin Keuangan",
           metode: method,
           bank_pengirim: method === "TRANSFER" ? (atasNamaPengirim ? `${bankPengirim} (a.n. ${atasNamaPengirim})` : bankPengirim) : "Cash",
           bank_tujuan: method === "TRANSFER" ? bankTujuan : "Admin",

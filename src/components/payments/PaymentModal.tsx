@@ -110,6 +110,20 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         ? `Cicilan - Sisa ${formatRupiah(sisaAkhirTagihan)}` 
         : activeTab === "CASH" ? catatan : "Lunas";
       
+      // Get logged-in admin name
+      const { data: { user } } = await supabase.auth.getUser();
+      let adminName = "Admin Keuangan";
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("nama")
+          .eq("id", user.id)
+          .single();
+        if (profile?.nama) {
+          adminName = profile.nama;
+        }
+      }
+
       // Generate nomor kwitansi otomatis dengan format terstruktur
       const noKwitansi = await generateNoKwitansi(bill.id);
 
@@ -128,6 +142,12 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
 
       if (rpcError) throw rpcError;
 
+      // Update admin_name in pembayaran table for this transaction
+      await supabase
+        .from("pembayaran")
+        .update({ admin_name: adminName })
+        .eq("no_kwitansi", noKwitansi);
+
       setPaymentResult({
         no_kwitansi: noKwitansi,
         tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
@@ -137,7 +157,7 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         jumlah: jumlahTransfer,
         nominal_deposit: depositAmount,
         total_gabungan: totalDibayar,
-        admin: "Admin Keuangan",
+        admin: adminName,
         metode: activeTab === "CASH" ? "TUNAI" : "TRANSFER",
         bank_pengirim: activeTab === "TRANSFER" ? (atasNamaPengirim ? `${bankPengirim} (a.n. ${atasNamaPengirim})` : bankPengirim) : "Cash",
         bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",

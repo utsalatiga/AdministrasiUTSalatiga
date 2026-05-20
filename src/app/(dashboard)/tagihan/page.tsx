@@ -110,7 +110,7 @@ export default function TagihanPage() {
   const handlePrint = async (bill: any) => {
     const { data: payments } = await supabase
       .from("pembayaran")
-      .select("metode, bank_pengirim, bank_tujuan, no_kwitansi, created_at, jumlah_bayar")
+      .select("metode, bank_pengirim, bank_tujuan, no_kwitansi, created_at, jumlah_bayar, admin_name")
       .eq("tagihan_id", bill.id)
       .eq("status", "LUNAS")
       .order("created_at", { ascending: false })
@@ -127,7 +127,7 @@ export default function TagihanPage() {
       nim: bill.mahasiswa.nim,
       untuk_pembayaran: bill.jenis,
       jumlah: latestPayment ? latestPayment.jumlah_bayar : bill.jumlah,
-      admin: "Admin Keuangan",
+      admin: latestPayment?.admin_name || "Admin Keuangan",
       metode: latestPayment?.metode || "TUNAI",
       bank_pengirim: latestPayment?.bank_pengirim || "Cash",
       bank_tujuan: latestPayment?.bank_tujuan || "Admin",

@@ -231,7 +231,7 @@ export default function VerificationPage() {
               nim: verifiedData.tagihan?.mahasiswa?.nim,
               untuk_pembayaran: verifiedData.tagihan?.jenis,
               jumlah: verifiedData.jumlah_bayar,
-              admin: "Admin Keuangan",
+              admin: verifiedData.admin_name || "Admin Keuangan",
             });
           }
         }}

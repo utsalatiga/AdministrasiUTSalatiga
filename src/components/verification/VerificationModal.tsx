@@ -69,7 +69,7 @@ export default function VerificationModal({ isOpen, onClose, data, onSuccess }: 
 
     const result = await verifyPayment(data.id, data.tagihan.id, formData);
     if (result.success) {
-      onSuccess(data);
+      onSuccess({ ...data, admin_name: result.adminName });
       onClose();
     } else {
       alert(result.error);

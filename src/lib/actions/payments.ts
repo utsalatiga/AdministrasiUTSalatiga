@@ -68,6 +68,20 @@ export async function createCashPayment(formData: {
     const nominalDeposit = formData.nominal_deposit || 0;
     const isFullDeposit = jumlahBayar === 0 && nominalDeposit > 0;
 
+    // Get logged-in admin name
+    const { data: { user } } = await supabase.auth.getUser();
+    let adminName = "Admin Keuangan";
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nama")
+        .eq("id", user.id)
+        .single();
+      if (profile?.nama) {
+        adminName = profile.nama;
+      }
+    }
+
     // Generate nomor kwitansi otomatis dengan format terstruktur
     const noKwitansi = await generateNoKwitansi(formData.tagihan_id);
 
@@ -86,6 +100,12 @@ export async function createCashPayment(formData: {
       });
 
       if (rpcError) throw new Error(rpcError.message);
+
+      // Update admin_name in pembayaran table for this transaction
+      await supabase
+        .from("pembayaran")
+        .update({ admin_name: adminName })
+        .eq("no_kwitansi", noKwitansi);
     } else {
       // If PENDING, just insert the payment record without updating the bill balance yet
       // Verification will happen later via the Verification module
@@ -100,7 +120,8 @@ export async function createCashPayment(formData: {
             bukti_url: formData.bukti_url || "Menunggu Verifikasi",
             bank_pengirim: formData.bank_pengirim,
             bank_tujuan: formData.bank_tujuan,
-            no_kwitansi: noKwitansi
+            no_kwitansi: noKwitansi,
+            admin_name: adminName
           },
         ]);
 
@@ -113,7 +134,7 @@ export async function createCashPayment(formData: {
     revalidatePath("/dashboard");
     revalidatePath("/verifikasi");
     
-    return { success: true, no_kwitansi: noKwitansi };
+    return { success: true, no_kwitansi: noKwitansi, adminName };
   } catch (error: any) {
     return { error: error.message };
   }

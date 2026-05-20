@@ -50,6 +50,7 @@ export default function PaymentsHistoryPage() {
           no_kwitansi,
           bank_pengirim,
           bank_tujuan,
+          admin_name,
           tagihan:tagihan_id (
             jenis,
             semester,
@@ -91,7 +92,7 @@ export default function PaymentsHistoryPage() {
       nim: p.tagihan?.mahasiswa?.nim,
       untuk_pembayaran: p.tagihan?.jenis,
       jumlah: p.jumlah_bayar,
-      admin: "Admin Keuangan",
+      admin: p.admin_name || "Admin Keuangan",
       metode: p.metode,
       bank_pengirim: p.bank_pengirim,
       bank_tujuan: p.bank_tujuan,

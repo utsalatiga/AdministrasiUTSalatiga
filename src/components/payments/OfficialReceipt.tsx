@@ -136,11 +136,10 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
               
               <div className="text-center w-64">
                 <div className="text-sm text-slate-900 mb-2">Salatiga, {data.tanggal}</div>
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-16 italic">Penerima,</div>
-                <div className="border-b-2 border-slate-900 pb-1 text-sm font-bold text-slate-900 uppercase">
-                  {data.admin}
+                <div className="text-[10px] uppercase font-bold text-slate-400 mb-16 italic">Penerima / Kasir,</div>
+                <div className="text-sm font-bold text-slate-900 uppercase">
+                  ( {data.admin} )
                 </div>
-                <div className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-widest">Admin Keuangan</div>
               </div>
             </div>
 

@@ -173,9 +173,10 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
                 )}
               </div>
               <div className="signature text-center w-48">
-                <div className="text-[10px] text-slate-400 uppercase mb-16">Petugas Administrasi</div>
-                <div className="border-t border-slate-900 pt-2 text-sm font-bold text-slate-800 uppercase tracking-wide">
-                  {data.admin}
+                <div className="text-xs text-slate-950 mb-2 font-semibold">Salatiga, {data.tanggal}</div>
+                <div className="text-[10px] text-slate-400 uppercase mb-16 italic font-bold">Penerima / Kasir,</div>
+                <div className="text-sm font-bold text-slate-800 uppercase tracking-wide">
+                  ( {data.admin} )
                 </div>
               </div>
             </div>
