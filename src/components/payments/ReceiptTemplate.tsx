@@ -73,9 +73,10 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
                 top: 0 !important;
                 left: 0 !important;
                 width: 100% !important;
-                height: 100% !important;
+                height: max-content !important; /* GANTI dari 100% menjadi max-content atau auto */
                 margin: 0 !important;
                 padding: 15mm !important;
+                box-sizing: border-box !important; /* WAJIB: Agar padding tidak menambah ukuran kertas */
                 background-color: white !important;
                 z-index: 999999 !important;
               }
