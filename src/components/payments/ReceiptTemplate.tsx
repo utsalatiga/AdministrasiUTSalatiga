@@ -52,9 +52,33 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
             .signature { text-align: center; width: 200px; }
             .signature-line { border-top: 1px solid #0f172a; margin-top: 60px; padding-top: 8px; font-size: 12px; font-weight: 600; }
             @media print {
-              body { padding: 0; }
-              .receipt-card { border: none; }
-              button { display: none; }
+              @page {
+                size: A5 landscape;
+                margin: 0mm;
+              }
+              body {
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              body > *:not(#print-area) {
+                display: none !important;
+              }
+              .receipt-card {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 15mm !important;
+                border: none !important;
+                box-shadow: none !important;
+                overflow: hidden !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
             }
           </style>
         </head>
@@ -88,7 +112,7 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
         </div>
 
         <div className="p-10 overflow-y-auto max-h-[70vh]">
-          <div ref={printRef} className="receipt-card border-2 border-slate-100 p-8 rounded-xl bg-white shadow-inner">
+          <div ref={printRef} id="print-area" className="receipt-card border-2 border-slate-100 p-8 rounded-xl bg-white shadow-inner print:absolute print:top-0 print:left-0 print:m-0 print:p-6 print:w-full print:h-screen print:overflow-hidden print:break-inside-avoid print:border-none">
             <div className="header text-center border-b-2 border-slate-900 pb-6 mb-8">
               <h1 className="font-serif text-2xl text-slate-900">UNIVERSITAS TERBUKA</h1>
               <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 mt-1 font-bold">SALATIGA LEARNING CENTER</p>

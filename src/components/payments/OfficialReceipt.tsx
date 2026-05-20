@@ -52,7 +52,7 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
 
         {/* Receipt Content */}
         <div className="p-10 print:p-0 overflow-y-auto max-h-[80vh] print:max-h-none">
-          <div ref={printRef} className="official-receipt relative border-2 border-slate-900 p-12 print:border-none print:p-4">
+          <div ref={printRef} id="print-area" className="official-receipt relative border-2 border-slate-900 p-12 print:border-none print:p-6 print:absolute print:top-0 print:left-0 print:m-0 print:w-full print:h-screen print:overflow-hidden print:break-inside-avoid">
             {/* Institution Header */}
             <div className="flex items-start justify-between border-b-4 border-slate-900 pb-6 mb-8">
               <div className="flex items-center gap-6">
@@ -201,21 +201,24 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
 
           /* PAGE SETTINGS */
           @page {
-            size: A4 portrait;
-            margin: 0;
+            size: A5 landscape;
+            margin: 0mm;
           }
 
           body {
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
-            height: auto !important;
-            overflow: visible !important;
+            height: 100% !important;
+            overflow: hidden !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
           /* FORCE NO PAGE BREAKS INSIDE RECEIPT */
           .official-receipt {
             page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
         }
       `}</style>
