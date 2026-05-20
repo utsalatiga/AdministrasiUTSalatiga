@@ -73,6 +73,9 @@ export default function LaporanPage() {
       untuk_pembayaran: p.tagihan?.jenis,
       jumlah: p.jumlah_bayar,
       admin: "Admin Keuangan",
+      metode: p.metode,
+      bank_pengirim: p.bank_pengirim,
+      bank_tujuan: p.bank_tujuan,
     });
   };
 

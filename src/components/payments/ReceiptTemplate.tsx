@@ -14,6 +14,9 @@ interface ReceiptProps {
     nominal_deposit?: number;
     total_gabungan?: number;
     admin: string;
+    metode?: string;
+    bank_pengirim?: string;
+    bank_tujuan?: string;
   };
   onClose: () => void;
 }
@@ -101,6 +104,10 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tanggal</label>
                   <span className="block text-slate-800 font-semibold">{data.tanggal}</span>
                 </div>
+                <div className="info-item">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Metode Pembayaran</label>
+                  <span className="block text-slate-800 font-semibold uppercase">{data.metode || "TUNAI"}</span>
+                </div>
               </div>
               <div className="space-y-4">
                 <div className="info-item">
@@ -111,6 +118,21 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Untuk Pembayaran</label>
                   <span className="block text-slate-800 font-semibold">{data.untuk_pembayaran}</span>
                 </div>
+              </div>
+            </div>
+
+            <div className="info-grid grid grid-cols-2 gap-8 mb-8" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px' }}>
+              <div className="info-item">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Transfer Dari (Pengirim)</label>
+                <span className="block text-slate-800 font-semibold text-sm">
+                  {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_pengirim || `${data.nama} (${data.nim})`) : "Cash"}
+                </span>
+              </div>
+              <div className="info-item">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Transfer Ke (Penerima)</label>
+                <span className="block text-slate-800 font-semibold text-sm">
+                  {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_tujuan || "Detail Rekening Kampus") : "Tunai via Kasir / Admin"}
+                </span>
               </div>
             </div>
 

@@ -15,6 +15,9 @@ interface OfficialReceiptProps {
     nominal_deposit?: number;
     total_gabungan?: number;
     admin: string;
+    metode?: string;
+    bank_pengirim?: string;
+    bank_tujuan?: string;
   };
   onClose: () => void;
 }
@@ -60,9 +63,21 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
                   <p className="text-[10px] text-slate-400 mt-1 italic">Jl. Tentara Pelajar No. 12, Salatiga, Jawa Tengah</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Kwitansi No.</div>
-                <div className="font-serif text-xl font-bold text-slate-900">{data.no_kwitansi}</div>
+              <div className="text-right space-y-2">
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Kwitansi No. / ID</div>
+                  <div className="font-serif text-lg font-bold text-slate-900 leading-none">{data.no_kwitansi}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Tanggal</div>
+                  <div className="font-serif text-xs font-bold text-slate-800 leading-none">{data.tanggal}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Metode</div>
+                  <span className="inline-block text-[10px] font-sans font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">
+                    {data.metode || "TUNAI"}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -71,6 +86,18 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
               <div className="flex border-b border-slate-200 pb-2">
                 <div className="w-48 text-sm text-slate-500 italic">Sudah Terima Dari</div>
                 <div className="flex-1 text-base font-bold text-slate-900 uppercase">{data.nama} ({data.nim})</div>
+              </div>
+              <div className="flex border-b border-slate-200 pb-2">
+                <div className="w-48 text-sm text-slate-500 italic">Transfer Dari (Pengirim)</div>
+                <div className="flex-1 text-sm font-semibold text-slate-850">
+                  {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_pengirim || `${data.nama} (${data.nim})`) : "Cash"}
+                </div>
+              </div>
+              <div className="flex border-b border-slate-200 pb-2">
+                <div className="w-48 text-sm text-slate-500 italic">Transfer Ke (Penerima)</div>
+                <div className="flex-1 text-sm font-semibold text-slate-850">
+                  {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_tujuan || "Detail Rekening Kampus") : "Tunai via Kasir / Admin"}
+                </div>
               </div>
               <div className="flex border-b border-slate-200 pb-2">
                 <div className="w-48 text-sm text-slate-500 italic">Banyaknya Uang</div>

@@ -142,6 +142,9 @@ export default function NewPaymentPage() {
           nominal_deposit: depositYangDigunakan,
           total_gabungan: totalKontribusi,
           admin: "Admin Keuangan",
+          metode: method,
+          bank_pengirim: method === "TRANSFER" ? (atasNamaPengirim ? `${bankPengirim} (a.n. ${atasNamaPengirim})` : bankPengirim) : "Cash",
+          bank_tujuan: method === "TRANSFER" ? bankTujuan : "Admin",
         });
         setShowReceipt(true);
       } else {

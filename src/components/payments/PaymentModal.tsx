@@ -138,6 +138,9 @@ export default function PaymentModal({ bill, onClose, onSuccess }: PaymentModalP
         nominal_deposit: depositAmount,
         total_gabungan: totalDibayar,
         admin: "Admin Keuangan",
+        metode: activeTab === "CASH" ? "TUNAI" : "TRANSFER",
+        bank_pengirim: activeTab === "TRANSFER" ? (atasNamaPengirim ? `${bankPengirim} (a.n. ${atasNamaPengirim})` : bankPengirim) : "Cash",
+        bank_tujuan: activeTab === "TRANSFER" ? bankTujuan : "Admin",
       });
       setShowReceipt(true);
       

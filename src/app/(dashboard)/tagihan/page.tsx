@@ -107,15 +107,30 @@ export default function TagihanPage() {
     return `${nim}/${semester}/UT/001`;
   };
 
-  const handlePrint = (bill: any) => {
+  const handlePrint = async (bill: any) => {
+    const { data: payments } = await supabase
+      .from("pembayaran")
+      .select("metode, bank_pengirim, bank_tujuan, no_kwitansi, created_at, jumlah_bayar")
+      .eq("tagihan_id", bill.id)
+      .eq("status", "LUNAS")
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const latestPayment = payments?.[0];
+
     setSelectedReceipt({
-      no_kwitansi: getClientNoKwitansi(bill.mahasiswa, bill),
-      tanggal: new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
+      no_kwitansi: latestPayment?.no_kwitansi || getClientNoKwitansi(bill.mahasiswa, bill),
+      tanggal: latestPayment 
+        ? new Date(latestPayment.created_at).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })
+        : new Date().toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' }),
       nama: bill.mahasiswa.nama,
       nim: bill.mahasiswa.nim,
       untuk_pembayaran: bill.jenis,
-      jumlah: bill.jumlah,
+      jumlah: latestPayment ? latestPayment.jumlah_bayar : bill.jumlah,
       admin: "Admin Keuangan",
+      metode: latestPayment?.metode || "TUNAI",
+      bank_pengirim: latestPayment?.bank_pengirim || "Cash",
+      bank_tujuan: latestPayment?.bank_tujuan || "Admin",
     });
   };
 

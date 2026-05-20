@@ -48,6 +48,8 @@ export default function PaymentsHistoryPage() {
           bukti_url,
           created_at,
           no_kwitansi,
+          bank_pengirim,
+          bank_tujuan,
           tagihan:tagihan_id (
             jenis,
             semester,
@@ -90,6 +92,9 @@ export default function PaymentsHistoryPage() {
       untuk_pembayaran: p.tagihan?.jenis,
       jumlah: p.jumlah_bayar,
       admin: "Admin Keuangan",
+      metode: p.metode,
+      bank_pengirim: p.bank_pengirim,
+      bank_tujuan: p.bank_tujuan,
     });
   };
 

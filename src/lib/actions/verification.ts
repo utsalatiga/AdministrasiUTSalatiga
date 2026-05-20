@@ -14,6 +14,9 @@ export async function getPendingPayments() {
       jumlah_bayar,
       bukti_url,
       status,
+      metode,
+      bank_pengirim,
+      bank_tujuan,
       tagihan:tagihan_id (
         id,
         jenis,
