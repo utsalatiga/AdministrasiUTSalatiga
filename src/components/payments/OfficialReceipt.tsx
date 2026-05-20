@@ -170,55 +170,47 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
 
       <style jsx global>{`
         @media print {
-          /* HIDE EVERYTHING */
-          body * {
-            visibility: hidden !important;
+          /* 1. Matikan margin bawaan browser & Kunci A4 Portrait */
+          @page {
+            size: A4 portrait;
+            margin: 0 !important;
           }
-          
-          /* SHOW ONLY RECEIPT AREA */
-          .official-receipt, 
-          .official-receipt * {
+
+          /* 2. Sembunyikan SEMUA elemen di halaman dari flow print */
+          html, body {
+            visibility: hidden !important;
+            background: none !important;
+            overflow: hidden !important;
+            height: 100vh !important;
+          }
+
+          /* 3. Tampilkan HANYA area kwitansi */
+          #print-area, #print-area * {
             visibility: visible !important;
           }
-          
-          /* FIX POSITIONING AND PREVENT EXTRA PAGES */
-          .official-receipt {
+
+          /* 4. Posisikan kwitansi di pojok kiri atas secara absolut di halaman 1 */
+          #print-area {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
+            height: auto !important;
             margin: 0 !important;
-            padding: 10mm !important;
-            border: none !important;
+            padding: 15mm !important; /* Margin aman konten */
             background: white !important;
-            z-index: 9999 !important;
-          }
-
-          /* ABSOLUTELY HIDE UI ELEMENTS TO PREVENT HEIGHT CLUTTER */
-          nav, header, footer, aside, .sidebar, .bottom-nav, button, .print-hidden, .no-print, [role="dialog"]:not(.official-receipt-container) {
-            display: none !important;
-          }
-
-          /* PAGE SETTINGS */
-          @page {
-            size: A5 landscape;
-            margin: 0mm;
-          }
-
-          body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            height: 100% !important;
+            box-shadow: none !important;
+            z-index: 99999 !important;
             overflow: hidden !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            page-break-after: avoid !important;
+            page-break-before: avoid !important;
+            page-break-inside: avoid !important;
+            border: none !important;
           }
 
-          /* FORCE NO PAGE BREAKS INSIDE RECEIPT */
-          .official-receipt {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
+          /* 5. Hapus elemen fixed/sticky/overlay yang mungkin lolos dan memakan ruang */
+          .sidebar, .header, .bottom-nav, .modal-backdrop, .fixed, .sticky, nav, aside, [role="dialog"]:not(:has(#print-area)) {
+            display: none !important;
           }
         }
       `}</style>
