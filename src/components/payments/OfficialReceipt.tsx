@@ -40,7 +40,7 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
   const amountInWords = terbilang(data.jumlah) + " rupiah";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:p-0 print:bg-white print:static official-receipt-container">
+    <div id="print-area" className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:p-0 print:bg-white print:static official-receipt-container">
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden print:shadow-none print:rounded-none print:w-full print:max-w-none">
         {/* Modal Header - Hidden on Print */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 print:hidden">
@@ -52,7 +52,7 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
 
         {/* Receipt Content */}
         <div className="p-10 print:p-0 overflow-y-auto max-h-[80vh] print:max-h-none">
-          <div ref={printRef} id="print-area" className="official-receipt relative border-2 border-slate-900 p-12 print:border-none print:p-6 print:absolute print:top-0 print:left-0 print:m-0 print:w-full print:h-screen print:overflow-hidden print:break-inside-avoid">
+          <div ref={printRef} className="official-receipt relative border-2 border-slate-900 p-12 print:border-none print:p-0">
             {/* Institution Header */}
             <div className="flex items-start justify-between border-b-4 border-slate-900 pb-6 mb-8">
               <div className="flex items-center gap-6">

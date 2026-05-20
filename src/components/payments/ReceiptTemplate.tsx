@@ -97,7 +97,9 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
+          <div id="print-area">
+            ${printContent.innerHTML}
+          </div>
           <script>
             window.onload = function() { window.print(); window.close(); }
           </script>
@@ -116,7 +118,7 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div id="print-area" className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <h3 className="font-serif text-lg text-slate-800">Pratinjau Kwitansi</h3>
@@ -126,7 +128,7 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
         </div>
 
         <div className="p-10 overflow-y-auto max-h-[70vh]">
-          <div ref={printRef} id="print-area" className="receipt-card border-2 border-slate-100 p-8 rounded-xl bg-white shadow-inner print:absolute print:top-0 print:left-0 print:m-0 print:p-6 print:w-full print:h-screen print:overflow-hidden print:break-inside-avoid print:border-none">
+          <div ref={printRef} className="receipt-card border-2 border-slate-100 p-8 rounded-xl bg-white shadow-inner">
             <div className="header text-center border-b-2 border-slate-900 pb-6 mb-8">
               <h1 className="font-serif text-2xl text-slate-900">UNIVERSITAS TERBUKA</h1>
               <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400 mt-1 font-bold">SALATIGA LEARNING CENTER</p>
