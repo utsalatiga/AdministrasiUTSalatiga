@@ -170,47 +170,35 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
 
       <style jsx global>{`
         @media print {
-          /* 1. Matikan margin bawaan browser & Kunci A4 Portrait */
           @page {
             size: A4 portrait;
-            margin: 0 !important;
+            margin: 0 !important; /* Sukses mematikan header browser */
           }
 
-          /* 2. Sembunyikan SEMUA elemen di halaman dari flow print */
-          html, body {
-            visibility: hidden !important;
-            background: none !important;
-            overflow: hidden !important;
-            height: 100vh !important;
+          /* 1. Sembunyikan elemen bawaan body */
+          body * {
+            visibility: hidden;
           }
 
-          /* 3. Tampilkan HANYA area kwitansi */
-          #print-area, #print-area * {
-            visibility: visible !important;
-          }
-
-          /* 4. Posisikan kwitansi di pojok kiri atas secara absolut di halaman 1 */
+          /* 2. Bebaskan print-area dari semua parent, paku di layar kertas */
           #print-area {
-            position: absolute !important;
-            left: 0 !important;
+            visibility: visible !important;
+            position: fixed !important; /* Gunakan fixed agar lepas dari parent */
             top: 0 !important;
-            width: 100% !important;
-            height: auto !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
             margin: 0 !important;
-            padding: 15mm !important; /* Margin aman konten */
-            background: white !important;
-            box-shadow: none !important;
-            z-index: 99999 !important;
-            overflow: hidden !important;
-            page-break-after: avoid !important;
-            page-break-before: avoid !important;
-            page-break-inside: avoid !important;
-            border: none !important;
+            padding: 15mm !important;
+            background-color: white !important;
+            z-index: 999999 !important;
+            display: block !important;
+            overflow: visible !important;
           }
 
-          /* 5. Hapus elemen fixed/sticky/overlay yang mungkin lolos dan memakan ruang */
-          .sidebar, .header, .bottom-nav, .modal-backdrop, .fixed, .sticky, nav, aside, [role="dialog"]:not(:has(#print-area)) {
-            display: none !important;
+          /* 3. Pastikan semua elemen di dalam kwitansi kembali terlihat */
+          #print-area * {
+            visibility: visible !important;
           }
         }
       `}</style>
