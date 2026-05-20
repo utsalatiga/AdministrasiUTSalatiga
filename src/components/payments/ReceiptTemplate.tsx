@@ -57,33 +57,45 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
                 margin: 0 !important;
               }
 
-              /* Kunci tinggi body & html maksimal 1 halaman (Membunuh lembar ke-2) */
+              /* Kunci html dan body agar tidak pernah melebih 1 kertas */
               html, body {
-                visibility: hidden;
-                height: 100vh !important;
+                width: 210mm !important;
+                height: 297mm !important;
+                max-height: 297mm !important;
                 overflow: hidden !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                visibility: hidden;
               }
 
-              /* Ganti FIXED menjadi ABSOLUTE agar kwitansi hanya dicetak sekali di halaman 1 */
-              #print-area {
+              /* Tampilkan print-area */
+              #print-area, #print-area * {
                 visibility: visible !important;
+              }
+
+              /* Atur print-area agar pas 1 kertas tanpa padding luar */
+              #print-area {
                 position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
-                width: 100% !important;
-                height: max-content !important; /* GANTI dari 100% menjadi max-content atau auto */
+                width: 210mm !important;
+                height: 297mm !important;
+                max-height: 297mm !important;
                 margin: 0 !important;
-                padding: 15mm !important;
-                box-sizing: border-box !important; /* WAJIB: Agar padding tidak menambah ukuran kertas */
+                padding: 0 !important; /* HILANGKAN padding di sini agar tidak memicu overflow kertas */
+                box-sizing: border-box !important;
                 background-color: white !important;
                 z-index: 999999 !important;
+                overflow: hidden !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
               }
 
-              /* Tampilkan kembali seluruh isi kwitansi */
-              #print-area * {
-                visibility: visible !important;
+              /* Pindahkan padding ke div anak pertama di dalam #print-area (Inner Wrapper) */
+              #print-area > div {
+                padding: 15mm !important;
+                box-sizing: border-box !important;
+                height: 100% !important;
               }
             }
           </style>
