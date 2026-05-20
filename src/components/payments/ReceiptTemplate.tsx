@@ -57,11 +57,11 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
                 margin: 0 !important;
               }
 
-              /* Kunci html dan body agar tidak pernah melebih 1 kertas */
+              /* Trik 99% agar Chrome tidak melempar 1 pixel ke halaman 2 */
               html, body {
-                width: 210mm !important;
-                height: 297mm !important;
-                max-height: 297mm !important;
+                width: 100% !important;
+                height: 99% !important; /* KUNCI UTAMANYA DI SINI */
+                max-height: 99% !important;
                 overflow: hidden !important;
                 margin: 0 !important;
                 padding: 0 !important;
@@ -73,29 +73,24 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
                 visibility: visible !important;
               }
 
-              /* Atur print-area agar pas 1 kertas tanpa padding luar */
+              /* Biarkan print-area menyesuaikan isi, jangan dipaksa 297mm */
               #print-area {
                 position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
-                width: 210mm !important;
-                height: 297mm !important;
-                max-height: 297mm !important;
+                width: 100% !important;
+                height: max-content !important; 
                 margin: 0 !important;
-                padding: 0 !important; /* HILANGKAN padding di sini agar tidak memicu overflow kertas */
-                box-sizing: border-box !important;
+                padding: 0 !important;
                 background-color: white !important;
                 z-index: 999999 !important;
-                overflow: hidden !important;
                 page-break-after: avoid !important;
                 page-break-inside: avoid !important;
               }
 
-              /* Pindahkan padding ke div anak pertama di dalam #print-area (Inner Wrapper) */
               #print-area > div {
                 padding: 15mm !important;
                 box-sizing: border-box !important;
-                height: 100% !important;
               }
             }
           </style>
