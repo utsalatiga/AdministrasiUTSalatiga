@@ -172,31 +172,33 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
         @media print {
           @page {
             size: A4 portrait;
-            margin: 0 !important; /* Sukses mematikan header browser */
+            margin: 0 !important;
           }
 
-          /* 1. Sembunyikan elemen bawaan body */
-          body * {
+          /* Kunci tinggi body & html maksimal 1 halaman (Membunuh lembar ke-2) */
+          html, body {
             visibility: hidden;
+            height: 100vh !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
 
-          /* 2. Bebaskan print-area dari semua parent, paku di layar kertas */
+          /* Ganti FIXED menjadi ABSOLUTE agar kwitansi hanya dicetak sekali di halaman 1 */
           #print-area {
             visibility: visible !important;
-            position: fixed !important; /* Gunakan fixed agar lepas dari parent */
+            position: absolute !important;
             top: 0 !important;
             left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            width: 100% !important;
+            height: 100% !important;
             margin: 0 !important;
             padding: 15mm !important;
             background-color: white !important;
             z-index: 999999 !important;
-            display: block !important;
-            overflow: visible !important;
           }
 
-          /* 3. Pastikan semua elemen di dalam kwitansi kembali terlihat */
+          /* Tampilkan kembali seluruh isi kwitansi */
           #print-area * {
             visibility: visible !important;
           }
