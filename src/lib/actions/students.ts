@@ -308,13 +308,13 @@ export async function importBatchStudents(data: any[]) {
         validStudents.push({
           nim: validated.nim,
           nama: validated.nama,
-          prodi: validated.prodi || null,
-          angkatan: validated.angkatan || null,
-          nik: validated.nik || null,
+          prodi: validated.prodi || "-",
+          angkatan: validated.angkatan || "-",
+          nik: validated.nik || "-",
           tanggal_lahir: validated.tanggal_lahir || null,
-          nama_ibu: validated.nama_ibu || null,
-          no_hp: validated.no_hp || null,
-          lokasi_ujian: validated.lokasi_ujian || null,
+          nama_ibu: validated.nama_ibu || "-",
+          no_hp: validated.no_hp || "-",
+          lokasi_ujian: validated.lokasi_ujian || "-",
           deposit: 0
         });
         validRows.push(validated);
@@ -387,7 +387,7 @@ export async function importBatchStudents(data: any[]) {
           jenis: bill.jenis || "Uang Semester",
           jumlah: bill.nominal,
           status: bill.status || "BELUM_LUNAS",
-          nomor_billing: bill.nomor_billing || null,
+          nomor_billing: bill.nomor_billing || "-",
           jatuh_tempo: bill.jatuh_tempo || defaultDueDateStr,
           sisa_tagihan: bill.status === "LUNAS" ? 0 : bill.nominal,
           tipe_billing: tipeBilling,
