@@ -292,6 +292,11 @@ export async function updateStudent(id: string, data: {
 export async function importBatchStudents(data: any[]) {
   const supabase = createClient();
   
+  let studentsCreated = 0;
+  let billsMain = 0;
+  let billsAdditional = 0;
+  let paymentsVerified = 0;
+
   const validStudents: any[] = [];
   const validRows: any[] = [];
 
@@ -339,7 +344,7 @@ export async function importBatchStudents(data: any[]) {
       throw new Error(`Failed to bulk upsert students: ${studentError.message}`);
     }
 
-    const studentsCreated = validStudents.length;
+    studentsCreated = validStudents.length;
 
     // 3. Fetch all generated student IDs in bulk
     const allNims = validStudents.map(s => s.nim);
@@ -361,8 +366,6 @@ export async function importBatchStudents(data: any[]) {
     const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
 
     const billsToInsert: any[] = [];
-    let billsMain = 0;
-    let billsAdditional = 0;
 
     validRows.forEach(validatedRow => {
       const studentId = studentMap.get(validatedRow.nim);
@@ -405,7 +408,6 @@ export async function importBatchStudents(data: any[]) {
     }
 
     // 6. Handle payments for LUNAS bills
-    let paymentsVerified = 0;
     const lunasBills = billsToInsert.filter(b => b.status === "LUNAS");
     
     if (lunasBills.length > 0) {
