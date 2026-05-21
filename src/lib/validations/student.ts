@@ -7,6 +7,8 @@ const parseGracefulDate = (val: unknown): string | null => {
   // If it's already a Date object
   if (val instanceof Date) {
     if (isNaN(val.getTime())) return null;
+    const year = val.getFullYear();
+    if (year < 1900 || year > 2100) return null;
     return val.toISOString().split("T")[0];
   }
 
@@ -17,7 +19,10 @@ const parseGracefulDate = (val: unknown): string | null => {
   // 1. Format: YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) {
     const d = new Date(clean);
-    return isNaN(d.getTime()) ? null : clean;
+    if (isNaN(d.getTime())) return null;
+    const year = d.getFullYear();
+    if (year < 1900 || year > 2100) return null;
+    return clean;
   }
 
   // 2. Format: DD/MM/YYYY or DD-MM-YYYY or D/M/YYYY or D-M-YYYY
@@ -29,15 +34,24 @@ const parseGracefulDate = (val: unknown): string | null => {
     const year = parseInt(match[3], 10);
     const d = new Date(year, month, day);
     if (!isNaN(d.getTime()) && d.getDate() === day && d.getMonth() === month && d.getFullYear() === year) {
+      if (year < 1900 || year > 2100) return null;
       const paddedDay = String(day).padStart(2, '0');
       const paddedMonth = String(month + 1).padStart(2, '0');
       return `${year}-${paddedMonth}-${paddedDay}`;
     }
   }
 
-  // 3. Fallback standard JavaScript parsing
-  const parsed = new Date(clean);
+  // 3. Fallback standard JavaScript parsing (including Excel numeric string conversion)
+  let parsed: Date;
+  if (/^\d+$/.test(clean)) {
+    parsed = new Date(Math.round((Number(clean) - 25569) * 86400 * 1000));
+  } else {
+    parsed = new Date(clean);
+  }
+
   if (!isNaN(parsed.getTime())) {
+    const year = parsed.getFullYear();
+    if (year < 1900 || year > 2100) return null;
     return parsed.toISOString().split("T")[0];
   }
 
