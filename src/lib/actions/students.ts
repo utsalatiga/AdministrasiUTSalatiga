@@ -306,15 +306,15 @@ export async function importBatchStudents(data: any[]) {
       try {
         const validated = studentImportRowSchema.parse(rawRow);
         validStudents.push({
-          nim: validated.nim,
-          nama: validated.nama,
-          prodi: validated.prodi || "-",
-          angkatan: validated.angkatan || "-",
-          nik: validated.nik || "-",
+          nim: String(validated.nim).trim().substring(0, 20),
+          nama: String(validated.nama).trim().substring(0, 100),
+          prodi: String(validated.prodi || "-").trim().substring(0, 50),
+          angkatan: String(validated.angkatan || "-").trim().substring(0, 10),
+          nik: String(validated.nik || "-").trim().substring(0, 16),
           tanggal_lahir: validated.tanggal_lahir || null,
-          nama_ibu: validated.nama_ibu || "-",
-          no_hp: validated.no_hp || "-",
-          lokasi_ujian: validated.lokasi_ujian || "-",
+          nama_ibu: String(validated.nama_ibu || "-").trim().substring(0, 50),
+          no_hp: String(validated.no_hp || "-").trim().substring(0, 16),
+          lokasi_ujian: String(validated.lokasi_ujian || "-").trim().substring(0, 50),
           deposit: 0
         });
         validRows.push(validated);
@@ -387,7 +387,7 @@ export async function importBatchStudents(data: any[]) {
           jenis: bill.jenis || "Uang Semester",
           jumlah: bill.nominal,
           status: bill.status || "BELUM_LUNAS",
-          nomor_billing: bill.nomor_billing || "-",
+          nomor_billing: String(bill.nomor_billing || "-").trim().substring(0, 20),
           jatuh_tempo: bill.jatuh_tempo || defaultDueDateStr,
           sisa_tagihan: bill.status === "LUNAS" ? 0 : bill.nominal,
           tipe_billing: tipeBilling,
