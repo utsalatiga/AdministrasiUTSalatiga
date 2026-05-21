@@ -323,9 +323,10 @@ export async function importBatchStudents(data: any[]) {
       }
     }
 
-    if (validStudents.length === 0) {
+    if (!validStudents || validStudents.length === 0) {
       return {
         success: true,
+        message: "Tidak ada data valid untuk diimpor.",
         metrics: {
           studentsCreated: 0,
           billsMain: 0,
@@ -397,13 +398,13 @@ export async function importBatchStudents(data: any[]) {
     });
 
     // 5. Bulk insert billings
-    if (billsToInsert.length > 0) {
+    if (billsToInsert && billsToInsert.length > 0) {
       const { error: billError } = await supabase
         .from("tagihan")
         .insert(billsToInsert);
 
       if (billError) {
-        throw new Error(`Failed to bulk insert bills: ${billError.message}`);
+        throw new Error("Gagal insert tagihan: " + billError.message);
       }
     }
 
@@ -436,13 +437,13 @@ export async function importBatchStudents(data: any[]) {
         })
         .filter(Boolean) as any[];
 
-      if (paymentsToInsert.length > 0) {
+      if (paymentsToInsert && paymentsToInsert.length > 0) {
         const { error: paymentError } = await supabase
           .from("pembayaran")
           .insert(paymentsToInsert);
 
         if (paymentError) {
-          throw new Error(`Failed to bulk insert payments: ${paymentError.message}`);
+          throw new Error("Gagal insert pembayaran: " + paymentError.message);
         }
         paymentsVerified = paymentsToInsert.length;
       }
@@ -451,6 +452,7 @@ export async function importBatchStudents(data: any[]) {
     revalidatePath("/mahasiswa");
     revalidatePath("/tagihan");
     revalidatePath("/");
+
     
     return { 
       success: true,
