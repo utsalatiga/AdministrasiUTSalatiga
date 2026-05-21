@@ -77,26 +77,27 @@ export const gracefulNumberSchema = z.preprocess((val) => {
 
 // billing item schema for import
 export const billingImportSchema = z.object({
-  jenis: z.string().nullable().optional(),
+  jenis: z.coerce.string().nullable().optional(),
   nominal: gracefulNumberSchema,
   status: z.enum(["LUNAS", "BELUM_LUNAS", "DICICIL"]).nullable().optional(),
-  nomor_billing: z.string().nullable().optional(),
+  nomor_billing: z.coerce.string().nullable().optional(),
   jatuh_tempo: gracefulDateSchema,
 });
 
 // student row schema for import
 export const studentImportRowSchema = z.object({
-  nim: z.string().min(1, "NIM wajib diisi"),
-  nama: z.string().min(1, "Nama wajib diisi"),
-  prodi: z.string().nullable().optional(),
-  angkatan: z.string().nullable().optional(),
-  nik: z.string().nullable().optional(),
+  nim: z.coerce.string().min(1, "NIM wajib diisi"),
+  nama: z.coerce.string().min(1, "Nama wajib diisi"),
+  prodi: z.coerce.string().nullable().optional(),
+  angkatan: z.coerce.string().nullable().optional(),
+  nik: z.coerce.string().nullable().optional(),
   tanggal_lahir: gracefulDateSchema,
-  nama_ibu: z.string().nullable().optional(),
-  no_hp: z.string().nullable().optional(),
-  lokasi_ujian: z.string().nullable().optional(),
+  nama_ibu: z.coerce.string().nullable().optional(),
+  no_hp: z.coerce.string().nullable().optional(),
+  lokasi_ujian: z.coerce.string().nullable().optional(),
   billings: z.array(billingImportSchema).nullable().optional(),
 });
 
 // list of rows schema
 export const studentImportBatchSchema = z.array(studentImportRowSchema);
+

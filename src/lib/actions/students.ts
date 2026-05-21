@@ -292,104 +292,157 @@ export async function updateStudent(id: string, data: {
 export async function importBatchStudents(data: any[]) {
   const supabase = createClient();
   
-  let studentsCreated = 0;
-  let billsMain = 0;
-  let billsAdditional = 0;
-  let paymentsVerified = 0;
+  const validStudents: any[] = [];
+  const validRows: any[] = [];
 
   try {
+    // 1. Loop only to validate and collect clean rows in memory
     for (const rawRow of data) {
       try {
-        // 1. Validate using our Zod schema
         const validated = studentImportRowSchema.parse(rawRow);
-
-        // 2. Upsert student
-        const { data: student, error: studentError } = await supabase
-          .from("mahasiswa")
-          .upsert({
-            nim: validated.nim,
-            nama: validated.nama,
-            prodi: validated.prodi || null,
-            angkatan: validated.angkatan || null,
-            nik: validated.nik || null,
-            tanggal_lahir: validated.tanggal_lahir || null,
-            nama_ibu: validated.nama_ibu || null,
-            no_hp: validated.no_hp || null,
-            lokasi_ujian: validated.lokasi_ujian || null,
-            deposit: 0
-          }, { onConflict: "nim" })
-          .select("id")
-          .single();
-
-        if (studentError || !student) {
-          throw new Error(`Failed to upsert student nim ${validated.nim}: ${studentError?.message}`);
-        }
-
-        studentsCreated++;
-
-        // 3. Process billings if any
-        if (validated.billings && validated.billings.length > 0) {
-          const timestamp = Date.now();
-          const defaultDueDate = new Date();
-          defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
-          const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
-
-          for (let idx = 0; idx < validated.billings.length; idx++) {
-            const bill = validated.billings[idx];
-            const isUtama = idx === 0 || bill.jenis === "Uang Semester";
-            const tipeBilling = isUtama ? "utama" : "tambahan";
-            
-            // Insert bill
-            const { data: createdBill, error: billError } = await supabase
-              .from("tagihan")
-              .insert({
-                mahasiswa_id: student.id,
-                jenis: bill.jenis || "Uang Semester",
-                jumlah: bill.nominal,
-                status: bill.status || "BELUM_LUNAS",
-                nomor_billing: bill.nomor_billing || null,
-                jatuh_tempo: bill.jatuh_tempo || defaultDueDateStr,
-                sisa_tagihan: bill.status === "LUNAS" ? 0 : bill.nominal,
-                tipe_billing: tipeBilling,
-                kode: `INV-${validated.nim}-${timestamp}-${idx}-${Math.floor(Math.random() * 1000)}`,
-                created_at: new Date().toISOString()
-              })
-              .select("id")
-              .single();
-
-            if (billError || !createdBill) {
-              console.error(`Failed to insert bill for student ${validated.nim}:`, billError);
-              throw new Error(`Failed to insert bill: ${billError?.message}`);
-            }
-
-            if (tipeBilling === "utama") {
-              billsMain++;
-            } else {
-              billsAdditional++;
-            }
-
-            // Insert payment if status is LUNAS
-            if (bill.status === "LUNAS") {
-              const { error: paymentError } = await supabase
-                .from("pembayaran")
-                .insert({
-                  tagihan_id: createdBill.id,
-                  jumlah_bayar: bill.nominal,
-                  metode: "IMPORT_EXCEL",
-                  status: "VERIFIED",
-                  created_at: new Date().toISOString()
-                });
-
-              if (paymentError) {
-                console.error(`Failed to insert payment for bill ${createdBill.id}:`, paymentError);
-                throw new Error(`Failed to insert payment: ${paymentError.message}`);
-              }
-              paymentsVerified++;
-            }
-          }
-        }
+        validStudents.push({
+          nim: validated.nim,
+          nama: validated.nama,
+          prodi: validated.prodi || null,
+          angkatan: validated.angkatan || null,
+          nik: validated.nik || null,
+          tanggal_lahir: validated.tanggal_lahir || null,
+          nama_ibu: validated.nama_ibu || null,
+          no_hp: validated.no_hp || null,
+          lokasi_ujian: validated.lokasi_ujian || null,
+          deposit: 0
+        });
+        validRows.push(validated);
       } catch (rowError) {
-        console.error("Skipping corrupted import row:", rowError, rawRow);
+        console.error("Skipping corrupted import row validation:", rowError, rawRow);
+      }
+    }
+
+    if (validStudents.length === 0) {
+      return {
+        success: true,
+        metrics: {
+          studentsCreated: 0,
+          billsMain: 0,
+          billsAdditional: 0,
+          paymentsVerified: 0
+        }
+      };
+    }
+
+    // 2. Perform exactly ONE bulk upsert for all validated students
+    const { error: studentError } = await supabase
+      .from("mahasiswa")
+      .upsert(validStudents, { onConflict: "nim" });
+
+    if (studentError) {
+      throw new Error(`Failed to bulk upsert students: ${studentError.message}`);
+    }
+
+    const studentsCreated = validStudents.length;
+
+    // 3. Fetch all generated student IDs in bulk
+    const allNims = validStudents.map(s => s.nim);
+    const { data: students, error: fetchError } = await supabase
+      .from("mahasiswa")
+      .select("id, nim")
+      .in("nim", allNims);
+
+    if (fetchError || !students) {
+      throw new Error(`Failed to fetch student IDs: ${fetchError?.message}`);
+    }
+
+    const studentMap = new Map(students.map(s => [s.nim, s.id]));
+
+    // 4. Construct billings list for bulk insert
+    const timestamp = Date.now();
+    const defaultDueDate = new Date();
+    defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+    const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
+
+    const billsToInsert: any[] = [];
+    let billsMain = 0;
+    let billsAdditional = 0;
+
+    validRows.forEach(validatedRow => {
+      const studentId = studentMap.get(validatedRow.nim);
+      if (!studentId || !validatedRow.billings) return;
+
+      validatedRow.billings.forEach((bill: any, idx: number) => {
+        const isUtama = idx === 0 || bill.jenis === "Uang Semester";
+        const tipeBilling = isUtama ? "utama" : "tambahan";
+
+        if (tipeBilling === "utama") {
+          billsMain++;
+        } else {
+          billsAdditional++;
+        }
+
+        billsToInsert.push({
+          mahasiswa_id: studentId,
+          jenis: bill.jenis || "Uang Semester",
+          jumlah: bill.nominal,
+          status: bill.status || "BELUM_LUNAS",
+          nomor_billing: bill.nomor_billing || null,
+          jatuh_tempo: bill.jatuh_tempo || defaultDueDateStr,
+          sisa_tagihan: bill.status === "LUNAS" ? 0 : bill.nominal,
+          tipe_billing: tipeBilling,
+          kode: `INV-${validatedRow.nim}-${timestamp}-${idx}-${Math.floor(Math.random() * 1000)}`,
+          created_at: new Date().toISOString()
+        });
+      });
+    });
+
+    // 5. Bulk insert billings
+    if (billsToInsert.length > 0) {
+      const { error: billError } = await supabase
+        .from("tagihan")
+        .insert(billsToInsert);
+
+      if (billError) {
+        throw new Error(`Failed to bulk insert bills: ${billError.message}`);
+      }
+    }
+
+    // 6. Handle payments for LUNAS bills
+    let paymentsVerified = 0;
+    const lunasBills = billsToInsert.filter(b => b.status === "LUNAS");
+    
+    if (lunasBills.length > 0) {
+      // Query generated bill IDs by their unique codes
+      const { data: createdBills, error: billFetchError } = await supabase
+        .from("tagihan")
+        .select("id, kode")
+        .in("kode", lunasBills.map(b => b.kode));
+
+      if (billFetchError || !createdBills) {
+        throw new Error(`Failed to fetch created bill IDs: ${billFetchError?.message}`);
+      }
+
+      const billMap = new Map(createdBills.map(b => [b.kode, b.id]));
+      const paymentsToInsert = lunasBills
+        .map(b => {
+          const billId = billMap.get(b.kode);
+          if (!billId) return null;
+          return {
+            tagihan_id: billId,
+            jumlah_bayar: b.jumlah,
+            metode: "IMPORT_EXCEL",
+            status: "VERIFIED",
+            created_at: new Date().toISOString()
+          };
+        })
+        .filter(Boolean) as any[];
+
+      if (paymentsToInsert.length > 0) {
+        const { error: paymentError } = await supabase
+          .from("pembayaran")
+          .insert(paymentsToInsert);
+
+        if (paymentError) {
+          throw new Error(`Failed to bulk insert payments: ${paymentError.message}`);
+        }
+        paymentsVerified = paymentsToInsert.length;
       }
     }
 
