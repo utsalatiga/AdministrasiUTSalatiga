@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { isSuperAdmin } from "@/lib/roles";
+import { studentImportRowSchema } from "@/lib/validations/student";
 
 const defaultDueDate = new Date();
 defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
@@ -291,93 +292,104 @@ export async function updateStudent(id: string, data: {
 export async function importBatchStudents(data: any[]) {
   const supabase = createClient();
   
+  let studentsCreated = 0;
+  let billsMain = 0;
+  let billsAdditional = 0;
+  let paymentsVerified = 0;
+
   try {
-    const studentData = data.map(row => ({
-      nim: row.nim,
-      nama: row.nama,
-      prodi: row.prodi,
-      angkatan: row.angkatan,
-      nik: row.nik || null,
-      tanggal_lahir: row.tanggal_lahir || null,
-      nama_ibu: row.nama_ibu || null,
-      no_hp: row.no_hp || null,
-      lokasi_ujian: row.lokasi_ujian || null,
-      deposit: 0
-    }));
+    for (const rawRow of data) {
+      try {
+        // 1. Validate using our Zod schema
+        const validated = studentImportRowSchema.parse(rawRow);
 
-    const { error: studentError } = await supabase
-      .from("mahasiswa")
-      .upsert(studentData, { onConflict: "nim" });
-      
-    if (studentError) throw studentError;
+        // 2. Upsert student
+        const { data: student, error: studentError } = await supabase
+          .from("mahasiswa")
+          .upsert({
+            nim: validated.nim,
+            nama: validated.nama,
+            prodi: validated.prodi || null,
+            angkatan: validated.angkatan || null,
+            nik: validated.nik || null,
+            tanggal_lahir: validated.tanggal_lahir || null,
+            nama_ibu: validated.nama_ibu || null,
+            no_hp: validated.no_hp || null,
+            lokasi_ujian: validated.lokasi_ujian || null,
+            deposit: 0
+          }, { onConflict: "nim" })
+          .select("id")
+          .single();
 
-    const allNims = data.map(d => d.nim);
-    const { data: students, error: fetchError } = await supabase
-      .from("mahasiswa")
-      .select("id, nim")
-      .in("nim", allNims);
+        if (studentError || !student) {
+          throw new Error(`Failed to upsert student nim ${validated.nim}: ${studentError?.message}`);
+        }
 
-    if (fetchError) throw fetchError;
-    const studentMap = new Map(students?.map(s => [s.nim, s.id]));
+        studentsCreated++;
 
-    const timestamp = Date.now();
-    const defaultDueDate = new Date();
-    defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
-    const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
+        // 3. Process billings if any
+        if (validated.billings && validated.billings.length > 0) {
+          const timestamp = Date.now();
+          const defaultDueDate = new Date();
+          defaultDueDate.setMonth(defaultDueDate.getMonth() + 1);
+          const defaultDueDateStr = defaultDueDate.toISOString().split('T')[0];
 
-    const billsToInsert: any[] = [];
-    
-    data.forEach(studentObj => {
-      const studentId = studentMap.get(studentObj.nim);
-      if (!studentId || !studentObj.billings) return;
-      
-      studentObj.billings.forEach((bill: any, idx: number) => {
-        billsToInsert.push({
-          mahasiswa_id: studentId,
-          jenis: bill.jenis || "Uang Semester",
-          jumlah: Number(bill.nominal) || 0,
-          status: bill.status || "BELUM_LUNAS",
-          nomor_billing: bill.nomor_billing || null,
-          jatuh_tempo: bill.jatuh_tempo || defaultDueDateStr,
-          sisa_tagihan: bill.status === "LUNAS" ? 0 : (Number(bill.nominal) || 0),
-          tipe_billing: idx === 0 || bill.jenis === "Uang Semester" ? "utama" : "tambahan",
-          kode: `INV-${studentObj.nim}-${timestamp}-${idx}-${Math.floor(Math.random() * 1000)}`,
-          created_at: new Date().toISOString()
-        });
-      });
-    });
+          for (let idx = 0; idx < validated.billings.length; idx++) {
+            const bill = validated.billings[idx];
+            const isUtama = idx === 0 || bill.jenis === "Uang Semester";
+            const tipeBilling = isUtama ? "utama" : "tambahan";
+            
+            // Insert bill
+            const { data: createdBill, error: billError } = await supabase
+              .from("tagihan")
+              .insert({
+                mahasiswa_id: student.id,
+                jenis: bill.jenis || "Uang Semester",
+                jumlah: bill.nominal,
+                status: bill.status || "BELUM_LUNAS",
+                nomor_billing: bill.nomor_billing || null,
+                jatuh_tempo: bill.jatuh_tempo || defaultDueDateStr,
+                sisa_tagihan: bill.status === "LUNAS" ? 0 : bill.nominal,
+                tipe_billing: tipeBilling,
+                kode: `INV-${validated.nim}-${timestamp}-${idx}-${Math.floor(Math.random() * 1000)}`,
+                created_at: new Date().toISOString()
+              })
+              .select("id")
+              .single();
 
-    if (billsToInsert.length > 0) {
-      const { error: billError } = await supabase
-        .from("tagihan")
-        .insert(billsToInsert);
-        
-      if (billError) throw billError;
-    }
+            if (billError || !createdBill) {
+              console.error(`Failed to insert bill for student ${validated.nim}:`, billError);
+              throw new Error(`Failed to insert bill: ${billError?.message}`);
+            }
 
-    const lunasBills = billsToInsert.filter(b => b.status === "LUNAS");
-    if (lunasBills.length > 0) {
-      const { data: createdBills, error: billFetchError } = await supabase
-        .from("tagihan")
-        .select("id, kode")
-        .in("kode", lunasBills.map(b => b.kode));
+            if (tipeBilling === "utama") {
+              billsMain++;
+            } else {
+              billsAdditional++;
+            }
 
-      if (billFetchError) throw billFetchError;
+            // Insert payment if status is LUNAS
+            if (bill.status === "LUNAS") {
+              const { error: paymentError } = await supabase
+                .from("pembayaran")
+                .insert({
+                  tagihan_id: createdBill.id,
+                  jumlah_bayar: bill.nominal,
+                  metode: "IMPORT_EXCEL",
+                  status: "VERIFIED",
+                  created_at: new Date().toISOString()
+                });
 
-      const billMap = new Map(createdBills?.map(b => [b.kode, b.id]));
-      const paymentsToInsert = lunasBills.map(b => ({
-        tagihan_id: billMap.get(b.kode),
-        jumlah_bayar: b.jumlah,
-        metode: "IMPORT_EXCEL",
-        status: "VERIFIED",
-        created_at: new Date().toISOString()
-      })).filter(p => p.tagihan_id);
-
-      if (paymentsToInsert.length > 0) {
-        const { error: paymentError } = await supabase
-          .from("pembayaran")
-          .insert(paymentsToInsert);
-        if (paymentError) throw paymentError;
+              if (paymentError) {
+                console.error(`Failed to insert payment for bill ${createdBill.id}:`, paymentError);
+                throw new Error(`Failed to insert payment: ${paymentError.message}`);
+              }
+              paymentsVerified++;
+            }
+          }
+        }
+      } catch (rowError) {
+        console.error("Skipping corrupted import row:", rowError, rawRow);
       }
     }
 
@@ -388,10 +400,10 @@ export async function importBatchStudents(data: any[]) {
     return { 
       success: true,
       metrics: {
-        studentsCreated: studentData.length,
-        billsMain: billsToInsert.filter(b => b.tipe_billing === "utama").length,
-        billsAdditional: billsToInsert.filter(b => b.tipe_billing === "tambahan").length,
-        paymentsVerified: lunasBills.length
+        studentsCreated,
+        billsMain,
+        billsAdditional,
+        paymentsVerified
       }
     };
   } catch (error: any) {
