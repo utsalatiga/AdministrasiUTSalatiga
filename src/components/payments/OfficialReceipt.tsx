@@ -51,30 +51,30 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
         </div>
 
         {/* Receipt Content */}
-        <div className="p-10 print:p-0 overflow-y-auto max-h-[80vh] print:max-h-none">
-          <div ref={printRef} className="official-receipt relative border-2 border-slate-900 p-12 print:border-none print:p-0">
+        <div className="p-6 print:p-0 overflow-y-auto max-h-[80vh] print:max-h-none">
+          <div ref={printRef} className="official-receipt relative border-2 border-slate-900 p-6 print:border-none print:p-0">
             {/* Institution Header */}
-            <div className="flex items-start justify-between border-b-4 border-slate-900 pb-6 mb-8">
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 bg-sidebar rounded-full flex items-center justify-center text-white font-serif text-2xl font-bold">UT</div>
+            <div className="flex items-start justify-between border-b-4 border-slate-900 pb-3 mb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-sidebar rounded-full flex items-center justify-center text-white font-serif text-xl font-bold">UT</div>
                 <div>
-                  <h1 className="font-serif text-2xl font-bold text-slate-900 uppercase leading-none">UNIVERSITAS TERBUKA</h1>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">SALATIGA LEARNING CENTER</p>
-                  <p className="text-[10px] text-slate-400 mt-1 italic">Jl. Tentara Pelajar No. 12, Salatiga, Jawa Tengah</p>
+                  <h1 className="font-serif text-xl font-bold text-slate-900 uppercase leading-none">UNIVERSITAS TERBUKA</h1>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">SALATIGA LEARNING CENTER</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5 italic">Jl. Tentara Pelajar No. 12, Salatiga, Jawa Tengah</p>
                 </div>
               </div>
-              <div className="text-right space-y-2">
+              <div className="text-right space-y-1">
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Kwitansi No. / ID</div>
-                  <div className="font-serif text-lg font-bold text-slate-900 leading-none">{data.no_kwitansi}</div>
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Kwitansi No. / ID</div>
+                  <div className="font-serif text-base font-bold text-slate-900 leading-none">{data.no_kwitansi}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Tanggal</div>
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Tanggal</div>
                   <div className="font-serif text-xs font-bold text-slate-800 leading-none">{data.tanggal}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Metode</div>
-                  <span className="inline-block text-[10px] font-sans font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">
+                  <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Metode</div>
+                  <span className="inline-block text-[9px] font-sans font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md uppercase tracking-wider leading-none">
                     {data.metode || "TUNAI"}
                   </span>
                 </div>
@@ -82,70 +82,70 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
             </div>
 
             {/* Content Table */}
-            <div className="space-y-6 font-serif">
-              <div className="flex border-b border-slate-200 pb-2">
-                <div className="w-48 text-sm text-slate-500 italic">Sudah Terima Dari</div>
-                <div className="flex-1 text-base font-bold text-slate-900 uppercase">{data.nama} ({data.nim})</div>
+            <div className="space-y-3 font-serif">
+              <div className="flex border-b border-slate-200 pb-1">
+                <div className="w-40 text-xs text-slate-500 italic">Sudah Terima Dari</div>
+                <div className="flex-1 text-sm font-bold text-slate-900 uppercase">{data.nama} ({data.nim})</div>
               </div>
-              <div className="flex border-b border-slate-200 pb-2">
-                <div className="w-48 text-sm text-slate-500 italic">Transfer Dari (Pengirim)</div>
-                <div className="flex-1 text-sm font-semibold text-slate-850">
+              <div className="flex border-b border-slate-200 pb-1">
+                <div className="w-40 text-xs text-slate-500 italic">Transfer Dari (Pengirim)</div>
+                <div className="flex-1 text-xs font-semibold text-slate-850">
                   {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_pengirim || `${data.nama} (${data.nim})`) : "Cash"}
                 </div>
               </div>
-              <div className="flex border-b border-slate-200 pb-2">
-                <div className="w-48 text-sm text-slate-500 italic">Transfer Ke (Penerima)</div>
-                <div className="flex-1 text-sm font-semibold text-slate-850">
+              <div className="flex border-b border-slate-200 pb-1">
+                <div className="w-40 text-xs text-slate-500 italic">Transfer Ke (Penerima)</div>
+                <div className="flex-1 text-xs font-semibold text-slate-850">
                   {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_tujuan || "Detail Rekening Kampus") : "Tunai via Kasir / Admin"}
                 </div>
               </div>
-              <div className="flex border-b border-slate-200 pb-2">
-                <div className="w-48 text-sm text-slate-500 italic">Banyaknya Uang</div>
-                <div className="flex-1 text-base font-bold text-slate-900 capitalize"># {amountInWords} #</div>
+              <div className="flex border-b border-slate-200 pb-1">
+                <div className="w-40 text-xs text-slate-500 italic">Banyaknya Uang</div>
+                <div className="flex-1 text-xs font-bold text-slate-900 capitalize"># {amountInWords} #</div>
               </div>
-              <div className="flex border-b border-slate-200 pb-2">
-                <div className="w-48 text-sm text-slate-500 italic">Untuk Pembayaran</div>
-                <div className="flex-1 text-base font-bold text-slate-900">{data.untuk_pembayaran}</div>
+              <div className="flex border-b border-slate-200 pb-1">
+                <div className="w-40 text-xs text-slate-500 italic">Untuk Pembayaran</div>
+                <div className="flex-1 text-sm font-bold text-slate-900">{data.untuk_pembayaran}</div>
               </div>
             </div>
 
             {/* Amount Box */}
-            <div className="mt-12 flex justify-between items-end">
-              <div className="bg-slate-900 text-white p-6 rounded-lg min-w-[250px]">
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Gabungan (IDR)</div>
-                <div className="text-3xl font-bold font-tabular">{formatRupiah(data.total_gabungan || data.jumlah)}</div>
+            <div className="mt-6 flex justify-between items-end">
+              <div className="bg-slate-900 text-white p-4 rounded-lg min-w-[200px]">
+                <div className="text-[9px] uppercase font-bold text-slate-400 mb-0.5">Total Gabungan (IDR)</div>
+                <div className="text-xl font-bold font-tabular">{formatRupiah(data.total_gabungan || data.jumlah)}</div>
               </div>
 
               {/* Breakdown Table for Printing */}
               {(data.nominal_deposit || 0) > 0 && (
-                <div className="flex-1 max-w-[300px] ml-8">
-                   <table className="w-full text-[10px] uppercase font-bold tracking-widest text-slate-500 border-collapse">
+                <div className="flex-1 max-w-[220px] ml-6">
+                   <table className="w-full text-[9px] uppercase font-bold tracking-widest text-slate-500 border-collapse">
                     <tbody>
                       <tr className="border-b border-slate-100">
-                        <td className="py-1">Cash / Transfer</td>
-                        <td className="py-1 text-right text-slate-900">{formatRupiah(data.jumlah)}</td>
+                        <td className="py-0.5">Cash / Transfer</td>
+                        <td className="py-0.5 text-right text-slate-900">{formatRupiah(data.jumlah)}</td>
                       </tr>
                       <tr className="border-b border-slate-100">
-                        <td className="py-1">Saldo Deposit</td>
-                        <td className="py-1 text-right text-indigo-600">{formatRupiah(data.nominal_deposit || 0)}</td>
+                        <td className="py-0.5">Saldo Deposit</td>
+                        <td className="py-0.5 text-right text-indigo-600">{formatRupiah(data.nominal_deposit || 0)}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               )}
               
-              <div className="text-center w-64">
-                <div className="text-sm text-slate-900 mb-2">Salatiga, {data.tanggal}</div>
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-16 italic">Penerima / Kasir,</div>
-                <div className="text-sm font-bold text-slate-900 uppercase">
+              <div className="text-center w-56">
+                <div className="text-xs text-slate-900 mb-1">Salatiga, {data.tanggal}</div>
+                <div className="text-[9px] uppercase font-bold text-slate-400 mb-10 italic">Penerima / Kasir,</div>
+                <div className="text-xs font-bold text-slate-900 uppercase">
                   ( {data.admin} )
                 </div>
               </div>
             </div>
 
             {/* Watermark/Footer */}
-            <div className="mt-20 pt-8 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-              <div className="space-y-1">
+            <div className="mt-8 pt-4 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+              <div className="space-y-0.5">
                 <span>Bukti pembayaran sah secara sistem</span>
                 {(data.nominal_deposit || 0) > 0 && (
                   <p className="text-indigo-500 font-bold lowercase italic">* Pembayaran ini mencakup penggunaan deposit {formatRupiah(data.nominal_deposit || 0)}</p>
@@ -157,11 +157,11 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
         </div>
 
         {/* Modal Footer - Hidden on Print */}
-        <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex gap-4 print:hidden">
-          <button onClick={onClose} className="flex-1 py-3 px-4 border border-slate-200 rounded-xl font-semibold text-slate-600 hover:bg-white transition-all">
+        <div className="px-8 py-4 bg-slate-50 border-t border-slate-100 flex gap-4 print:hidden">
+          <button onClick={onClose} className="flex-1 py-2.5 px-4 border border-slate-200 rounded-xl font-semibold text-slate-600 hover:bg-white transition-all">
             Batalkan
           </button>
-          <button onClick={handlePrint} className="flex-1 py-3 px-4 bg-sidebar text-white rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20">
+          <button onClick={handlePrint} className="flex-1 py-2.5 px-4 bg-sidebar text-white rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20">
             <Printer className="h-5 w-5" />
             Cetak Sekarang
           </button>
@@ -175,12 +175,8 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
             margin: 0 !important;
           }
 
-          /* Trik 99% agar Chrome tidak melempar 1 pixel ke halaman 2 */
           html, body {
             width: 100% !important;
-            height: 99% !important; /* KUNCI UTAMANYA DI SINI */
-            max-height: 99% !important;
-            overflow: hidden !important;
             margin: 0 !important;
             padding: 0 !important;
             visibility: hidden;
@@ -207,7 +203,7 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
           }
 
           #print-area > div {
-            padding: 15mm !important;
+            padding: 8mm !important;
             box-sizing: border-box !important;
           }
         }
