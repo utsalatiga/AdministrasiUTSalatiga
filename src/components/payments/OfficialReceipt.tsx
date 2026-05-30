@@ -56,7 +56,7 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
             {/* Institution Header */}
             <div className="flex items-start justify-between border-b-4 border-slate-900 pb-3 mb-4">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-sidebar rounded-full flex items-center justify-center text-white font-serif text-xl font-bold">UT</div>
+                <img src="https://lh3.googleusercontent.com/d/1_p7yRshg69PT2mo3pYqohb7Bs1PUi8HE" alt="Logo UT" className="w-14 h-14 object-contain" />
                 <div>
                   <h1 className="font-serif text-xl font-bold text-slate-900 uppercase leading-none">UNIVERSITAS TERBUKA</h1>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">SALATIGA LEARNING CENTER</p>

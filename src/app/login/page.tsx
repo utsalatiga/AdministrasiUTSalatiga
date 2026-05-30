@@ -66,14 +66,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 relative overflow-hidden">
+      {/* Decorative background blur elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/20 blur-[100px]" />
+        <div className="absolute top-[20%] -right-[10%] w-[40%] h-[60%] rounded-full bg-indigo-400/10 blur-[100px]" />
+        <div className="absolute -bottom-[20%] left-[20%] w-[60%] h-[50%] rounded-full bg-sky-400/20 blur-[120px]" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <h1 className="font-serif text-4xl text-sidebar mb-2">UT Salatiga</h1>
-          <p className="text-slate-500 font-sans tracking-tight">Sistem Keuangan Mahasiswa</p>
+          <img 
+            src="https://lh3.googleusercontent.com/d/1_p7yRshg69PT2mo3pYqohb7Bs1PUi8HE" 
+            alt="Logo UT" 
+            className="w-24 h-24 mx-auto mb-4 object-contain drop-shadow-sm" 
+          />
+          <h1 className="font-sans text-3xl font-extrabold tracking-tight text-slate-800 mb-2">UT Salatiga</h1>
+          <p className="text-slate-500 font-medium tracking-wider text-xs uppercase">Sistem Keuangan Mahasiswa</p>
         </div>
 
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
+        <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">
           <h2 className="text-xl font-semibold text-slate-800 mb-6">Login Admin</h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -118,7 +130,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-sidebar text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+              className="w-full py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/20 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

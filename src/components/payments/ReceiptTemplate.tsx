@@ -125,6 +125,7 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
         <div className="p-6 overflow-y-auto max-h-[70vh]">
           <div ref={printRef} className="receipt-card border-2 border-slate-100 p-6 rounded-xl bg-white shadow-inner">
             <div className="header text-center border-b-2 border-slate-900 pb-3 mb-4">
+              <img src="https://lh3.googleusercontent.com/d/1_p7yRshg69PT2mo3pYqohb7Bs1PUi8HE" alt="Logo UT" className="w-16 h-16 mx-auto mb-2 object-contain" />
               <h1 className="font-serif text-xl text-slate-900">UNIVERSITAS TERBUKA</h1>
               <p className="text-[9px] uppercase tracking-[0.3em] text-slate-400 mt-1 font-bold">SALATIGA LEARNING CENTER</p>
             </div>
