@@ -35,6 +35,7 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
       <html>
         <head>
           <title>Kwitansi - ${data.no_kwitansi}</title>
+          <script src="https://cdn.tailwindcss.com"></script>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Merriweather:wght@700&display=swap');
             body { font-family: 'Inter', sans-serif; padding: 20px; color: #1e293b; }
@@ -96,7 +97,7 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
             ${printContent.innerHTML}
           </div>
           <script>
-            window.onload = function() { window.print(); window.close(); }
+            setTimeout(function() { window.print(); window.close(); }, 800);
           </script>
         </body>
       </html>
@@ -130,45 +131,26 @@ export default function ReceiptTemplate({ data, onClose }: ReceiptProps) {
               <p className="text-[9px] uppercase tracking-[0.3em] text-slate-400 mt-1 font-bold">SALATIGA LEARNING CENTER</p>
             </div>
 
-            <div className="info-grid grid grid-cols-2 gap-4 mb-4">
-              <div className="space-y-2">
-                <div className="info-item">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">No. Kwitansi</label>
-                  <span className="block text-slate-800 font-semibold">{data.no_kwitansi}</span>
-                </div>
-                <div className="info-item">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tanggal</label>
-                  <span className="block text-slate-800 font-semibold">{data.tanggal}</span>
-                </div>
-                <div className="info-item">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Metode Pembayaran</label>
-                  <span className="block text-slate-800 font-semibold uppercase">{data.metode || "TUNAI"}</span>
-                </div>
+            <div className="grid grid-cols-2 gap-x-6 border-b border-gray-300 pb-2 mb-4 font-sans text-slate-800">
+              {/* KOLOM KIRI: Data Mahasiswa */}
+              <div className="space-y-1 text-[11px]">
+                <p className="font-bold text-gray-700 border-b pb-1 mb-1 text-[12px]">Data Mahasiswa/Payer</p>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>NIM</span><span>:</span><span className="font-bold">{data.nim}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Nama</span><span>:</span><span className="font-bold uppercase">{data.nama}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Pengirim</span><span>:</span><span>{data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_pengirim || `${data.nama} (${data.nim})`) : "Cash"}</span></div>
               </div>
-              <div className="space-y-2">
-                <div className="info-item">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Diterima Dari</label>
-                  <span className="block text-slate-800 font-semibold">{data.nama} ({data.nim})</span>
-                </div>
-                <div className="info-item">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Untuk Pembayaran</label>
-                  <span className="block text-slate-800 font-semibold">{data.untuk_pembayaran}</span>
-                </div>
-              </div>
-            </div>
 
-            <div className="info-grid grid grid-cols-2 gap-4 mb-4" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px' }}>
-              <div className="info-item">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transfer Dari (Pengirim)</label>
-                <span className="block text-slate-800 font-semibold text-xs">
-                  {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_pengirim || `${data.nama} (${data.nim})`) : "Cash"}
-                </span>
-              </div>
-              <div className="info-item">
-                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Transfer Ke (Penerima)</label>
-                <span className="block text-slate-800 font-semibold text-xs">
-                  {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_tujuan || "Detail Rekening Kampus") : "Tunai via Kasir / Admin"}
-                </span>
+              {/* KOLOM KANAN: Data Tagihan & Status */}
+              <div className="space-y-1 text-[11px] border-l border-gray-300 pl-4">
+                <p className="font-bold text-gray-700 border-b pb-1 mb-1 text-[12px]">Data Tagihan/Billing</p>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>No. Kwitansi</span><span>:</span><span>{data.no_kwitansi}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Keterangan</span><span>:</span><span>{data.untuk_pembayaran}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Penerima</span><span>:</span><span>{data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_tujuan || "Rekening Kampus") : "Kasir / Admin"}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Metode</span><span>:</span><span>{data.metode || "TUNAI"}</span></div>
+                <div className="mt-2 flex items-center gap-2">
+                  <span>STATUS</span>
+                  <span className="bg-green-100 text-green-800 text-[10px] font-bold px-3 py-1 rounded border border-green-300 uppercase">✓ LUNAS</span>
+                </div>
               </div>
             </div>
 

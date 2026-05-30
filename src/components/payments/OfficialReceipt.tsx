@@ -82,30 +82,26 @@ export default function OfficialReceipt({ data, onClose }: OfficialReceiptProps)
             </div>
 
             {/* Content Table */}
-            <div className="space-y-3 font-serif">
-              <div className="flex border-b border-slate-200 pb-1">
-                <div className="w-40 text-xs text-slate-500 italic">Sudah Terima Dari</div>
-                <div className="flex-1 text-sm font-bold text-slate-900 uppercase">{data.nama} ({data.nim})</div>
+            <div className="grid grid-cols-2 gap-x-6 border-b border-gray-300 pb-2 mb-4">
+              {/* KOLOM KIRI: Data Mahasiswa */}
+              <div className="space-y-1 text-[11px]">
+                <p className="font-bold text-gray-700 border-b pb-1 mb-1 text-[12px]">Data Mahasiswa/Payer</p>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>NIM</span><span>:</span><span className="font-bold">{data.nim}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Nama</span><span>:</span><span className="font-bold uppercase">{data.nama}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Pengirim</span><span>:</span><span>{data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_pengirim || `${data.nama} (${data.nim})`) : "Cash"}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Terbilang</span><span>:</span><span className="italic capitalize"># {amountInWords} #</span></div>
               </div>
-              <div className="flex border-b border-slate-200 pb-1">
-                <div className="w-40 text-xs text-slate-500 italic">Transfer Dari (Pengirim)</div>
-                <div className="flex-1 text-xs font-semibold text-slate-850">
-                  {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_pengirim || `${data.nama} (${data.nim})`) : "Cash"}
+
+              {/* KOLOM KANAN: Data Tagihan & Status */}
+              <div className="space-y-1 text-[11px] border-l border-gray-300 pl-4">
+                <p className="font-bold text-gray-700 border-b pb-1 mb-1 text-[12px]">Data Tagihan/Billing</p>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Keterangan</span><span>:</span><span>{data.untuk_pembayaran}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Penerima</span><span>:</span><span>{data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_tujuan || "Rekening Kampus") : "Kasir / Admin"}</span></div>
+                <div className="grid grid-cols-[80px_10px_1fr]"><span>Metode</span><span>:</span><span>{data.metode || "TUNAI"}</span></div>
+                <div className="mt-2 flex items-center gap-2">
+                  <span>STATUS</span>
+                  <span className="bg-green-100 text-green-800 text-[10px] font-bold px-3 py-1 rounded border border-green-300 uppercase">✓ LUNAS</span>
                 </div>
-              </div>
-              <div className="flex border-b border-slate-200 pb-1">
-                <div className="w-40 text-xs text-slate-500 italic">Transfer Ke (Penerima)</div>
-                <div className="flex-1 text-xs font-semibold text-slate-850">
-                  {data.metode === "TRANSFER" || data.metode === "TRANSFER_MANUAL" ? (data.bank_tujuan || "Detail Rekening Kampus") : "Tunai via Kasir / Admin"}
-                </div>
-              </div>
-              <div className="flex border-b border-slate-200 pb-1">
-                <div className="w-40 text-xs text-slate-500 italic">Banyaknya Uang</div>
-                <div className="flex-1 text-xs font-bold text-slate-900 capitalize"># {amountInWords} #</div>
-              </div>
-              <div className="flex border-b border-slate-200 pb-1">
-                <div className="w-40 text-xs text-slate-500 italic">Untuk Pembayaran</div>
-                <div className="flex-1 text-sm font-bold text-slate-900">{data.untuk_pembayaran}</div>
               </div>
             </div>
 
