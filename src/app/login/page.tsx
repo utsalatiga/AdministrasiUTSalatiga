@@ -1,144 +1,72 @@
 "use client";
 
+import { Lock, Settings } from "lucide-react";
+
 export const dynamic = "force-dynamic";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Loader2, Lock, User } from "lucide-react";
-import { isAdmin } from "@/lib/roles";
-
-const loginSchema = z.object({
-  email: z.string().email({ message: "Email tidak valid" }),
-  password: z.string().min(6, { message: "Password minimal 6 karakter" }),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
-
 export default function LoginPage() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const supabase = createClient();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-  });
-
-  const onSubmit = async (values: LoginFormValues) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
-
-      if (signInError) throw signInError;
-
-      // Check role 'admin' in profiles table
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .single();
-
-      if (profileError || !isAdmin(profile?.role)) {
-        await supabase.auth.signOut();
-        throw new Error("Akses ditolak. Hanya untuk Admin.");
-      }
-
-      router.push("/");
-      router.refresh();
-    } catch (err: any) {
-      setError(err.message || "Terjadi kesalahan saat login");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 relative overflow-hidden">
-      {/* Decorative background blur elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-400/20 blur-[100px]" />
-        <div className="absolute top-[20%] -right-[10%] w-[40%] h-[60%] rounded-full bg-indigo-400/10 blur-[100px]" />
-        <div className="absolute -bottom-[20%] left-[20%] w-[60%] h-[50%] rounded-full bg-sky-400/20 blur-[120px]" />
+    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-950 text-slate-100 relative overflow-hidden font-sans">
+      {/* Decorative background gradients */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-950/40 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-amber-950/20 blur-[120px]" />
       </div>
 
-      <div className="w-full max-w-md relative z-10">
+      <div className="w-full max-w-lg relative z-10">
+        {/* Logo or Brand */}
         <div className="text-center mb-8">
           <img 
             src="https://lh3.googleusercontent.com/d/1_p7yRshg69PT2mo3pYqohb7Bs1PUi8HE" 
             alt="Logo UT" 
-            className="w-24 h-24 mx-auto mb-4 object-contain drop-shadow-sm" 
+            className="w-20 h-20 mx-auto mb-3 object-contain opacity-80" 
           />
-          <h1 className="font-sans text-3xl font-extrabold tracking-tight text-slate-800 mb-2">UT Salatiga</h1>
-          <p className="text-slate-500 font-medium tracking-wider text-xs uppercase">Sistem Keuangan Mahasiswa</p>
+          <h2 className="text-lg font-bold tracking-wider text-slate-400 uppercase">UT Salatiga</h2>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-xl p-8 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50">
-          <h2 className="text-xl font-semibold text-slate-800 mb-6">Login Admin</h2>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {error && (
-              <div className="p-3 rounded-lg bg-rose-50 border border-rose-100 text-status-rose text-sm font-medium">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 ml-1">Email</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <input
-                  {...register("email")}
-                  type="email"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                  placeholder="admin@utsalatiga.ac.id"
-                />
-              </div>
-              {errors.email && (
-                <p className="text-xs text-status-rose ml-1">{errors.email.message}</p>
-              )}
+        {/* Clean & Minimalist Box Layout Card */}
+        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 p-8 md:p-10 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col items-center text-center">
+          
+          {/* Lock / Cog Icon Wrapper with animation */}
+          <div className="relative mb-8 flex items-center justify-center">
+            {/* Outer glowing ring */}
+            <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-xl animate-pulse" />
+            <div className="w-16 h-16 rounded-full bg-slate-800/80 border border-slate-700/80 flex items-center justify-center relative shadow-inner">
+              <Lock className="w-6 h-6 text-amber-400 animate-pulse" />
+              <Settings className="w-4 h-4 text-slate-500 absolute -bottom-1 -right-1 animate-[spin_10s_linear_infinite]" />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 ml-1">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <input
-                  {...register("password")}
-                  type="password"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
-                  placeholder="••••••••"
-                />
-              </div>
-              {errors.password && (
-                <p className="text-xs text-status-rose ml-1">{errors.password.message}</p>
-              )}
-            </div>
+          {/* Title */}
+          <h1 className="text-xl md:text-2xl font-extrabold text-white tracking-wide uppercase mb-3">
+            PEMBERITAHUAN SISTEM
+          </h1>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-900/20 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                "Masuk ke Dashboard"
-              )}
-            </button>
-          </form>
+          {/* Status Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-400 mb-8 tracking-wide uppercase">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+            Status: Temporary Lock / Maintenance
+          </div>
+
+          {/* Content Body */}
+          <div className="space-y-4 text-slate-300 text-sm md:text-base leading-relaxed text-justify md:text-center font-normal">
+            <p>
+              Akses platform ditutup sementara untuk peningkatan performa infrastruktur keamanan data dan sinkronisasi server utama.
+            </p>
+            <p>
+              Layanan akan diaktifkan kembali secara penuh setelah seluruh proses validasi administrasi dan standardisasi sistem selesai diverifikasi.
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div className="w-full border-t border-slate-800/80 my-8" />
+
+          {/* Footer */}
+          <div className="text-xs md:text-sm text-slate-400 space-y-1">
+            <p className="font-medium">Terima kasih atas kerja samanya.</p>
+            <p className="text-slate-500 font-semibold">— Tim Teknis Digipro</p>
+          </div>
+
         </div>
       </div>
     </div>

@@ -61,27 +61,9 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Protect all routes except /login, /api, and public assets
-  if (!session && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/api') && !request.nextUrl.pathname.startsWith('/_next') && !request.nextUrl.pathname.includes('.')) {
+  // Maintenance Mode Lock: Redirect all routes to /login (except api, static files, and _next assets)
+  if (!request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/api') && !request.nextUrl.pathname.startsWith('/_next') && !request.nextUrl.pathname.includes('.')) {
     return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Redirect to dashboard if logged in and trying to access /login
-  if (session && request.nextUrl.pathname.startsWith('/login')) {
-    return NextResponse.redirect(new URL('/', request.url))
-  }
-
-  // Super Admin protection for /admins and /settings
-  if (request.nextUrl.pathname.startsWith('/admins') || request.nextUrl.pathname.startsWith('/settings')) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', session?.user.id)
-      .single()
-
-    if (!isSuperAdmin(profile?.role)) {
-      return NextResponse.redirect(new URL('/?error=access_denied', request.url))
-    }
   }
 
   return response
